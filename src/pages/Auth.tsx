@@ -17,6 +17,8 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectPath = searchParams.get("redirect");
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
