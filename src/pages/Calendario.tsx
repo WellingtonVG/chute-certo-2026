@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Copy, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
+import { getFlag } from "@/lib/country-flags";
 
 type Match = Tables<"matches">;
 
