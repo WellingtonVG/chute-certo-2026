@@ -157,7 +157,7 @@ const Calendario = () => {
                         <CardContent className="flex items-center justify-between p-4">
                           <div className="flex-1">
                             <div className="flex items-center">
-                              <span className="flex-1 font-semibold">{match.home_team}</span>
+                              <span className="flex-1 font-semibold">{getFlag(match.home_team)} {match.home_team}</span>
                               {match.is_finished ? (
                                 <span className="mx-3 min-w-[60px] text-center text-lg font-bold text-accent">
                                   {match.home_score} × {match.away_score}
