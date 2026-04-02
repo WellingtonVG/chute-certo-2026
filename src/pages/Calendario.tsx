@@ -155,18 +155,18 @@ const Calendario = () => {
                       <Card key={match.id}>
                         <CardContent className="flex items-center justify-between p-4">
                           <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <span className="font-semibold">{match.home_team}</span>
+                            <div className="flex items-center">
+                              <span className="flex-1 text-right font-semibold">{match.home_team}</span>
                               {match.is_finished ? (
-                                <span className="mx-2 text-lg font-bold text-accent">
+                                <span className="mx-3 min-w-[60px] text-center text-lg font-bold text-accent">
                                   {match.home_score} × {match.away_score}
                                 </span>
                               ) : (
-                                <span className="mx-2 text-sm font-medium text-muted-foreground">
+                                <span className="mx-3 min-w-[60px] text-center text-sm font-medium text-muted-foreground">
                                   {time}
                                 </span>
                               )}
-                              <span className="font-semibold">{match.away_team}</span>
+                              <span className="flex-1 text-left font-semibold">{match.away_team}</span>
                             </div>
                             <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                               <MapPin className="h-3 w-3" />
