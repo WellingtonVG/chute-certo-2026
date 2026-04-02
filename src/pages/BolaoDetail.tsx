@@ -239,31 +239,36 @@ const BolaoDetail = () => {
                 Nenhuma pontuação ainda
               </p>
             ) : (
-              <div className="space-y-2">
-                {ranking.map((r, i) => (
-                  <div
-                    key={r.username}
-                    className="flex items-center justify-between rounded-lg border bg-card p-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
-                          i === 0
-                            ? "bg-accent text-accent-foreground"
-                            : i === 1
-                            ? "bg-muted text-muted-foreground"
-                            : i === 2
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {i + 1}
-                      </span>
-                      <span className="font-medium">{r.username}</span>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  {ranking.map((r, i) => (
+                    <div
+                      key={r.username}
+                      className="flex items-center justify-between rounded-lg border bg-card p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+                            i === 0
+                              ? "bg-accent text-accent-foreground"
+                              : i === 1
+                              ? "bg-muted text-muted-foreground"
+                              : i === 2
+                              ? "bg-primary/10 text-primary"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {i + 1}
+                        </span>
+                        <span className="font-medium">{r.username}</span>
+                      </div>
+                      <span className="text-lg font-bold text-accent">{r.total} pts</span>
                     </div>
-                    <span className="text-lg font-bold text-accent">{r.total} pts</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <Button variant="outline" className="w-full" onClick={shareRanking}>
+                  <Share2 className="mr-2 h-4 w-4" /> Compartilhar Ranking no WhatsApp
+                </Button>
               </div>
             )}
           </TabsContent>
