@@ -315,7 +315,7 @@ const MatchPredictionCard = ({
           </span>
         </div>
         <CardTitle className="text-base">
-          {getFlag(match.home_team)} {match.home_team} vs {match.away_team} {getFlag(match.away_team)}
+          <span className="emoji-flag">{getFlag(match.home_team)}</span> {match.home_team} vs {match.away_team} <span className="emoji-flag">{getFlag(match.away_team)}</span>
         </CardTitle>
         {match.is_finished && (
           <p className="text-sm font-bold text-accent">
