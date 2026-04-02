@@ -267,6 +267,8 @@ const MatchPredictionCard = ({
   const [homeScore, setHomeScore] = useState(prediction?.home_score?.toString() || "");
   const [awayScore, setAwayScore] = useState(prediction?.away_score?.toString() || "");
   const [scorer, setScorer] = useState(prediction?.scorer_name || "");
+  const awayScoreRef = React.useRef<HTMLInputElement>(null);
+  const scorerRef = React.useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
     const h = parseInt(homeScore);
