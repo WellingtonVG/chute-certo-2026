@@ -132,6 +132,18 @@ const BolaoDetail = () => {
     toast({ title: "Palpite salvo!" });
   };
 
+  const shareRanking = () => {
+    if (!bolao || ranking.length === 0) return;
+    const lines = [`🏆 Ranking ${bolao.name}\n`];
+    ranking.forEach((r, i) => {
+      lines.push(`${i + 1}. ${r.username} - ${r.total}pts`);
+    });
+    lines.push(`\nParticipe também: https://chute-certo-2026.lovable.app`);
+    const text = lines.join("\n");
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(whatsappUrl, "_blank");
+  };
+
   const shareInvite = () => {
     if (!bolao) return;
     const url = `${window.location.origin}/convite/${bolao.invite_code}`;
