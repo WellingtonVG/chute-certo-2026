@@ -221,6 +221,7 @@ const Admin = () => {
         <Tabs defaultValue="boloes">
           <TabsList className="w-full">
             <TabsTrigger value="boloes" className="flex-1">Bolões</TabsTrigger>
+            <TabsTrigger value="usuarios" className="flex-1">Usuários</TabsTrigger>
             <TabsTrigger value="jogos" className="flex-1">Jogos</TabsTrigger>
             <TabsTrigger value="resultados" className="flex-1">Resultados</TabsTrigger>
           </TabsList>
