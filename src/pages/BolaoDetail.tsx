@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -267,6 +267,8 @@ const MatchPredictionCard = ({
   const [homeScore, setHomeScore] = useState(prediction?.home_score?.toString() || "");
   const [awayScore, setAwayScore] = useState(prediction?.away_score?.toString() || "");
   const [scorer, setScorer] = useState(prediction?.scorer_name || "");
+  const awayScoreRef = useRef<HTMLInputElement>(null);
+  const scorerRef = useRef<HTMLInputElement>(null);
 
   const handleSave = () => {
     const h = parseInt(homeScore);
@@ -335,22 +337,39 @@ const MatchPredictionCard = ({
                 min="0"
                 max="20"
                 placeholder="0"
+                inputMode="numeric"
                 value={homeScore}
-                onChange={(e) => setHomeScore(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setHomeScore(val);
+                  if (val.length >= 1 && /^\d+$/.test(val)) {
+                    awayScoreRef.current?.focus();
+                    awayScoreRef.current?.select();
+                  }
+                }}
                 className="w-16 text-center"
               />
               <span className="text-sm font-bold">×</span>
               <Input
+                ref={awayScoreRef}
                 type="number"
                 min="0"
                 max="20"
                 placeholder="0"
+                inputMode="numeric"
                 value={awayScore}
-                onChange={(e) => setAwayScore(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAwayScore(val);
+                  if (val.length >= 1 && /^\d+$/.test(val)) {
+                    scorerRef.current?.focus();
+                  }
+                }}
                 className="w-16 text-center"
               />
             </div>
             <Input
+              ref={scorerRef}
               placeholder="Jogador que marca (opcional)"
               value={scorer}
               onChange={(e) => setScorer(e.target.value)}
