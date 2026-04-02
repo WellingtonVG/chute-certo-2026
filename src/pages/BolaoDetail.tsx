@@ -9,6 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Loader2, Trophy, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
+import { getFlag } from "@/lib/country-flags";
+import SeasonPredictions from "@/components/SeasonPredictions";
+import ScoringRulesModal from "@/components/ScoringRulesModal";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
