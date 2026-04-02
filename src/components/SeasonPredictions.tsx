@@ -138,7 +138,7 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
                 <SelectContent>
                   {allTeams.map((team) => (
                     <SelectItem key={team} value={team}>
-                      {getFlag(team)} {team}
+                      <span className="emoji-flag">{getFlag(team)}</span> {team}
                     </SelectItem>
                   ))}
                 </SelectContent>

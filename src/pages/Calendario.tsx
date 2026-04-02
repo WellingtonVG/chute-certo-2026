@@ -167,7 +167,7 @@ const Calendario = () => {
                                   {time}
                                 </span>
                               )}
-                              <span className="flex-1 text-right font-semibold">{match.away_team} {getFlag(match.away_team)}</span>
+                              <span className="flex-1 text-right font-semibold">{match.away_team} <span className="emoji-flag">{getFlag(match.away_team)}</span></span>
                             </div>
                             <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                               <MapPin className="h-3 w-3" />
