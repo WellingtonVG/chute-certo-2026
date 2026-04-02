@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Loader2, Copy, Save } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Copy, Save, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
@@ -50,6 +50,30 @@ const Admin = () => {
     group_name: "",
   });
   const [creatingMatch, setCreatingMatch] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const syncFixtures = async () => {
+    setSyncing(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error("Não autenticado");
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await supabase.functions.invoke("sync-fixtures");
+
+      if (res.error) throw res.error;
+      const body = res.data;
+      toast({ title: "Sincronizado!", description: body.message || `${body.synced} jogos` });
+
+      // Refresh matches list
+      const { data: freshMatches } = await supabase.from("matches").select("*").order("match_date", { ascending: true });
+      if (freshMatches) setMatches(freshMatches);
+    } catch (err: any) {
+      toast({ title: "Erro ao sincronizar", description: err.message || String(err), variant: "destructive" });
+    }
+    setSyncing(false);
+  };
 
   useEffect(() => {
     if (!isAdmin) {
@@ -209,6 +233,10 @@ const Admin = () => {
 
           {/* Jogos Tab */}
           <TabsContent value="jogos" className="space-y-4 pt-4">
+            <Button onClick={syncFixtures} disabled={syncing} className="w-full" variant="outline">
+              {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Sincronizar jogos (API-Football)
+            </Button>
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Adicionar Jogo</CardTitle>
