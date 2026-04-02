@@ -9,6 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Loader2, Trophy, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
+import { getFlag } from "@/lib/country-flags";
+import SeasonPredictions from "@/components/SeasonPredictions";
+import ScoringRulesModal from "@/components/ScoringRulesModal";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
@@ -50,7 +53,7 @@ const BolaoDetail = () => {
 
       const { data: seasonPreds } = await supabase
         .from("season_predictions")
-        .select("user_id, champion_points, top_scorer_points")
+        .select("*")
         .eq("bolao_id", id);
 
       const totals: Record<string, number> = {};
@@ -58,7 +61,7 @@ const BolaoDetail = () => {
         totals[p.user_id] = (totals[p.user_id] || 0) + (p.points || 0) + (p.scorer_points || 0);
       });
       (seasonPreds || []).forEach((sp) => {
-        totals[sp.user_id] = (totals[sp.user_id] || 0) + (sp.champion_points || 0) + (sp.top_scorer_points || 0);
+        totals[sp.user_id] = (totals[sp.user_id] || 0) + (sp.champion_points || 0) + (sp.top_scorer_points || 0) + ((sp as any).best_player_points || 0);
       });
 
       const userIds = Object.keys(totals);
@@ -169,14 +172,17 @@ const BolaoDetail = () => {
             </Button>
             <h1 className="text-xl font-bold">{bolao.name}</h1>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={shareInvite}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <Share2 className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <ScoringRulesModal />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={shareInvite}
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+            >
+              <Share2 className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -188,6 +194,11 @@ const BolaoDetail = () => {
           </TabsList>
 
           <TabsContent value="palpites" className="space-y-3 pt-4">
+            <SeasonPredictions
+              bolaoId={id!}
+              userId={user!.id}
+              firstMatchDate={matches.length > 0 ? matches[0].match_date : null}
+            />
             {matches.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">
                 Nenhum jogo cadastrado ainda
@@ -304,7 +315,7 @@ const MatchPredictionCard = ({
           </span>
         </div>
         <CardTitle className="text-base">
-          {match.home_team} vs {match.away_team}
+          {getFlag(match.home_team)} {match.home_team} vs {match.away_team} {getFlag(match.away_team)}
         </CardTitle>
         {match.is_finished && (
           <p className="text-sm font-bold text-accent">
