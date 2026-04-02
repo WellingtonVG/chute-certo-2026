@@ -12,11 +12,11 @@ type Match = Tables<"matches">;
 
 const stageLabels: Record<string, string> = {
   group: "Fase de Grupos",
-  round_of_32: "32 avos",
+  round_of_32: "Segundas de Final",
   round_of_16: "Oitavas de Final",
   quarter_final: "Quartas de Final",
   semi_final: "Semifinal",
-  third_place: "Disputa de 3º Lugar",
+  third_place: "Decisão do 3º Lugar",
   final: "Final",
 };
 
