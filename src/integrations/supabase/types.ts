@@ -213,6 +213,8 @@ export type Database = {
       }
       season_predictions: {
         Row: {
+          best_player: string | null
+          best_player_points: number | null
           bolao_id: string
           champion: string | null
           champion_points: number | null
@@ -224,6 +226,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          best_player?: string | null
+          best_player_points?: number | null
           bolao_id: string
           champion?: string | null
           champion_points?: number | null
@@ -235,6 +239,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          best_player?: string | null
+          best_player_points?: number | null
           bolao_id?: string
           champion?: string | null
           champion_points?: number | null
