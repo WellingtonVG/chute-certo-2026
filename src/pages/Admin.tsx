@@ -50,6 +50,30 @@ const Admin = () => {
     group_name: "",
   });
   const [creatingMatch, setCreatingMatch] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const syncFixtures = async () => {
+    setSyncing(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error("Não autenticado");
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await supabase.functions.invoke("sync-fixtures");
+
+      if (res.error) throw res.error;
+      const body = res.data;
+      toast({ title: "Sincronizado!", description: body.message || `${body.synced} jogos` });
+
+      // Refresh matches list
+      const { data: freshMatches } = await supabase.from("matches").select("*").order("match_date", { ascending: true });
+      if (freshMatches) setMatches(freshMatches);
+    } catch (err: any) {
+      toast({ title: "Erro ao sincronizar", description: err.message || String(err), variant: "destructive" });
+    }
+    setSyncing(false);
+  };
 
   useEffect(() => {
     if (!isAdmin) {
