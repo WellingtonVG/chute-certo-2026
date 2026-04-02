@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Loader2, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Share2 } from "lucide-react";
+import { toast } from "sonner";
+import html2canvas from "html2canvas";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Match = Tables<"matches">;
@@ -22,6 +24,8 @@ const Calendario = () => {
   const navigate = useNavigate();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sharing, setSharing] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -34,6 +38,43 @@ const Calendario = () => {
     };
     fetch();
   }, []);
+
+  const handleShare = async () => {
+    if (!contentRef.current) return;
+    setSharing(true);
+    try {
+      const canvas = await html2canvas(contentRef.current, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+      });
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          toast.error("Erro ao gerar imagem");
+          setSharing(false);
+          return;
+        }
+        const file = new File([blob], "calendario-copa-2026.png", { type: "image/png" });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({
+            title: "Calendário Copa do Mundo 2026",
+            files: [file],
+          });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "calendario-copa-2026.png";
+          a.click();
+          URL.revokeObjectURL(url);
+          toast.success("Imagem baixada com sucesso!");
+        }
+        setSharing(false);
+      }, "image/png");
+    } catch {
+      toast.error("Erro ao compartilhar");
+      setSharing(false);
+    }
+  };
 
   // Group by date
   const grouped: Record<string, Match[]> = {};
@@ -61,7 +102,16 @@ const Calendario = () => {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-bold">Calendário</h1>
+          <h1 className="text-xl font-bold flex-1">Calendário</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleShare}
+            disabled={sharing || loading || matches.length === 0}
+            className="text-primary-foreground hover:bg-primary-foreground/10"
+          >
+            {sharing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Share2 className="h-5 w-5" />}
+          </Button>
         </div>
       </header>
 
@@ -75,12 +125,15 @@ const Calendario = () => {
             Nenhum jogo cadastrado ainda
           </p>
         ) : (
-          <div className="space-y-6">
+          <div ref={contentRef} className="space-y-6 bg-background p-2">
+            <h2 className="text-center text-lg font-bold text-foreground">
+              ⚽ Copa do Mundo 2026 — Calendário
+            </h2>
             {Object.entries(grouped).map(([date, dayMatches]) => (
               <div key={date}>
-                <h2 className="mb-2 text-sm font-semibold capitalize text-muted-foreground">
+                <h3 className="mb-2 text-sm font-semibold capitalize text-muted-foreground">
                   {date}
-                </h2>
+                </h3>
                 <div className="space-y-2">
                   {dayMatches.map((match) => {
                     const time = new Date(match.match_date).toLocaleTimeString("pt-BR", {
@@ -122,6 +175,9 @@ const Calendario = () => {
                 </div>
               </div>
             ))}
+            <p className="text-center text-[10px] text-muted-foreground/60 pt-2">
+              Fonte: FIFA / dados oficiais · Horários em BRT (Brasília)
+            </p>
           </div>
         )}
       </main>
