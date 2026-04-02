@@ -88,12 +88,35 @@ const Admin = () => {
       return;
     }
     const fetchData = async () => {
-      const [boloesRes, matchesRes] = await Promise.all([
+      const [boloesRes, matchesRes, membersRes] = await Promise.all([
         supabase.from("boloes").select("*").order("created_at", { ascending: false }),
         supabase.from("matches").select("*").order("match_date", { ascending: true }),
+        supabase.from("bolao_members").select("*"),
       ]);
-      setBoloes((boloesRes.data || []) as Bolao[]);
+      const boloesData = (boloesRes.data || []) as Bolao[];
+      setBoloes(boloesData);
       setMatches(matchesRes.data || []);
+
+      // Load profiles for members
+      const memberData = membersRes.data || [];
+      const userIds = [...new Set(memberData.map((m) => m.user_id))];
+      let profileMap: Record<string, { username: string; full_name: string | null }> = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase.from("profiles").select("user_id, username, full_name").in("user_id", userIds);
+        (profiles || []).forEach((p) => { profileMap[p.user_id] = { username: p.username, full_name: p.full_name }; });
+      }
+      const bolaoNameMap: Record<string, string> = {};
+      boloesData.forEach((b) => { bolaoNameMap[b.id] = b.name; });
+
+      setMembers(memberData.map((m) => ({
+        bolao_id: m.bolao_id,
+        bolao_name: bolaoNameMap[m.bolao_id] || "?",
+        user_id: m.user_id,
+        username: profileMap[m.user_id]?.username || "?",
+        full_name: profileMap[m.user_id]?.full_name || null,
+        joined_at: m.joined_at,
+        member_id: m.id,
+      })));
       setLoading(false);
     };
     fetchData();
