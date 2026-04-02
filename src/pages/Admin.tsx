@@ -233,6 +233,10 @@ const Admin = () => {
 
           {/* Jogos Tab */}
           <TabsContent value="jogos" className="space-y-4 pt-4">
+            <Button onClick={syncFixtures} disabled={syncing} className="w-full" variant="outline">
+              {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Sincronizar jogos (API-Football)
+            </Button>
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Adicionar Jogo</CardTitle>
