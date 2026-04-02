@@ -369,6 +369,7 @@ const MatchPredictionCard = ({
               />
             </div>
             <Input
+              ref={scorerRef}
               placeholder="Jogador que marca (opcional)"
               value={scorer}
               onChange={(e) => setScorer(e.target.value)}
