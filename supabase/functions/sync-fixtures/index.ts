@@ -71,20 +71,24 @@ Deno.serve(async (req) => {
     }
 
     const url = `${APIFOOTBALL_BASE}/fixtures?league=${WORLD_CUP_2026_LEAGUE}&season=${WORLD_CUP_2026_SEASON}`;
+    console.log("[sync-fixtures] Fetching URL:", url);
     const apiRes = await fetch(url, {
       headers: { "x-apisports-key": apiKey },
     });
 
+    const rawBody = await apiRes.text();
+    console.log("[sync-fixtures] Status:", apiRes.status, "| Body (first 1000 chars):", rawBody.substring(0, 1000));
+
     if (!apiRes.ok) {
-      const text = await apiRes.text();
-      return new Response(JSON.stringify({ error: "API-Football error", details: text }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "API-Football error", status: apiRes.status, details: rawBody.substring(0, 500) }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const apiData = await apiRes.json();
+    const apiData = JSON.parse(rawBody);
+    console.log("[sync-fixtures] results:", apiData.results, "| errors:", JSON.stringify(apiData.errors));
     const fixtures: ApiFixture[] = apiData.response || [];
 
     if (fixtures.length === 0) {
-      return new Response(JSON.stringify({ message: "Nenhum jogo encontrado na API", synced: 0 }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ message: "Nenhum jogo encontrado na API", synced: 0, apiResults: apiData.results, apiErrors: apiData.errors, paging: apiData.paging }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Use service role for upserts
