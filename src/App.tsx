@@ -19,6 +19,17 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      const savedRedirect = localStorage.getItem("invite_redirect");
+      if (savedRedirect) {
+        localStorage.removeItem("invite_redirect");
+        navigate(savedRedirect, { replace: true });
+      }
+    }
+  }, [isLoading, user, navigate]);
 
   if (isLoading) {
     return (

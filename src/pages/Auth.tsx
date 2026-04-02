@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,13 @@ const Auth = () => {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate("/");
+        const savedRedirect = redirectPath || localStorage.getItem("invite_redirect");
+        if (savedRedirect) {
+          localStorage.removeItem("invite_redirect");
+          navigate(savedRedirect);
+        } else {
+          navigate("/");
+        }
       } else {
         if (!username.trim()) {
           toast({ title: "Erro", description: "Escolha um nome de usuário.", variant: "destructive" });
@@ -47,6 +53,11 @@ const Auth = () => {
           toast({ title: "Erro", description: "Nome de usuário já está em uso.", variant: "destructive" });
           setLoading(false);
           return;
+        }
+
+        // Save redirect before signup so it persists through email confirmation
+        if (redirectPath) {
+          localStorage.setItem("invite_redirect", redirectPath);
         }
 
         const { error } = await supabase.auth.signUp({
@@ -75,6 +86,9 @@ const Auth = () => {
   };
 
   const handleGoogleLogin = async () => {
+    if (redirectPath) {
+      localStorage.setItem("invite_redirect", redirectPath);
+    }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
@@ -84,6 +98,9 @@ const Auth = () => {
   };
 
   const handleAppleLogin = async () => {
+    if (redirectPath) {
+      localStorage.setItem("invite_redirect", redirectPath);
+    }
     const result = await lovable.auth.signInWithOAuth("apple", {
       redirect_uri: window.location.origin,
     });
