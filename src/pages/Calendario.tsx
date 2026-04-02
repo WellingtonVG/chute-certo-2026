@@ -125,12 +125,15 @@ const Calendario = () => {
             Nenhum jogo cadastrado ainda
           </p>
         ) : (
-          <div className="space-y-6">
+          <div ref={contentRef} className="space-y-6 bg-background p-2">
+            <h2 className="text-center text-lg font-bold text-foreground">
+              ⚽ Copa do Mundo 2026 — Calendário
+            </h2>
             {Object.entries(grouped).map(([date, dayMatches]) => (
               <div key={date}>
-                <h2 className="mb-2 text-sm font-semibold capitalize text-muted-foreground">
+                <h3 className="mb-2 text-sm font-semibold capitalize text-muted-foreground">
                   {date}
-                </h2>
+                </h3>
                 <div className="space-y-2">
                   {dayMatches.map((match) => {
                     const time = new Date(match.match_date).toLocaleTimeString("pt-BR", {
@@ -172,6 +175,9 @@ const Calendario = () => {
                 </div>
               </div>
             ))}
+            <p className="text-center text-[10px] text-muted-foreground/60 pt-2">
+              Fonte: FIFA / dados oficiais · Horários em BRT (Brasília)
+            </p>
           </div>
         )}
       </main>
