@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Loader2, MapPin } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Share2 } from "lucide-react";
+import { toast } from "sonner";
+import html2canvas from "html2canvas";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Match = Tables<"matches">;
