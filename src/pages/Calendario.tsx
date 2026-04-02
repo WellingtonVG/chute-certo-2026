@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Loader2, MapPin, Share2 } from "lucide-react";
+import { ArrowLeft, Copy, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Match = Tables<"matches">;
@@ -20,12 +19,20 @@ const stageLabels: Record<string, string> = {
   final: "Final",
 };
 
+const stageEmoji: Record<string, string> = {
+  group: "🏟️",
+  round_of_32: "⚔️",
+  round_of_16: "⚔️",
+  quarter_final: "🔥",
+  semi_final: "🔥",
+  third_place: "🥉",
+  final: "🏆",
+};
+
 const Calendario = () => {
   const navigate = useNavigate();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sharing, setSharing] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -38,43 +45,6 @@ const Calendario = () => {
     };
     fetch();
   }, []);
-
-  const handleShare = async () => {
-    if (!contentRef.current) return;
-    setSharing(true);
-    try {
-      const canvas = await html2canvas(contentRef.current, {
-        backgroundColor: "#ffffff",
-        scale: 2,
-      });
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          toast.error("Erro ao gerar imagem");
-          setSharing(false);
-          return;
-        }
-        const file = new File([blob], "calendario-copa-2026.png", { type: "image/png" });
-        if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          await navigator.share({
-            title: "Calendário Copa do Mundo 2026",
-            files: [file],
-          });
-        } else {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "calendario-copa-2026.png";
-          a.click();
-          URL.revokeObjectURL(url);
-          toast.success("Imagem baixada com sucesso!");
-        }
-        setSharing(false);
-      }, "image/png");
-    } catch {
-      toast.error("Erro ao compartilhar");
-      setSharing(false);
-    }
-  };
 
   // Group by date
   const grouped: Record<string, Match[]> = {};
@@ -89,6 +59,48 @@ const Calendario = () => {
     if (!grouped[dateKey]) grouped[dateKey] = [];
     grouped[dateKey].push(m);
   });
+
+  const buildShareText = () => {
+    let text = "⚽ *Copa do Mundo 2026 — Calendário*\n\n";
+
+    Object.entries(grouped).forEach(([date, dayMatches]) => {
+      text += `📅 *${date}*\n`;
+      dayMatches.forEach((match) => {
+        const time = new Date(match.match_date).toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "America/Sao_Paulo",
+        });
+        const emoji = stageEmoji[match.stage] || "⚽";
+        const score = match.is_finished
+          ? `  ${match.home_score} × ${match.away_score}`
+          : "";
+        const venue = [match.stadium, match.city].filter(Boolean).join(", ");
+        const stage = stageLabels[match.stage] || match.stage;
+        const group = match.group_name ? ` • ${match.group_name}` : "";
+
+        text += `${emoji} ${time} — ${match.home_team} × ${match.away_team}${score}\n`;
+        if (venue) text += `   📍 ${venue}\n`;
+        text += `   ${stage}${group}\n`;
+      });
+      text += "\n";
+    });
+
+    text += "─────────────────────\n";
+    text += "📋 Fonte: FIFA / dados oficiais\n";
+    text += "🕐 Horários em BRT (Brasília)";
+    return text;
+  };
+
+  const handleCopyText = async () => {
+    const text = buildShareText();
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copiado! Cole no WhatsApp 📲");
+    } catch {
+      toast.error("Erro ao copiar");
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -105,12 +117,13 @@ const Calendario = () => {
           <h1 className="text-xl font-bold flex-1">Calendário</h1>
           <Button
             variant="ghost"
-            size="icon"
-            onClick={handleShare}
-            disabled={sharing || loading || matches.length === 0}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
+            size="sm"
+            onClick={handleCopyText}
+            disabled={loading || matches.length === 0}
+            className="text-primary-foreground hover:bg-primary-foreground/10 gap-1.5"
           >
-            {sharing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Share2 className="h-5 w-5" />}
+            <Copy className="h-4 w-4" />
+            Compartilhar
           </Button>
         </div>
       </header>
@@ -125,15 +138,12 @@ const Calendario = () => {
             Nenhum jogo cadastrado ainda
           </p>
         ) : (
-          <div ref={contentRef} className="space-y-6 bg-background p-2">
-            <h2 className="text-center text-lg font-bold text-foreground">
-              ⚽ Copa do Mundo 2026 — Calendário
-            </h2>
+          <div className="space-y-6">
             {Object.entries(grouped).map(([date, dayMatches]) => (
               <div key={date}>
-                <h3 className="mb-2 text-sm font-semibold capitalize text-muted-foreground">
+                <h2 className="mb-2 text-sm font-semibold capitalize text-muted-foreground">
                   {date}
-                </h3>
+                </h2>
                 <div className="space-y-2">
                   {dayMatches.map((match) => {
                     const time = new Date(match.match_date).toLocaleTimeString("pt-BR", {
