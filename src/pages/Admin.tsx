@@ -41,6 +41,8 @@ const Admin = () => {
   const [boloes, setBoloes] = useState<Bolao[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState<{ bolao_id: string; bolao_name: string; user_id: string; username: string; full_name: string | null; joined_at: string; member_id: string }[]>([]);
+  const [removingMember, setRemovingMember] = useState<string | null>(null);
 
   // New bolao form
   const [newBolaoName, setNewBolaoName] = useState("");
