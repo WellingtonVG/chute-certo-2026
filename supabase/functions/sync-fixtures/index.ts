@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const APIFOOTBALL_BASE = "https://v3.football.api-sports.io";
-const WORLD_CUP_2026_LEAGUE = 1; // FIFA World Cup
+const WORLD_CUP_2026_LEAGUE = 1;
 const WORLD_CUP_2026_SEASON = 2026;
 
 interface ApiFixture {
@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check
+    // Auth check via getUser
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -52,16 +52,13 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const userId = claimsData.claims.sub;
-
     // Check admin role
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
     if (!isAdmin) {
       return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -101,7 +98,6 @@ Deno.serve(async (req) => {
     for (const f of fixtures) {
       const isFinished = finishedStatuses.includes(f.fixture.status.short);
 
-      // Check if manually overridden — skip result update if so
       const { data: existing } = await supabaseAdmin
         .from("matches")
         .select("id, is_manual_override")
@@ -119,7 +115,6 @@ Deno.serve(async (req) => {
         group_name: extractGroup(f.league.round),
       };
 
-      // Only update scores if not manually overridden
       if (!existing?.is_manual_override) {
         matchData.home_score = f.goals.home;
         matchData.away_score = f.goals.away;
