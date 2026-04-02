@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Loader2, Copy, Save, RefreshCw, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Copy, Save, RefreshCw, AlertTriangle, Trash2, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
@@ -41,6 +41,8 @@ const Admin = () => {
   const [boloes, setBoloes] = useState<Bolao[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState<{ bolao_id: string; bolao_name: string; user_id: string; username: string; full_name: string | null; joined_at: string; member_id: string }[]>([]);
+  const [removingMember, setRemovingMember] = useState<string | null>(null);
 
   // New bolao form
   const [newBolaoName, setNewBolaoName] = useState("");
@@ -86,12 +88,35 @@ const Admin = () => {
       return;
     }
     const fetchData = async () => {
-      const [boloesRes, matchesRes] = await Promise.all([
+      const [boloesRes, matchesRes, membersRes] = await Promise.all([
         supabase.from("boloes").select("*").order("created_at", { ascending: false }),
         supabase.from("matches").select("*").order("match_date", { ascending: true }),
+        supabase.from("bolao_members").select("*"),
       ]);
-      setBoloes((boloesRes.data || []) as Bolao[]);
+      const boloesData = (boloesRes.data || []) as Bolao[];
+      setBoloes(boloesData);
       setMatches(matchesRes.data || []);
+
+      // Load profiles for members
+      const memberData = membersRes.data || [];
+      const userIds = [...new Set(memberData.map((m) => m.user_id))];
+      let profileMap: Record<string, { username: string; full_name: string | null }> = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase.from("profiles").select("user_id, username, full_name").in("user_id", userIds);
+        (profiles || []).forEach((p) => { profileMap[p.user_id] = { username: p.username, full_name: p.full_name }; });
+      }
+      const bolaoNameMap: Record<string, string> = {};
+      boloesData.forEach((b) => { bolaoNameMap[b.id] = b.name; });
+
+      setMembers(memberData.map((m) => ({
+        bolao_id: m.bolao_id,
+        bolao_name: bolaoNameMap[m.bolao_id] || "?",
+        user_id: m.user_id,
+        username: profileMap[m.user_id]?.username || "?",
+        full_name: profileMap[m.user_id]?.full_name || null,
+        joined_at: m.joined_at,
+        member_id: m.id,
+      })));
       setLoading(false);
     };
     fetchData();
@@ -169,6 +194,18 @@ const Admin = () => {
     toast({ title: "Link copiado!" });
   };
 
+  const removeMember = async (memberId: string) => {
+    setRemovingMember(memberId);
+    const { error } = await supabase.from("bolao_members").delete().eq("id", memberId);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      setMembers((prev) => prev.filter((m) => m.member_id !== memberId));
+      toast({ title: "Usuário removido do bolão!" });
+    }
+    setRemovingMember(null);
+  };
+
   const handleRegenerateInvite = async (bolaoId: string) => {
     setRegenerating(bolaoId);
     try {
@@ -221,6 +258,7 @@ const Admin = () => {
         <Tabs defaultValue="boloes">
           <TabsList className="w-full">
             <TabsTrigger value="boloes" className="flex-1">Bolões</TabsTrigger>
+            <TabsTrigger value="usuarios" className="flex-1">Usuários</TabsTrigger>
             <TabsTrigger value="jogos" className="flex-1">Jogos</TabsTrigger>
             <TabsTrigger value="resultados" className="flex-1">Resultados</TabsTrigger>
           </TabsList>
@@ -302,7 +340,50 @@ const Admin = () => {
             })}
           </TabsContent>
 
-          {/* Jogos Tab */}
+          {/* Usuários Tab */}
+          <TabsContent value="usuarios" className="space-y-4 pt-4">
+            {boloes.map((bolao) => {
+              const bolaoMembers = members.filter((m) => m.bolao_id === bolao.id);
+              if (bolaoMembers.length === 0) return null;
+              return (
+                <Card key={bolao.id}>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Users className="h-4 w-4" /> {bolao.name}
+                      <span className="text-xs font-normal text-muted-foreground">({bolaoMembers.length} membros)</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {bolaoMembers.map((m) => (
+                      <div key={m.member_id} className="flex items-center justify-between rounded-lg border p-3">
+                        <div>
+                          <p className="text-sm font-medium">{m.username}</p>
+                          {m.full_name && <p className="text-xs text-muted-foreground">{m.full_name}</p>}
+                          <p className="text-xs text-muted-foreground">
+                            Entrou em {format(new Date(m.joined_at), "dd/MM/yyyy", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:bg-destructive/10"
+                          onClick={() => removeMember(m.member_id)}
+                          disabled={removingMember === m.member_id}
+                        >
+                          {removingMember === m.member_id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </TabsContent>
+
           <TabsContent value="jogos" className="space-y-4 pt-4">
             <Button onClick={syncFixtures} disabled={syncing} className="w-full" variant="outline">
               {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
