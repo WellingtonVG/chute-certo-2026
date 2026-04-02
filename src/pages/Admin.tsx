@@ -194,6 +194,18 @@ const Admin = () => {
     toast({ title: "Link copiado!" });
   };
 
+  const removeMember = async (memberId: string) => {
+    setRemovingMember(memberId);
+    const { error } = await supabase.from("bolao_members").delete().eq("id", memberId);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      setMembers((prev) => prev.filter((m) => m.member_id !== memberId));
+      toast({ title: "Usuário removido do bolão!" });
+    }
+    setRemovingMember(null);
+  };
+
   const handleRegenerateInvite = async (bolaoId: string) => {
     setRegenerating(bolaoId);
     try {
