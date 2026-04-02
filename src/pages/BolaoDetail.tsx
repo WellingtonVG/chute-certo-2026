@@ -172,14 +172,17 @@ const BolaoDetail = () => {
             </Button>
             <h1 className="text-xl font-bold">{bolao.name}</h1>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={shareInvite}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <Share2 className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <ScoringRulesModal />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={shareInvite}
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+            >
+              <Share2 className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
