@@ -337,18 +337,34 @@ const MatchPredictionCard = ({
                 min="0"
                 max="20"
                 placeholder="0"
+                inputMode="numeric"
                 value={homeScore}
-                onChange={(e) => setHomeScore(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setHomeScore(val);
+                  if (val.length >= 1 && /^\d+$/.test(val)) {
+                    awayScoreRef.current?.focus();
+                    awayScoreRef.current?.select();
+                  }
+                }}
                 className="w-16 text-center"
               />
               <span className="text-sm font-bold">×</span>
               <Input
+                ref={awayScoreRef}
                 type="number"
                 min="0"
                 max="20"
                 placeholder="0"
+                inputMode="numeric"
                 value={awayScore}
-                onChange={(e) => setAwayScore(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAwayScore(val);
+                  if (val.length >= 1 && /^\d+$/.test(val)) {
+                    scorerRef.current?.focus();
+                  }
+                }}
                 className="w-16 text-center"
               />
             </div>
