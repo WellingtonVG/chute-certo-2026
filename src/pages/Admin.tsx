@@ -340,7 +340,50 @@ const Admin = () => {
             })}
           </TabsContent>
 
-          {/* Jogos Tab */}
+          {/* Usuários Tab */}
+          <TabsContent value="usuarios" className="space-y-4 pt-4">
+            {boloes.map((bolao) => {
+              const bolaoMembers = members.filter((m) => m.bolao_id === bolao.id);
+              if (bolaoMembers.length === 0) return null;
+              return (
+                <Card key={bolao.id}>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Users className="h-4 w-4" /> {bolao.name}
+                      <span className="text-xs font-normal text-muted-foreground">({bolaoMembers.length} membros)</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {bolaoMembers.map((m) => (
+                      <div key={m.member_id} className="flex items-center justify-between rounded-lg border p-3">
+                        <div>
+                          <p className="text-sm font-medium">{m.username}</p>
+                          {m.full_name && <p className="text-xs text-muted-foreground">{m.full_name}</p>}
+                          <p className="text-xs text-muted-foreground">
+                            Entrou em {format(new Date(m.joined_at), "dd/MM/yyyy", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:bg-destructive/10"
+                          onClick={() => removeMember(m.member_id)}
+                          disabled={removingMember === m.member_id}
+                        >
+                          {removingMember === m.member_id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </TabsContent>
+
           <TabsContent value="jogos" className="space-y-4 pt-4">
             <Button onClick={syncFixtures} disabled={syncing} className="w-full" variant="outline">
               {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
