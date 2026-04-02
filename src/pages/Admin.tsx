@@ -8,13 +8,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Loader2, Copy, Save, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, Loader2, Copy, Save, RefreshCw, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
+import { format, addDays, isPast } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 type Match = Tables<"matches">;
-type Bolao = Tables<"boloes">;
+type Bolao = Tables<"boloes"> & { invite_created_at?: string };
 
 const stageOptions = Constants.public.Enums.match_stage;
 const stageLabels: Record<string, string> = {
@@ -25,6 +27,11 @@ const stageLabels: Record<string, string> = {
   semi_final: "Semifinal",
   third_place: "3º Lugar",
   final: "Final",
+};
+
+const isInviteExpired = (inviteCreatedAt: string | undefined) => {
+  if (!inviteCreatedAt) return false;
+  return isPast(addDays(new Date(inviteCreatedAt), 7));
 };
 
 const Admin = () => {
@@ -51,6 +58,7 @@ const Admin = () => {
   });
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [regenerating, setRegenerating] = useState<string | null>(null);
 
   const syncFixtures = async () => {
     setSyncing(true);
@@ -59,14 +67,11 @@ const Admin = () => {
       const token = sessionData?.session?.access_token;
       if (!token) throw new Error("Não autenticado");
 
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const res = await supabase.functions.invoke("sync-fixtures");
-
       if (res.error) throw res.error;
       const body = res.data;
       toast({ title: "Sincronizado!", description: body.message || `${body.synced} jogos` });
 
-      // Refresh matches list
       const { data: freshMatches } = await supabase.from("matches").select("*").order("match_date", { ascending: true });
       if (freshMatches) setMatches(freshMatches);
     } catch (err: any) {
@@ -85,7 +90,7 @@ const Admin = () => {
         supabase.from("boloes").select("*").order("created_at", { ascending: false }),
         supabase.from("matches").select("*").order("match_date", { ascending: true }),
       ]);
-      setBoloes(boloesRes.data || []);
+      setBoloes((boloesRes.data || []) as Bolao[]);
       setMatches(matchesRes.data || []);
       setLoading(false);
     };
@@ -104,9 +109,8 @@ const Admin = () => {
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else if (data) {
-      // Admin auto-joins
       await supabase.from("bolao_members").insert({ bolao_id: data.id, user_id: user.id });
-      setBoloes((prev) => [data, ...prev]);
+      setBoloes((prev) => [data as Bolao, ...prev]);
       setNewBolaoName("");
       toast({ title: "Bolão criado!" });
     }
@@ -165,6 +169,30 @@ const Admin = () => {
     toast({ title: "Link copiado!" });
   };
 
+  const handleRegenerateInvite = async (bolaoId: string) => {
+    setRegenerating(bolaoId);
+    try {
+      const { data, error } = await supabase.rpc("regenerate_invite_code", {
+        bolao_id_input: bolaoId,
+      });
+
+      if (error) throw error;
+
+      const result = data as unknown as { invite_code: string; invite_created_at: string };
+      setBoloes((prev) =>
+        prev.map((b) =>
+          b.id === bolaoId
+            ? { ...b, invite_code: result.invite_code, invite_created_at: result.invite_created_at }
+            : b
+        )
+      );
+      toast({ title: "Novo link de convite gerado!" });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+    setRegenerating(null);
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -216,19 +244,62 @@ const Admin = () => {
               </CardContent>
             </Card>
 
-            {boloes.map((bolao) => (
-              <Card key={bolao.id}>
-                <CardContent className="flex items-center justify-between p-4">
-                  <div>
-                    <p className="font-medium">{bolao.name}</p>
-                    <p className="text-xs text-muted-foreground">Código: {bolao.invite_code}</p>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => copyInviteLink(bolao.invite_code)}>
-                    <Copy className="mr-1 h-3 w-3" /> Link
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+            {boloes.map((bolao) => {
+              const inviteExpired = isInviteExpired(bolao.invite_created_at);
+              const expiresAt = bolao.invite_created_at
+                ? addDays(new Date(bolao.invite_created_at), 7)
+                : null;
+
+              return (
+                <Card key={bolao.id}>
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{bolao.name}</p>
+                        <p className="text-xs text-muted-foreground">Código: {bolao.invite_code}</p>
+                      </div>
+                      {!inviteExpired && (
+                        <Button variant="outline" size="sm" onClick={() => copyInviteLink(bolao.invite_code)}>
+                          <Copy className="mr-1 h-3 w-3" /> Link
+                        </Button>
+                      )}
+                    </div>
+
+                    {expiresAt && (
+                      <div className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs ${
+                        inviteExpired
+                          ? "bg-destructive/10 text-destructive"
+                          : "bg-muted text-muted-foreground"
+                      }`}>
+                        {inviteExpired && <AlertTriangle className="h-3.5 w-3.5" />}
+                        <span>
+                          {inviteExpired
+                            ? `Convite expirou em ${format(expiresAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`
+                            : `Convite expira em ${format(expiresAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`}
+                        </span>
+                      </div>
+                    )}
+
+                    {inviteExpired && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => handleRegenerateInvite(bolao.id)}
+                        disabled={regenerating === bolao.id}
+                      >
+                        {regenerating === bolao.id ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                        )}
+                        Gerar novo link de convite
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </TabsContent>
 
           {/* Jogos Tab */}
