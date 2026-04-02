@@ -49,6 +49,7 @@ export type Database = {
           created_by: string
           id: string
           invite_code: string
+          invite_created_at: string
           name: string
           updated_at: string
         }
@@ -57,6 +58,7 @@ export type Database = {
           created_by: string
           id?: string
           invite_code?: string
+          invite_created_at?: string
           name: string
           updated_at?: string
         }
@@ -65,6 +67,7 @@ export type Database = {
           created_by?: string
           id?: string
           invite_code?: string
+          invite_created_at?: string
           name?: string
           updated_at?: string
         }
@@ -291,6 +294,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      lookup_bolao_by_invite: {
+        Args: { invite_code_input: string }
+        Returns: Json
+      }
+      regenerate_invite_code: {
+        Args: { bolao_id_input: string }
+        Returns: Json
       }
     }
     Enums: {
