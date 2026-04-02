@@ -102,7 +102,16 @@ const Calendario = () => {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-bold">Calendário</h1>
+          <h1 className="text-xl font-bold flex-1">Calendário</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleShare}
+            disabled={sharing || loading || matches.length === 0}
+            className="text-primary-foreground hover:bg-primary-foreground/10"
+          >
+            {sharing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Share2 className="h-5 w-5" />}
+          </Button>
         </div>
       </header>
 
