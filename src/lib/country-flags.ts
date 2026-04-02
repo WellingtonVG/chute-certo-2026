@@ -69,9 +69,6 @@ export const getFlag = (teamName: string): string => {
   return flagMap[teamName] || "🏳️";
 };
 
-// CSS class name to ensure emoji flags render correctly across all platforms
-export const FLAG_CLASS = "emoji-flag";
-
 // All 48 teams for the champion selector
 export const allTeams = [
   "México", "África do Sul", "Coreia do Sul", "Tchéquia",

@@ -108,7 +108,7 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
             <div className="flex items-center gap-2">
               <Trophy className="h-4 w-4 text-accent" />
               <span>Campeão:</span>
-              <span className="font-bold">{champion ? <><span className="emoji-flag">{getFlag(champion)}</span> {champion}</> : "—"}</span>
+              <span className="font-bold">{champion ? `${getFlag(champion)} ${champion}` : "—"}</span>
               <span className="ml-auto text-xs text-muted-foreground">30 pts</span>
             </div>
             <div className="flex items-center gap-2">
@@ -138,7 +138,7 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
                 <SelectContent>
                   {allTeams.map((team) => (
                     <SelectItem key={team} value={team}>
-                      <span className="emoji-flag">{getFlag(team)}</span> {team}
+                      {getFlag(team)} {team}
                     </SelectItem>
                   ))}
                 </SelectContent>
