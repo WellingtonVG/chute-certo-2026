@@ -24,6 +24,8 @@ const Calendario = () => {
   const navigate = useNavigate();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sharing, setSharing] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -36,6 +38,43 @@ const Calendario = () => {
     };
     fetch();
   }, []);
+
+  const handleShare = async () => {
+    if (!contentRef.current) return;
+    setSharing(true);
+    try {
+      const canvas = await html2canvas(contentRef.current, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+      });
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          toast.error("Erro ao gerar imagem");
+          setSharing(false);
+          return;
+        }
+        const file = new File([blob], "calendario-copa-2026.png", { type: "image/png" });
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({
+            title: "Calendário Copa do Mundo 2026",
+            files: [file],
+          });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "calendario-copa-2026.png";
+          a.click();
+          URL.revokeObjectURL(url);
+          toast.success("Imagem baixada com sucesso!");
+        }
+        setSharing(false);
+      }, "image/png");
+    } catch {
+      toast.error("Erro ao compartilhar");
+      setSharing(false);
+    }
+  };
 
   // Group by date
   const grouped: Record<string, Match[]> = {};
