@@ -230,7 +230,7 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
               <div key={p.user_id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2">
                 <span className="text-sm font-medium">{p.username}</span>
                 {p.is_ready ? (
-                  <span className="flex items-center gap-1 text-xs font-semibold text-green-600">
+                  <span className="flex items-center gap-1 text-xs font-semibold text-primary">
                     <Check className="h-3 w-3" /> Pronto
                   </span>
                 ) : (
