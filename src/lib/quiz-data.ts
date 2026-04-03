@@ -171,21 +171,6 @@ function pickDistractors(correct: string, pool: string[], count = 3): string[] {
   return shuffle(filtered).slice(0, count);
 }
 
-// ── Frequency limits from JSON ──
-const FREQ_LIMITS: Record<string, number> = {
-  runner_up: 1,
-  host: 2,
-  champion: 3,
-  final_score: 2,
-  top_scorer_name: 3,
-  best_player: 3,
-  top_scorer_goals: 2,
-  top_scorer_country: 2,
-  trivia_easy: 2,
-  trivia_medium: 2,
-  trivia_hard: 2,
-};
-
 // Difficulty map
 const DIFFICULTY_MAP: Record<QuizLevel, string[]> = {
   easy: ["champion", "host", "trivia_easy"],
@@ -193,180 +178,44 @@ const DIFFICULTY_MAP: Record<QuizLevel, string[]> = {
   hard: ["top_scorer_goals", "top_scorer_country", "final_score", "trivia_hard"],
 };
 
-// ── Generate all questions ──
-function generateAllQuestions(): QuizQuestion[] {
-  const questions: QuizQuestion[] = [];
-  const allChampions = [...new Set(editions.map(e => e.champion))];
-  const allHosts = [...new Set(editions.map(e => e.host))];
-  const allRunnerUps = [...new Set(editions.map(e => e.runner_up))];
-  const allYears = editions.map(e => String(e.year));
-  const allCountries = [...new Set(editions.filter(e => e.top_scorer).map(e => {
-    const s = getFirstScorer(e);
-    return s ? s.country : "";
-  }).filter(Boolean))];
-  const allFinalScores = [...new Set(editions.filter(e => e.use_final_score && e.final_score).map(e => e.final_score!))];
-  const allGoals = [...new Set(editions.filter(e => e.top_scorer).map(e => {
-    const s = getFirstScorer(e);
-    return s ? `${s.goals} gols` : "";
-  }).filter(Boolean))];
-
-  for (let idx = 0; idx < editions.length; idx++) {
-    const e = editions[idx];
-
-    // EASY: Champion by year
-    questions.push({
-      question: `Quem venceu a Copa do Mundo de ${e.year}?`,
-      correctAnswer: e.champion,
-      options: shuffle([e.champion, ...pickDistractors(e.champion, allChampions)]),
-      level: "easy", category: "champion", editionYear: e.year,
-    });
-
-    // EASY: Year champion won at host
-    questions.push({
-      question: `Em que ano ${e.champion} venceu a Copa realizada ${withPreposition(e.host)}?`,
-      correctAnswer: String(e.year),
-      options: shuffle([String(e.year), ...pickDistractors(String(e.year), allYears)]),
-      level: "easy", category: "champion", editionYear: e.year,
-    });
-
-    // EASY: Host by year
-    questions.push({
-      question: `Em qual país foi realizada a Copa do Mundo de ${e.year}?`,
-      correctAnswer: e.host,
-      options: shuffle([e.host, ...pickDistractors(e.host, allHosts)]),
-      level: "easy", category: "host", editionYear: e.year,
-    });
-
-    // MEDIUM: Runner-up
-    questions.push({
-      question: `Qual país foi vice-campeão da Copa de ${e.year}?`,
-      correctAnswer: e.runner_up,
-      options: shuffle([e.runner_up, ...pickDistractors(e.runner_up, allRunnerUps)]),
-      level: "medium", category: "runner_up", editionYear: e.year,
-    });
-
-    // MEDIUM: Best player
-    questions.push({
-      question: `Quem foi eleito o melhor jogador da Copa de ${e.year}?`,
-      correctAnswer: e.best_player,
-      options: shuffle([e.best_player, ...pickDistractors(e.best_player, playerDistractorPool(idx, [e.best_player]))]),
-      level: "medium", category: "best_player", editionYear: e.year,
-    });
-
-    // MEDIUM: Top scorer name (skip 1962)
-    if (e.top_scorer) {
-      const names = getAllScorerNames(e);
-      const primary = names[0];
-      const excludeFromPool = [...names];
-      questions.push({
-        question: `Quem foi o artilheiro da Copa de ${e.year}?`,
-        correctAnswer: primary,
-        options: shuffle([primary, ...pickDistractors(primary, playerDistractorPool(idx, excludeFromPool))]),
-        level: "medium", category: "top_scorer_name", editionYear: e.year,
-        ...(names.length > 1 ? { _altAnswers: names } : {}),
-      });
-    }
-
-    // HARD: Top scorer goals (skip 1962)
-    if (e.top_scorer) {
-      const scorer = getFirstScorer(e)!;
-      const goalStr = `${scorer.goals} gols`;
-      questions.push({
-        question: `Quantos gols ${scorer.name} marcou na Copa de ${e.year}?`,
-        correctAnswer: goalStr,
-        options: shuffle([goalStr, ...pickDistractors(goalStr, allGoals)]),
-        level: "hard", category: "top_scorer_goals", editionYear: e.year,
-      });
-    }
-
-    // HARD: Top scorer country (skip 1962)
-    if (e.top_scorer) {
-      const scorer = getFirstScorer(e)!;
-      questions.push({
-        question: `De qual país era o artilheiro da Copa de ${e.year}?`,
-        correctAnswer: scorer.country,
-        options: shuffle([scorer.country, ...pickDistractors(scorer.country, allCountries)]),
-        level: "hard", category: "top_scorer_country", editionYear: e.year,
-      });
-    }
-
-    // HARD: Final score (skip 1950 and 1978)
-    if (e.use_final_score && e.final_score) {
-      questions.push({
-        question: `Qual foi o placar da final da Copa de ${e.year}?`,
-        correctAnswer: e.final_score,
-        options: shuffle([e.final_score, ...pickDistractors(e.final_score, allFinalScores)]),
-        level: "hard", category: "final_score", editionYear: e.year,
-      });
-    }
-  }
-
-  // Trivia
-  for (const t of triviaEasy) {
-    questions.push({ question: t.question, correctAnswer: t.answer, options: shuffle(t.options), level: "easy", category: "trivia_easy" });
-  }
-  for (const t of triviaMedium) {
-    questions.push({ question: t.question, correctAnswer: t.answer, options: shuffle(t.options), level: "medium", category: "trivia_medium" });
-  }
-  for (const t of triviaHard) {
-    questions.push({ question: t.question, correctAnswer: t.answer, options: shuffle(t.options), level: "hard", category: "trivia_hard" });
-  }
-
-  return questions;
-}
-
-// ── Anti-spoiler: ensure same-edition questions are ≥3 apart ──
-function antiSpoiler(questions: QuizQuestion[]): QuizQuestion[] {
-  const result: QuizQuestion[] = [];
-  const recent: (number | undefined)[] = []; // track editionYear of last 3
-
-  const remaining = [...questions];
-  const maxAttempts = remaining.length * 3;
-  let attempts = 0;
-
-  while (remaining.length > 0 && attempts < maxAttempts) {
-    attempts++;
-    let placed = false;
-    for (let i = 0; i < remaining.length; i++) {
-      const q = remaining[i];
-      const year = q.editionYear;
-      if (year && recent.slice(-3).includes(year)) continue;
-      result.push(q);
-      recent.push(year);
-      remaining.splice(i, 1);
-      placed = true;
-      break;
-    }
-    if (!placed) {
-      // Can't avoid spoiler, just place first
-      result.push(remaining.shift()!);
-      recent.push(result[result.length - 1].editionYear);
-    }
-  }
-  // Add any leftover
-  result.push(...remaining);
-  return result;
-}
-
-// ── Pick questions with frequency limits and anti-spoiler ──
+// ── Pick questions with variety + fallback to always reach count ──
 export function pickQuestions(level: QuizLevel | "all", count: number): QuizQuestion[] {
   const all = generateAllQuestions();
   const pool = level === "all" ? all : all.filter(q => q.level === level);
   const shuffled = shuffle(pool);
 
-  const categoryCounts: Record<string, number> = {};
-  // Also enforce max 40% per category
   const maxPerCategory = Math.max(2, Math.ceil(count * 0.4));
-
+  const categoryCounts: Record<string, number> = {};
   const selected: QuizQuestion[] = [];
-  for (const q of shuffled) {
-    if (selected.length >= count) break;
+  const usedIndices = new Set<number>();
+
+  // Pass 1: respect 40% variety cap
+  for (let i = 0; i < shuffled.length && selected.length < count; i++) {
+    const q = shuffled[i];
     const cat = q.category;
     const currentCount = categoryCounts[cat] || 0;
-    const limit = Math.min(FREQ_LIMITS[cat] ?? Infinity, maxPerCategory);
-    if (currentCount >= limit) continue;
+    if (currentCount >= maxPerCategory) continue;
     categoryCounts[cat] = currentCount + 1;
     selected.push(q);
+    usedIndices.add(i);
+  }
+
+  // Pass 2: fallback — fill remaining slots ignoring category limits
+  if (selected.length < count) {
+    const usedEditions = new Set(selected.map(q => q.editionYear).filter(Boolean));
+    // Prefer questions from unused editions first
+    const remaining = shuffled
+      .map((q, i) => ({ q, i }))
+      .filter(({ i }) => !usedIndices.has(i));
+    remaining.sort((a, b) => {
+      const aUsed = a.q.editionYear && usedEditions.has(a.q.editionYear) ? 1 : 0;
+      const bUsed = b.q.editionYear && usedEditions.has(b.q.editionYear) ? 1 : 0;
+      return aUsed - bUsed;
+    });
+    for (const { q } of remaining) {
+      if (selected.length >= count) break;
+      selected.push(q);
+    }
   }
 
   return antiSpoiler(selected);
