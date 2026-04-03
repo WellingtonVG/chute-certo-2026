@@ -11,7 +11,8 @@ import { Check, X, Clock } from "lucide-react";
 interface Props {
   config: QuizConfig;
   onFinish: (result: QuizResultData) => void;
-  questions?: QuizQuestion[]; // For multiplayer
+  questions?: QuizQuestion[];
+  perQuestionTimer?: number; // seconds per question (multiplayer)
 }
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -26,7 +27,7 @@ const LEVEL_LABELS: Record<string, string> = {
   hard: "Difícil",
 };
 
-const QuizGame = ({ config, onFinish, questions: externalQuestions }: Props) => {
+const QuizGame = ({ config, onFinish, questions: externalQuestions, perQuestionTimer }: Props) => {
   const { user } = useAuth();
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [current, setCurrent] = useState(0);
@@ -35,8 +36,11 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions }: Props) => 
   const [showResult, setShowResult] = useState(false);
   const [startTime] = useState(Date.now());
   const [timeLeft, setTimeLeft] = useState(60);
+  const [questionTimeLeft, setQuestionTimeLeft] = useState(perQuestionTimer || 0);
   const [gameOver, setGameOver] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const questionTimerRef = useRef<ReturnType<typeof setInterval>>();
+  const finishedRef = useRef(false);
 
   const isTimed = config.mode === "timed";
 
@@ -49,6 +53,7 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions }: Props) => 
     }
   }, []);
 
+  // Global 60s timer for timed mode
   useEffect(() => {
     if (isTimed) {
       timerRef.current = setInterval(() => {
@@ -65,10 +70,47 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions }: Props) => 
     }
   }, [isTimed]);
 
-  const finishGame = useCallback(
+  // Per-question timer (multiplayer)
+  useEffect(() => {
+    if (!perQuestionTimer || showResult || gameOver) return;
+    setQuestionTimeLeft(perQuestionTimer);
+    questionTimerRef.current = setInterval(() => {
+      setQuestionTimeLeft((t) => {
+        if (t <= 1) {
+          clearInterval(questionTimerRef.current);
+          // Auto-advance as wrong
+          handleAutoTimeout();
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(questionTimerRef.current);
+  }, [current, perQuestionTimer, gameOver]);
+
+  const handleAutoTimeout = useCallback(() => {
+    if (showResult || gameOver) return;
+    setSelected("__timeout__");
+    setShowResult(true);
+    setTimeout(() => {
+      const next = current + 1;
+      if (!isTimed && next >= questions.length) {
+        doFinish(score, questions.length);
+      } else if (isTimed && next >= questions.length) {
+        setGameOver(true);
+      } else {
+        setCurrent(next);
+        setSelected(null);
+        setShowResult(false);
+      }
+    }, 1200);
+  }, [current, score, questions.length, isTimed, showResult, gameOver]);
+
+  const doFinish = useCallback(
     async (finalScore: number, total: number) => {
+      if (finishedRef.current) return;
+      finishedRef.current = true;
       const timeTaken = Math.round((Date.now() - startTime) / 1000);
-      // Save last result
       if (user) {
         const { data: existing } = await supabase
           .from("quiz_results")
@@ -94,7 +136,7 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions }: Props) => 
   useEffect(() => {
     if (gameOver) {
       const total = isTimed ? current : questions.length;
-      finishGame(score, total);
+      doFinish(score, total);
     }
   }, [gameOver]);
 
@@ -102,13 +144,13 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions }: Props) => 
 
   const q = questions[current];
   if (!q && !gameOver) {
-    // Ran out of questions
-    finishGame(score, current);
+    doFinish(score, current);
     return null;
   }
 
   const handleSelect = (option: string) => {
     if (showResult) return;
+    clearInterval(questionTimerRef.current);
     setSelected(option);
     setShowResult(true);
     const correct = checkAnswer(q, option);
@@ -117,7 +159,9 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions }: Props) => 
     setTimeout(() => {
       const next = current + 1;
       if (!isTimed && next >= questions.length) {
-        finishGame(score + (correct ? 1 : 0), questions.length);
+        doFinish(score + (correct ? 1 : 0), questions.length);
+      } else if (isTimed && next >= questions.length) {
+        setGameOver(true);
       } else {
         setCurrent(next);
         setSelected(null);
@@ -126,7 +170,7 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions }: Props) => 
     }, 1200);
   };
 
-  const isCorrect = selected ? checkAnswer(q, selected) : false;
+  const isCorrect = selected && selected !== "__timeout__" ? checkAnswer(q, selected) : false;
   const progressValue = isTimed ? (timeLeft / 60) * 100 : ((current + 1) / questions.length) * 100;
 
   return (
@@ -147,6 +191,14 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions }: Props) => 
         <span className="text-sm font-bold text-accent">{score} pts</span>
       </div>
 
+      {/* Per-question timer */}
+      {perQuestionTimer && !showResult && (
+        <div className="flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          <span>{questionTimeLeft}s</span>
+        </div>
+      )}
+
       {/* Question */}
       <Card>
         <CardContent className="p-5">
@@ -159,13 +211,14 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions }: Props) => 
         </CardContent>
       </Card>
 
-      {/* Options */}
+      {/* Options — neutral state until user selects */}
       <div className="grid gap-2">
         {q.options.map((option, i) => {
           let variant: "outline" | "default" | "destructive" = "outline";
           let icon = null;
           if (showResult) {
-            if (option === q.correctAnswer || (q as any)._altAnswers?.includes(option)) {
+            const isThisCorrect = checkAnswer(q, option);
+            if (isThisCorrect) {
               variant = "default";
               icon = <Check className="h-4 w-4" />;
             } else if (option === selected && !isCorrect) {
@@ -176,9 +229,9 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions }: Props) => 
 
           return (
             <Button
-              key={i}
+              key={`${current}-${i}`}
               variant={variant}
-              className="h-auto justify-start whitespace-normal px-4 py-3 text-left text-sm"
+              className="h-auto justify-start whitespace-normal px-4 py-3 text-left text-sm tap-highlight-none focus:outline-none focus-visible:outline-none active:outline-none"
               onClick={() => handleSelect(option)}
               disabled={showResult}
             >
