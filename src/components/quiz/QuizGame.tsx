@@ -157,6 +157,10 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions, perQuestionT
     if (correct) setScore((s) => s + 1);
 
     setTimeout(() => {
+      // Force blur on any focused element to clear iOS sticky highlight
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
       const next = current + 1;
       if (!isTimed && next >= questions.length) {
         doFinish(score + (correct ? 1 : 0), questions.length);
