@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trophy, Calendar, HelpCircle, Shield, LogOut } from "lucide-react";
+import { Trophy, Calendar, HelpCircle, Shield, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const menuItems = [
