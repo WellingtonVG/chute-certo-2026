@@ -13,6 +13,7 @@ import BolaoDetail from "./pages/BolaoDetail";
 import Calendario from "./pages/Calendario";
 import Admin from "./pages/Admin";
 import Quiz from "./pages/Quiz";
+import Settings from "./pages/Settings";
 import Invite from "./pages/Invite";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -114,6 +115,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Quiz />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/configuracoes"
+              element={
+                <ProtectedRoute>
+                  <Settings />
                 </ProtectedRoute>
               }
             />
