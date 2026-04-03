@@ -113,7 +113,7 @@ const Admin = () => {
         bolao_name: bolaoNameMap[m.bolao_id] || "?",
         user_id: m.user_id,
         username: profileMap[m.user_id]?.username || "?",
-        full_name: profileMap[m.user_id]?.full_name || null,
+        
         joined_at: m.joined_at,
         member_id: m.id,
       })));
