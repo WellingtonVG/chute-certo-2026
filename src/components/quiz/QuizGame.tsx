@@ -178,12 +178,10 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions, perQuestionT
     }, 1200);
   };
 
-  const isCorrect = selected && selected !== "__timeout__" ? checkAnswer(q, selected) : false;
   const progressValue = isTimed ? (timeLeft / 60) * 100 : ((current + 1) / questions.length) * 100;
 
   return (
     <div className="space-y-4">
-      {/* Progress bar */}
       <div className="flex items-center gap-3">
         {isTimed ? (
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -199,7 +197,6 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions, perQuestionT
         <span className="text-sm font-bold text-accent">{score} pts</span>
       </div>
 
-      {/* Per-question timer */}
       {perQuestionTimer && !showResult && (
         <div className="flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground">
           <Clock className="h-4 w-4" />
@@ -207,7 +204,6 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions, perQuestionT
         </div>
       )}
 
-      {/* Question */}
       <Card>
         <CardContent className="p-5">
           <div className="mb-3 flex items-center gap-2">
@@ -219,40 +215,13 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions, perQuestionT
         </CardContent>
       </Card>
 
-      {/* Options — neutral state until user selects */}
-      <div key={`options-${current}`} className="grid gap-2">
-        {q.options.map((option, i) => {
-          let variant: "outline" | "default" | "destructive" = "outline";
-          let icon = null;
-          if (showResult) {
-            const isThisCorrect = checkAnswer(q, option);
-            if (isThisCorrect) {
-              variant = "default";
-              icon = <Check className="h-4 w-4" />;
-            } else if (option === selected && !isCorrect) {
-              variant = "destructive";
-              icon = <X className="h-4 w-4" />;
-            }
-          }
-
-          return (
-            <Button
-              key={`${current}-${i}`}
-              variant={variant}
-              className="h-auto justify-start whitespace-normal px-4 py-3 text-left text-sm tap-highlight-none focus:outline-none focus-visible:outline-none active:outline-none [&]:focus:bg-transparent [&]:hover:bg-accent/5"
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-              onClick={() => handleSelect(option)}
-              disabled={showResult}
-            >
-              <span className="mr-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
-                {String.fromCharCode(65 + i)}
-              </span>
-              <span className="flex-1">{option}</span>
-              {icon}
-            </Button>
-          );
-        })}
-      </div>
+      <QuizOptions
+        key={`q-${current}`}
+        question={q}
+        selected={selected}
+        showResult={showResult}
+        onSelect={handleSelect}
+      />
     </div>
   );
 };
