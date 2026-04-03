@@ -93,6 +93,9 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions, perQuestionT
     setSelected("__timeout__");
     setShowResult(true);
     setTimeout(() => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
       const next = current + 1;
       if (!isTimed && next >= questions.length) {
         doFinish(score, questions.length);
