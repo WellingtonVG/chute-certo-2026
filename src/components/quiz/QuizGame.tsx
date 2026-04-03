@@ -219,7 +219,7 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions, perQuestionT
       </Card>
 
       {/* Options — neutral state until user selects */}
-      <div className="grid gap-2">
+      <div key={`options-${current}`} className="grid gap-2">
         {q.options.map((option, i) => {
           let variant: "outline" | "default" | "destructive" = "outline";
           let icon = null;
@@ -238,7 +238,8 @@ const QuizGame = ({ config, onFinish, questions: externalQuestions, perQuestionT
             <Button
               key={`${current}-${i}`}
               variant={variant}
-              className="h-auto justify-start whitespace-normal px-4 py-3 text-left text-sm tap-highlight-none focus:outline-none focus-visible:outline-none active:outline-none"
+              className="h-auto justify-start whitespace-normal px-4 py-3 text-left text-sm tap-highlight-none focus:outline-none focus-visible:outline-none active:outline-none [&]:focus:bg-transparent [&]:hover:bg-accent/5"
+              style={{ WebkitTapHighlightColor: 'transparent' }}
               onClick={() => handleSelect(option)}
               disabled={showResult}
             >
