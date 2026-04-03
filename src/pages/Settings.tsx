@@ -12,10 +12,6 @@ const Settings = () => {
   const navigate = useNavigate();
   const { user, profile, refreshProfile, signOut } = useAuth();
 
-  // Display name
-  const [fullName, setFullName] = useState(profile?.full_name ?? "");
-  const [savingName, setSavingName] = useState(false);
-
   // Username
   const [username, setUsername] = useState(profile?.username ?? "");
   const [usernameError, setUsernameError] = useState("");
@@ -31,22 +27,6 @@ const Settings = () => {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  const handleSaveName = async () => {
-    if (!user) return;
-    setSavingName(true);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ full_name: fullName.trim() })
-      .eq("user_id", user.id);
-    setSavingName(false);
-    if (error) {
-      toast({ title: "Erro ao salvar nome", description: error.message, variant: "destructive" });
-    } else {
-      await refreshProfile();
-      toast({ title: "Nome atualizado!" });
-    }
-  };
-
   const handleSaveUsername = async () => {
     if (!user) return;
     const trimmed = username.trim().toLowerCase();
@@ -61,7 +41,6 @@ const Settings = () => {
     setUsernameError("");
     setSavingUsername(true);
 
-    // Check uniqueness
     const { data: existing } = await supabase
       .from("profiles")
       .select("user_id")
@@ -103,7 +82,6 @@ const Settings = () => {
     }
     setSavingPassword(true);
 
-    // Verify current password by re-signing in
     const email = user?.email;
     if (!email) {
       setSavingPassword(false);
@@ -135,7 +113,6 @@ const Settings = () => {
     if (deleteConfirm !== "EXCLUIR") return;
     setDeleting(true);
 
-    // Delete profile (cascades handled by DB)
     const { error } = await supabase.from("profiles").delete().eq("user_id", user!.id);
     if (error) {
       setDeleting(false);
@@ -164,24 +141,6 @@ const Settings = () => {
       </header>
 
       <main className="mx-auto w-full max-w-lg flex-1 space-y-6 p-4">
-        {/* Display Name */}
-        <section className="space-y-3 rounded-xl border bg-card p-4">
-          <h2 className="font-semibold text-card-foreground">Nome de exibição</h2>
-          <div className="space-y-2">
-            <Label htmlFor="fullName">Nome completo</Label>
-            <Input
-              id="fullName"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Seu nome"
-            />
-          </div>
-          <Button onClick={handleSaveName} disabled={savingName} size="sm">
-            {savingName && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Salvar
-          </Button>
-        </section>
-
         {/* Username */}
         <section className="space-y-3 rounded-xl border bg-card p-4">
           <h2 className="font-semibold text-card-foreground">Username</h2>
