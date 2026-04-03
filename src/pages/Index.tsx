@@ -45,14 +45,24 @@ const Index = () => {
               Olá, <span className="font-semibold">{profile?.username}</span>
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={signOut}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <LogOut className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/configuracoes")}
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={signOut}
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
