@@ -12,6 +12,13 @@ interface Props {
 const QuizOptions = ({ question, selected, showResult, onSelect }: Props) => {
   const isCorrect = selected && selected !== "__timeout__" ? checkAnswer(question, selected) : false;
 
+  const handleTouchEnd = (event: React.TouchEvent<HTMLButtonElement>) => {
+    const target = event.target as EventTarget | null;
+    if (target instanceof HTMLElement) {
+      target.blur();
+    }
+  };
+
   return (
     <div className="grid gap-2">
       {question.options.map((option, i) => {
@@ -33,8 +40,9 @@ const QuizOptions = ({ question, selected, showResult, onSelect }: Props) => {
             key={i}
             variant={variant}
             className="h-auto justify-start whitespace-normal px-4 py-3 text-left text-sm tap-highlight-none focus:outline-none focus-visible:outline-none active:outline-none [&]:focus:bg-transparent [&]:hover:bg-accent/5"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
+            style={{ WebkitTapHighlightColor: "transparent" }}
             onClick={() => onSelect(option)}
+            onTouchEnd={handleTouchEnd}
             disabled={showResult}
           >
             <span className="mr-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold">
