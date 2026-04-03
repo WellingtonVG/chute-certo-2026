@@ -49,7 +49,6 @@ const PREPOSITION_MAP: Record<string, string> = {
   "Inglaterra": "na Inglaterra",
   "México": "no México",
   "Alemanha": "na Alemanha",
-  "Alemanha": "na Alemanha",
   "Argentina": "na Argentina",
   "Espanha": "na Espanha",
   "EUA": "nos EUA",
