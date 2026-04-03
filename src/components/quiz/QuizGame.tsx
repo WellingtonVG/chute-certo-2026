@@ -6,7 +6,8 @@ import { pickQuestions, checkAnswer, type QuizQuestion } from "@/lib/quiz-data";
 import type { QuizConfig, QuizResultData } from "@/pages/Quiz";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Check, X, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
+import QuizOptions from "./QuizOptions";
 
 interface Props {
   config: QuizConfig;
