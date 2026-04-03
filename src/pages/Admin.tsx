@@ -358,7 +358,6 @@ const Admin = () => {
                       <div key={m.member_id} className="flex items-center justify-between rounded-lg border p-3">
                         <div>
                           <p className="text-sm font-medium">{m.username}</p>
-                          {m.full_name && <p className="text-xs text-muted-foreground">{m.full_name}</p>}
                           <p className="text-xs text-muted-foreground">
                             Entrou em {format(new Date(m.joined_at), "dd/MM/yyyy", { locale: ptBR })}
                           </p>
