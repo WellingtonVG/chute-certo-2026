@@ -31,7 +31,6 @@ const QuizMultiplayerGame = ({ roomId, questions, onFinish }: Props) => {
     setResult(res);
     setFinished(true);
 
-    // Update participant record
     if (user) {
       await supabase
         .from("quiz_participants")
@@ -41,7 +40,6 @@ const QuizMultiplayerGame = ({ roomId, questions, onFinish }: Props) => {
     }
   };
 
-  // Poll for all finished
   useEffect(() => {
     if (!finished) return;
 
@@ -94,6 +92,7 @@ const QuizMultiplayerGame = ({ roomId, questions, onFinish }: Props) => {
       config={{ mode: "multiplayer", level: "all", count: questions.length }}
       onFinish={handleFinish}
       questions={questions}
+      perQuestionTimer={12}
     />
   );
 };

@@ -1,205 +1,4 @@
-// World Cup historical data for quiz generation
-export interface WorldCupEdition {
-  year: number;
-  host: string;
-  champion: string;
-  runnerUp: string;
-  bestPlayer: string;
-  topScorer: string;
-  topScorerCountry: string;
-  topScorerGoals: number;
-  finalScore: string;
-  topScorerAlt?: string; // For years with shared golden boot
-  trivia?: { question: string; answer: string; options: string[]; level: "easy" | "medium" | "hard" }[];
-  skipTopScorer?: boolean;
-  skipFinalScore?: boolean;
-}
-
-export const worldCupData: WorldCupEdition[] = [
-  {
-    year: 1930, host: "Uruguai", champion: "Uruguai", runnerUp: "Argentina",
-    bestPlayer: "José Nasazzi", topScorer: "Guillermo Stábile", topScorerCountry: "Argentina",
-    topScorerGoals: 8, finalScore: "Uruguai 4 x 2 Argentina",
-    trivia: [
-      { question: "Qual foi a primeira Copa do Mundo da história?", answer: "1930", options: ["1928", "1930", "1934", "1926"], level: "easy" },
-    ],
-  },
-  {
-    year: 1934, host: "Itália", champion: "Itália", runnerUp: "Tchecoslováquia",
-    bestPlayer: "Giuseppe Meazza", topScorer: "Oldřich Nejedlý", topScorerCountry: "Tchecoslováquia",
-    topScorerGoals: 5, finalScore: "Itália 2 x 1 Tchecoslováquia",
-  },
-  {
-    year: 1938, host: "França", champion: "Itália", runnerUp: "Hungria",
-    bestPlayer: "Leônidas da Silva", topScorer: "Leônidas da Silva", topScorerCountry: "Brasil",
-    topScorerGoals: 7, finalScore: "Itália 4 x 2 Hungria",
-    trivia: [
-      { question: "Qual jogador brasileiro foi artilheiro da Copa de 1938?", answer: "Leônidas da Silva", options: ["Pelé", "Leônidas da Silva", "Garrincha", "Domingos da Guia"], level: "medium" },
-    ],
-  },
-  {
-    year: 1950, host: "Brasil", champion: "Uruguai", runnerUp: "Brasil",
-    bestPlayer: "Zizinho", topScorer: "Ademir", topScorerCountry: "Brasil",
-    topScorerGoals: 9, skipFinalScore: true,
-    finalScore: "",
-    trivia: [
-      { question: "Como é conhecido o episódio da derrota do Brasil na final da Copa de 1950?", answer: "Maracanazo", options: ["Maracanazo", "Mineiraço", "Tragédia Verde", "Fatídico 50"], level: "easy" },
-      { question: "A Copa de 1950 teve uma final tradicional (jogo único)?", answer: "Não, foi decidida por um quadrangular final", options: ["Sim, jogo único", "Não, foi decidida por um quadrangular final", "Sim, com prorrogação", "Não, foi melhor de três"], level: "hard" },
-    ],
-  },
-  {
-    year: 1954, host: "Suíça", champion: "Alemanha", runnerUp: "Hungria",
-    bestPlayer: "Ferenc Puskás", topScorer: "Sándor Kocsis", topScorerCountry: "Hungria",
-    topScorerGoals: 11, finalScore: "Alemanha 3 x 2 Hungria",
-    trivia: [
-      { question: "Como ficou conhecida a final da Copa de 1954?", answer: "O Milagre de Berna", options: ["O Milagre de Berna", "A Batalha de Zurique", "A Surpresa Húngara", "O Golpe Alemão"], level: "hard" },
-    ],
-  },
-  {
-    year: 1958, host: "Suécia", champion: "Brasil", runnerUp: "Suécia",
-    bestPlayer: "Didi", topScorer: "Just Fontaine", topScorerCountry: "França",
-    topScorerGoals: 13, finalScore: "Brasil 5 x 2 Suécia",
-    trivia: [
-      { question: "Quantos anos tinha Pelé quando jogou sua primeira Copa do Mundo?", answer: "17 anos", options: ["15 anos", "16 anos", "17 anos", "18 anos"], level: "medium" },
-      { question: "Just Fontaine marcou 13 gols na Copa de 1958. Esse recorde foi quebrado?", answer: "Não, é o recorde até hoje", options: ["Sim, por Ronaldo em 2002", "Sim, por Klose em 2006", "Não, é o recorde até hoje", "Sim, por Müller em 1970"], level: "hard" },
-    ],
-  },
-  {
-    year: 1962, host: "Chile", champion: "Brasil", runnerUp: "Tchecoslováquia",
-    bestPlayer: "Garrincha", skipTopScorer: true,
-    topScorer: "Garrincha", topScorerCountry: "Brasil", topScorerGoals: 4,
-    finalScore: "Brasil 3 x 1 Tchecoslováquia",
-    trivia: [
-      { question: "Quem substituiu Pelé como principal jogador do Brasil na Copa de 1962?", answer: "Garrincha", options: ["Didi", "Garrincha", "Vavá", "Zagallo"], level: "easy" },
-    ],
-  },
-  {
-    year: 1966, host: "Inglaterra", champion: "Inglaterra", runnerUp: "Alemanha",
-    bestPlayer: "Bobby Charlton", topScorer: "Eusébio", topScorerCountry: "Portugal",
-    topScorerGoals: 9, finalScore: "Inglaterra 4 x 2 Alemanha",
-    trivia: [
-      { question: "O gol fantasma da final de 1966 foi a favor de qual seleção?", answer: "Inglaterra", options: ["Alemanha", "Inglaterra", "Brasil", "Portugal"], level: "medium" },
-    ],
-  },
-  {
-    year: 1970, host: "México", champion: "Brasil", runnerUp: "Itália",
-    bestPlayer: "Pelé", topScorer: "Gerd Müller", topScorerCountry: "Alemanha",
-    topScorerGoals: 10, finalScore: "Brasil 4 x 1 Itália",
-    trivia: [
-      { question: "O Brasil de 1970 é frequentemente considerado a melhor seleção da história. Quem era o técnico?", answer: "Zagallo", options: ["Zagallo", "Telê Santana", "Vicente Feola", "Carlos Alberto Parreira"], level: "medium" },
-      { question: "Quantas vezes o Brasil precisou ganhar a Copa para ficar com a Taça Jules Rimet definitivamente?", answer: "3 vezes", options: ["2 vezes", "3 vezes", "4 vezes", "5 vezes"], level: "hard" },
-    ],
-  },
-  {
-    year: 1974, host: "Alemanha", champion: "Alemanha", runnerUp: "Holanda",
-    bestPlayer: "Johan Cruyff", topScorer: "Grzegorz Lato", topScorerCountry: "Polônia",
-    topScorerGoals: 7, finalScore: "Alemanha 2 x 1 Holanda",
-    trivia: [
-      { question: "Qual conceito tático a Holanda de 1974 popularizou?", answer: "Futebol Total", options: ["Catenaccio", "Futebol Total", "Tiki-taka", "Pressing alto"], level: "medium" },
-    ],
-  },
-  {
-    year: 1978, host: "Argentina", champion: "Argentina", runnerUp: "Holanda",
-    bestPlayer: "Mario Kempes", topScorer: "Mario Kempes", topScorerCountry: "Argentina",
-    topScorerGoals: 6, skipFinalScore: true, finalScore: "",
-    trivia: [
-      { question: "A Copa de 1978 foi marcada por qual contexto político na Argentina?", answer: "Ditadura militar", options: ["Democracia recente", "Ditadura militar", "Guerra civil", "Revolução popular"], level: "hard" },
-    ],
-  },
-  {
-    year: 1982, host: "Espanha", champion: "Itália", runnerUp: "Alemanha",
-    bestPlayer: "Paolo Rossi", topScorer: "Paolo Rossi", topScorerCountry: "Itália",
-    topScorerGoals: 6, finalScore: "Itália 3 x 1 Alemanha",
-    trivia: [
-      { question: "Em qual fase a seleção brasileira de 1982 foi eliminada?", answer: "Segunda fase de grupos", options: ["Quartas de final", "Segunda fase de grupos", "Semifinal", "Oitavas de final"], level: "hard" },
-    ],
-  },
-  {
-    year: 1986, host: "México", champion: "Argentina", runnerUp: "Alemanha",
-    bestPlayer: "Diego Maradona", topScorer: "Gary Lineker", topScorerCountry: "Inglaterra",
-    topScorerGoals: 6, finalScore: "Argentina 3 x 2 Alemanha",
-    trivia: [
-      { question: "Qual gol de Maradona na Copa de 1986 ficou conhecido como 'A Mão de Deus'?", answer: "Contra a Inglaterra nas quartas", options: ["Contra a Alemanha na final", "Contra a Inglaterra nas quartas", "Contra a Bélgica na semi", "Contra o Uruguai nas oitavas"], level: "easy" },
-      { question: "Maradona também marcou o 'Gol do Século' na mesma partida contra a Inglaterra. Quantos jogadores ele driblou?", answer: "6 jogadores", options: ["4 jogadores", "5 jogadores", "6 jogadores", "7 jogadores"], level: "hard" },
-    ],
-  },
-  {
-    year: 1990, host: "Itália", champion: "Alemanha", runnerUp: "Argentina",
-    bestPlayer: "Salvatore Schillaci", topScorer: "Salvatore Schillaci", topScorerCountry: "Itália",
-    topScorerGoals: 6, finalScore: "Alemanha 1 x 0 Argentina",
-  },
-  {
-    year: 1994, host: "Estados Unidos", champion: "Brasil", runnerUp: "Itália",
-    bestPlayer: "Romário", topScorer: "Hristo Stoichkov", topScorerCountry: "Bulgária",
-    topScorerGoals: 6, topScorerAlt: "Oleg Salenko", finalScore: "Brasil 0 x 0 Itália (3-2 nos pênaltis)",
-    trivia: [
-      { question: "Como foi decidida a final da Copa de 1994?", answer: "Nos pênaltis", options: ["Gol de ouro", "Nos pênaltis", "Na prorrogação", "Placar normal"], level: "easy" },
-      { question: "Quem perdeu o pênalti decisivo na final de 1994?", answer: "Roberto Baggio", options: ["Franco Baresi", "Roberto Baggio", "Daniele Massaro", "Paolo Maldini"], level: "medium" },
-    ],
-  },
-  {
-    year: 1998, host: "França", champion: "França", runnerUp: "Brasil",
-    bestPlayer: "Ronaldo", topScorer: "Davor Šuker", topScorerCountry: "Croácia",
-    topScorerGoals: 6, finalScore: "França 3 x 0 Brasil",
-    trivia: [
-      { question: "Quantos gols Zinedine Zidane marcou na final da Copa de 1998?", answer: "2 gols", options: ["1 gol", "2 gols", "3 gols", "Nenhum"], level: "medium" },
-    ],
-  },
-  {
-    year: 2002, host: "Coreia do Sul e Japão", champion: "Brasil", runnerUp: "Alemanha",
-    bestPlayer: "Oliver Kahn", topScorer: "Ronaldo", topScorerCountry: "Brasil",
-    topScorerGoals: 8, finalScore: "Brasil 2 x 0 Alemanha",
-    trivia: [
-      { question: "A Copa de 2002 foi a primeira realizada em quantos países?", answer: "2 países", options: ["1 país", "2 países", "3 países", "4 países"], level: "easy" },
-      { question: "Qual goleiro foi eleito melhor jogador da Copa de 2002?", answer: "Oliver Kahn", options: ["Marcos", "Oliver Kahn", "Gianluigi Buffon", "Rüştü Reçber"], level: "medium" },
-    ],
-  },
-  {
-    year: 2006, host: "Alemanha", champion: "Itália", runnerUp: "França",
-    bestPlayer: "Zinedine Zidane", topScorer: "Miroslav Klose", topScorerCountry: "Alemanha",
-    topScorerGoals: 5, finalScore: "Itália 1 x 1 França (5-3 nos pênaltis)",
-    trivia: [
-      { question: "O que Zidane fez na final da Copa de 2006 que resultou em sua expulsão?", answer: "Deu uma cabeçada em Materazzi", options: ["Deu uma cabeçada em Materazzi", "Agrediu o árbitro", "Cometeu falta violenta", "Xingou o quarto árbitro"], level: "easy" },
-    ],
-  },
-  {
-    year: 2010, host: "África do Sul", champion: "Espanha", runnerUp: "Holanda",
-    bestPlayer: "Diego Forlán", topScorer: "Thomas Müller", topScorerCountry: "Alemanha",
-    topScorerGoals: 5, finalScore: "Espanha 1 x 0 Holanda",
-    trivia: [
-      { question: "A Copa de 2010 foi a primeira realizada em qual continente?", answer: "África", options: ["Ásia", "África", "Oceania", "América do Sul"], level: "easy" },
-      { question: "Qual instrumento musical ficou famoso na Copa de 2010?", answer: "Vuvuzela", options: ["Corneta", "Vuvuzela", "Tambor", "Apito"], level: "easy" },
-    ],
-  },
-  {
-    year: 2014, host: "Brasil", champion: "Alemanha", runnerUp: "Argentina",
-    bestPlayer: "Lionel Messi", topScorer: "James Rodríguez", topScorerCountry: "Colômbia",
-    topScorerGoals: 6, finalScore: "Alemanha 1 x 0 Argentina",
-    trivia: [
-      { question: "Qual foi o placar da semifinal entre Brasil e Alemanha na Copa de 2014?", answer: "Alemanha 7 x 1 Brasil", options: ["Alemanha 5 x 0 Brasil", "Alemanha 7 x 1 Brasil", "Alemanha 4 x 0 Brasil", "Alemanha 6 x 1 Brasil"], level: "easy" },
-      { question: "Quem marcou o gol da Alemanha na final da Copa de 2014?", answer: "Mario Götze", options: ["Thomas Müller", "Mario Götze", "Miroslav Klose", "André Schürrle"], level: "medium" },
-    ],
-  },
-  {
-    year: 2018, host: "Rússia", champion: "França", runnerUp: "Croácia",
-    bestPlayer: "Luka Modrić", topScorer: "Harry Kane", topScorerCountry: "Inglaterra",
-    topScorerGoals: 6, finalScore: "França 4 x 2 Croácia",
-    trivia: [
-      { question: "Qual foi o primeiro Mundial a usar o VAR (árbitro de vídeo)?", answer: "Copa de 2018", options: ["Copa de 2014", "Copa de 2018", "Copa de 2022", "Copa de 2010"], level: "medium" },
-      { question: "Kylian Mbappé tinha quantos anos quando marcou na final da Copa de 2018?", answer: "19 anos", options: ["17 anos", "18 anos", "19 anos", "20 anos"], level: "hard" },
-    ],
-  },
-  {
-    year: 2022, host: "Catar", champion: "Argentina", runnerUp: "França",
-    bestPlayer: "Lionel Messi", topScorer: "Kylian Mbappé", topScorerCountry: "França",
-    topScorerGoals: 8, finalScore: "Argentina 3 x 3 França (4-2 nos pênaltis)",
-    trivia: [
-      { question: "A Copa de 2022 foi realizada em qual época do ano, diferente do habitual?", answer: "No final do ano (novembro-dezembro)", options: ["No início do ano (janeiro-fevereiro)", "No final do ano (novembro-dezembro)", "No meio do ano (junho-julho)", "Na primavera (março-abril)"], level: "easy" },
-      { question: "Quantos gols Mbappé marcou na final da Copa de 2022?", answer: "3 gols (hat-trick)", options: ["1 gol", "2 gols", "3 gols (hat-trick)", "4 gols"], level: "medium" },
-      { question: "Messi finalmente conquistou a Copa do Mundo em 2022. Quantas Copas ele disputou no total?", answer: "5 Copas", options: ["3 Copas", "4 Copas", "5 Copas", "6 Copas"], level: "medium" },
-    ],
-  },
-];
+// World Cup Quiz data engine — generated from quiz_banco_dados_v2.json
 
 export type QuizLevel = "easy" | "medium" | "hard";
 
@@ -209,8 +8,114 @@ export interface QuizQuestion {
   correctAnswer: string;
   level: QuizLevel;
   category: string;
+  editionYear?: number;
+  _altAnswers?: string[];
 }
 
+interface TopScorer {
+  name: string;
+  country: string;
+  goals: number;
+}
+
+interface Edition {
+  year: number;
+  host: string;
+  champion: string;
+  runner_up: string;
+  final_score: string | null;
+  top_scorer: TopScorer | TopScorer[] | null;
+  best_player: string;
+  best_player_country: string;
+  use_final_score: boolean;
+}
+
+interface TriviaQ {
+  id: string;
+  question: string;
+  answer: string;
+  options: string[];
+}
+
+// ── Preposition helper for PT-BR ("na Alemanha", "no Brasil", "nos EUA") ──
+const PREPOSITION_MAP: Record<string, string> = {
+  "Uruguai": "no Uruguai",
+  "Itália": "na Itália",
+  "França": "na França",
+  "Brasil": "no Brasil",
+  "Suíça": "na Suíça",
+  "Suécia": "na Suécia",
+  "Chile": "no Chile",
+  "Inglaterra": "na Inglaterra",
+  "México": "no México",
+  "Alemanha Ocidental": "na Alemanha Ocidental",
+  "Alemanha": "na Alemanha",
+  "Argentina": "na Argentina",
+  "Espanha": "na Espanha",
+  "EUA": "nos EUA",
+  "Estados Unidos": "nos Estados Unidos",
+  "Coreia do Sul / Japão": "na Coreia do Sul / Japão",
+  "Coreia do Sul e Japão": "na Coreia do Sul e Japão",
+  "África do Sul": "na África do Sul",
+  "Rússia": "na Rússia",
+  "Qatar": "no Qatar",
+  "Catar": "no Catar",
+};
+
+function withPreposition(country: string): string {
+  return PREPOSITION_MAP[country] || `em ${country}`;
+}
+
+// ── Raw data ──
+const editions: Edition[] = [
+  { year: 1930, host: "Uruguai", champion: "Uruguai", runner_up: "Argentina", final_score: "4x2", top_scorer: { name: "Guillermo Stábile", country: "Argentina", goals: 8 }, best_player: "José Nasazzi", best_player_country: "Uruguai", use_final_score: true },
+  { year: 1934, host: "Itália", champion: "Itália", runner_up: "Tchecoslováquia", final_score: "2x1", top_scorer: { name: "Oldřich Nejedlý", country: "Tchecoslováquia", goals: 5 }, best_player: "Giuseppe Meazza", best_player_country: "Itália", use_final_score: true },
+  { year: 1938, host: "França", champion: "Itália", runner_up: "Hungria", final_score: "4x2", top_scorer: { name: "Leônidas da Silva", country: "Brasil", goals: 8 }, best_player: "Leônidas da Silva", best_player_country: "Brasil", use_final_score: true },
+  { year: 1950, host: "Brasil", champion: "Uruguai", runner_up: "Brasil", final_score: null, top_scorer: { name: "Ademir de Menezes", country: "Brasil", goals: 9 }, best_player: "Zizinho", best_player_country: "Brasil", use_final_score: false },
+  { year: 1954, host: "Suíça", champion: "Alemanha Ocidental", runner_up: "Hungria", final_score: "3x2", top_scorer: { name: "Sándor Kocsis", country: "Hungria", goals: 11 }, best_player: "Ferenc Puskás", best_player_country: "Hungria", use_final_score: true },
+  { year: 1958, host: "Suécia", champion: "Brasil", runner_up: "Suécia", final_score: "5x2", top_scorer: { name: "Just Fontaine", country: "França", goals: 13 }, best_player: "Didi", best_player_country: "Brasil", use_final_score: true },
+  { year: 1962, host: "Chile", champion: "Brasil", runner_up: "Tchecoslováquia", final_score: "3x1", top_scorer: null, best_player: "Garrincha", best_player_country: "Brasil", use_final_score: true },
+  { year: 1966, host: "Inglaterra", champion: "Inglaterra", runner_up: "Alemanha Ocidental", final_score: "4x2", top_scorer: { name: "Eusébio", country: "Portugal", goals: 9 }, best_player: "Bobby Charlton", best_player_country: "Inglaterra", use_final_score: true },
+  { year: 1970, host: "México", champion: "Brasil", runner_up: "Itália", final_score: "4x1", top_scorer: { name: "Gerd Müller", country: "Alemanha Ocidental", goals: 10 }, best_player: "Pelé", best_player_country: "Brasil", use_final_score: true },
+  { year: 1974, host: "Alemanha Ocidental", champion: "Alemanha Ocidental", runner_up: "Holanda", final_score: "2x1", top_scorer: { name: "Grzegorz Lato", country: "Polônia", goals: 7 }, best_player: "Johan Cruyff", best_player_country: "Holanda", use_final_score: true },
+  { year: 1978, host: "Argentina", champion: "Argentina", runner_up: "Holanda", final_score: null, top_scorer: { name: "Mario Kempes", country: "Argentina", goals: 6 }, best_player: "Mario Kempes", best_player_country: "Argentina", use_final_score: false },
+  { year: 1982, host: "Espanha", champion: "Itália", runner_up: "Alemanha Ocidental", final_score: "3x0", top_scorer: { name: "Paolo Rossi", country: "Itália", goals: 6 }, best_player: "Paolo Rossi", best_player_country: "Itália", use_final_score: true },
+  { year: 1986, host: "México", champion: "Argentina", runner_up: "Alemanha Ocidental", final_score: "3x2", top_scorer: { name: "Gary Lineker", country: "Inglaterra", goals: 6 }, best_player: "Diego Maradona", best_player_country: "Argentina", use_final_score: true },
+  { year: 1990, host: "Itália", champion: "Alemanha Ocidental", runner_up: "Argentina", final_score: "1x0", top_scorer: { name: "Salvatore Schillaci", country: "Itália", goals: 6 }, best_player: "Salvatore Schillaci", best_player_country: "Itália", use_final_score: true },
+  { year: 1994, host: "EUA", champion: "Brasil", runner_up: "Itália", final_score: "0x0 (pên. 3x2)", top_scorer: [{ name: "Hristo Stoichkov", country: "Bulgária", goals: 6 }, { name: "Oleg Salenko", country: "Rússia", goals: 6 }], best_player: "Romário", best_player_country: "Brasil", use_final_score: true },
+  { year: 1998, host: "França", champion: "França", runner_up: "Brasil", final_score: "3x0", top_scorer: { name: "Davor Šuker", country: "Croácia", goals: 6 }, best_player: "Ronaldo", best_player_country: "Brasil", use_final_score: true },
+  { year: 2002, host: "Coreia do Sul / Japão", champion: "Brasil", runner_up: "Alemanha", final_score: "2x0", top_scorer: { name: "Ronaldo", country: "Brasil", goals: 8 }, best_player: "Oliver Kahn", best_player_country: "Alemanha", use_final_score: true },
+  { year: 2006, host: "Alemanha", champion: "Itália", runner_up: "França", final_score: "1x1 (pên. 5x3)", top_scorer: { name: "Miroslav Klose", country: "Alemanha", goals: 5 }, best_player: "Zinedine Zidane", best_player_country: "França", use_final_score: true },
+  { year: 2010, host: "África do Sul", champion: "Espanha", runner_up: "Holanda", final_score: "1x0", top_scorer: { name: "Thomas Müller", country: "Alemanha", goals: 5 }, best_player: "Diego Forlán", best_player_country: "Uruguai", use_final_score: true },
+  { year: 2014, host: "Brasil", champion: "Alemanha", runner_up: "Argentina", final_score: "1x0", top_scorer: { name: "James Rodríguez", country: "Colômbia", goals: 6 }, best_player: "Lionel Messi", best_player_country: "Argentina", use_final_score: true },
+  { year: 2018, host: "Rússia", champion: "França", runner_up: "Croácia", final_score: "4x2", top_scorer: { name: "Harry Kane", country: "Inglaterra", goals: 6 }, best_player: "Luka Modric", best_player_country: "Croácia", use_final_score: true },
+  { year: 2022, host: "Qatar", champion: "Argentina", runner_up: "França", final_score: "3x3 (pên. 4x2)", top_scorer: { name: "Kylian Mbappé", country: "França", goals: 8 }, best_player: "Lionel Messi", best_player_country: "Argentina", use_final_score: true },
+];
+
+const triviaEasy: TriviaQ[] = [
+  { id: "t_e_01", question: "Qual é o único país a ter participado de todas as edições da Copa do Mundo?", answer: "Brasil", options: ["Alemanha", "Argentina", "Brasil", "Itália"] },
+  { id: "t_e_02", question: "Quem é o único jogador tricampeão mundial como jogador?", answer: "Pelé", options: ["Pelé", "Garrincha", "Ronaldo", "Cafu"] },
+  { id: "t_e_03", question: "Em que Copa do Mundo Zidane foi expulso na final após uma cabeçada?", answer: "2006", options: ["2002", "2006", "2010", "1998"] },
+  { id: "t_e_04", question: "Quem perdeu o pênalti decisivo na final da Copa de 1994?", answer: "Roberto Baggio", options: ["Roberto Baggio", "Maldini", "Baresi", "Albertini"] },
+  { id: "t_e_05", question: "A Copa do Mundo de 2022 foi a primeira realizada em qual região do mundo?", answer: "Oriente Médio", options: ["Oriente Médio", "África", "Ásia Oriental", "Oceania"] },
+  { id: "t_e_06", question: "Qual é o único goleiro a ser eleito melhor jogador de uma Copa do Mundo?", answer: "Oliver Kahn", options: ["Oliver Kahn", "Buffon", "Casillas", "Neuer"] },
+  { id: "t_e_07", question: "Qual foi o placar da goleada da Alemanha sobre o Brasil na semifinal de 2014?", answer: "7x1", options: ["5x0", "6x0", "7x1", "7x0"] },
+  { id: "t_e_08", question: "Em que edição a Copa do Mundo não teve uma final clássica, sendo decidida em rodada de grupos?", answer: "1950", options: ["1930", "1950", "1954", "1962"] },
+];
+
+const triviaMedium: TriviaQ[] = [
+  { id: "t_m_01", question: "Qual jogador marcou gols em todas as partidas da Copa do Mundo de 1970?", answer: "Jairzinho", options: ["Jairzinho", "Pelé", "Tostão", "Gerd Müller"] },
+  { id: "t_m_02", question: "Qual é o recorde de gols em uma única edição da Copa do Mundo?", answer: "13 gols", options: ["11 gols", "12 gols", "13 gols", "14 gols"] },
+  { id: "t_m_03", question: "Qual país disputou mais finais de Copa do Mundo sem vencer nenhuma?", answer: "Holanda", options: ["Holanda", "Hungria", "Croácia", "Tchecoslováquia"] },
+];
+
+const triviaHard: TriviaQ[] = [
+  { id: "t_h_01", question: "Quem marcou o primeiro gol da história das Copas do Mundo?", answer: "Lucien Laurent (França)", options: ["Lucien Laurent (França)", "Guillermo Stábile (Argentina)", "Pedro Cea (Uruguai)", "Bert Patenaude (EUA)"] },
+  { id: "t_h_02", question: "Quem marcou 5 gols em uma única partida de Copa do Mundo?", answer: "Oleg Salenko", options: ["Oleg Salenko", "Just Fontaine", "Gerd Müller", "Eusébio"] },
+  { id: "t_h_03", question: "Quais países foram campeões da Copa do Mundo jogando em casa?", answer: "Uruguai, Itália, Inglaterra, Alemanha, Argentina e França", options: ["Uruguai, Itália, Inglaterra, Alemanha, Argentina e França", "Brasil, Uruguai, Itália e França", "Uruguai, Itália, Brasil, Argentina e França", "Itália, Inglaterra, Alemanha e França"] },
+];
+
+// ── Helpers ──
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -220,147 +125,255 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+function getFirstScorer(e: Edition): TopScorer | null {
+  if (!e.top_scorer) return null;
+  return Array.isArray(e.top_scorer) ? e.top_scorer[0] : e.top_scorer;
+}
+
+function getAllScorerNames(e: Edition): string[] {
+  if (!e.top_scorer) return [];
+  if (Array.isArray(e.top_scorer)) return e.top_scorer.map(s => s.name);
+  return [e.top_scorer.name];
+}
+
+// Player distractor pool: scorers + best players from ±2 editions window
+function playerDistractorPool(editionIndex: number, excludeNames: string[]): string[] {
+  const window = 2;
+  const start = Math.max(0, editionIndex - window);
+  const end = Math.min(editions.length - 1, editionIndex + window);
+  const pool = new Set<string>();
+  for (let i = start; i <= end; i++) {
+    pool.add(editions[i].best_player);
+    const scorer = getFirstScorer(editions[i]);
+    if (scorer) pool.add(scorer.name);
+  }
+  // Also add best_player of own edition if asking about scorer, and vice versa
+  pool.add(editions[editionIndex].best_player);
+  const ownScorer = getFirstScorer(editions[editionIndex]);
+  if (ownScorer) pool.add(ownScorer.name);
+
+  for (const name of excludeNames) pool.delete(name);
+  
+  // If pool too small, expand to all editions
+  if (pool.size < 3) {
+    for (const e of editions) {
+      pool.add(e.best_player);
+      const s = getFirstScorer(e);
+      if (s) pool.add(s.name);
+    }
+    for (const name of excludeNames) pool.delete(name);
+  }
+  return [...pool];
+}
+
 function pickDistractors(correct: string, pool: string[], count = 3): string[] {
-  const filtered = [...new Set(pool.filter((v) => v !== correct))];
+  const filtered = [...new Set(pool.filter(v => v !== correct))];
   return shuffle(filtered).slice(0, count);
 }
 
-export function generateQuestions(level?: QuizLevel): QuizQuestion[] {
-  const questions: QuizQuestion[] = [];
-  const allChampions = [...new Set(worldCupData.map((e) => e.champion))];
-  const allHosts = [...new Set(worldCupData.map((e) => e.host))];
-  const allRunnerUps = [...new Set(worldCupData.map((e) => e.runnerUp))];
-  const allBestPlayers = [...new Set(worldCupData.map((e) => e.bestPlayer))];
-  const allTopScorers = [...new Set(worldCupData.filter((e) => !e.skipTopScorer).map((e) => e.topScorer))];
-  const allCountries = [...new Set(worldCupData.map((e) => e.topScorerCountry))];
-  const allYears = worldCupData.map((e) => String(e.year));
-  const allFinalScores = [...new Set(worldCupData.filter((e) => !e.skipFinalScore).map((e) => e.finalScore))];
-  const allGoals = [...new Set(worldCupData.filter((e) => !e.skipTopScorer).map((e) => String(e.topScorerGoals)))];
+// ── Frequency limits from JSON ──
+const FREQ_LIMITS: Record<string, number> = {
+  runner_up: 1,
+  host: 2,
+  champion: 3,
+  final_score: 2,
+  top_scorer_name: 3,
+  best_player: 3,
+  top_scorer_goals: 2,
+  top_scorer_country: 2,
+  trivia_easy: 2,
+  trivia_medium: 2,
+  trivia_hard: 2,
+};
 
-  for (const edition of worldCupData) {
+// Difficulty map
+const DIFFICULTY_MAP: Record<QuizLevel, string[]> = {
+  easy: ["champion", "host", "trivia_easy"],
+  medium: ["runner_up", "best_player", "top_scorer_name", "trivia_medium"],
+  hard: ["top_scorer_goals", "top_scorer_country", "final_score", "trivia_hard"],
+};
+
+// ── Generate all questions ──
+function generateAllQuestions(): QuizQuestion[] {
+  const questions: QuizQuestion[] = [];
+  const allChampions = [...new Set(editions.map(e => e.champion))];
+  const allHosts = [...new Set(editions.map(e => e.host))];
+  const allRunnerUps = [...new Set(editions.map(e => e.runner_up))];
+  const allYears = editions.map(e => String(e.year));
+  const allCountries = [...new Set(editions.filter(e => e.top_scorer).map(e => {
+    const s = getFirstScorer(e);
+    return s ? s.country : "";
+  }).filter(Boolean))];
+  const allFinalScores = [...new Set(editions.filter(e => e.use_final_score && e.final_score).map(e => e.final_score!))];
+  const allGoals = [...new Set(editions.filter(e => e.top_scorer).map(e => {
+    const s = getFirstScorer(e);
+    return s ? `${s.goals} gols` : "";
+  }).filter(Boolean))];
+
+  for (let idx = 0; idx < editions.length; idx++) {
+    const e = editions[idx];
+
     // EASY: Champion by year
     questions.push({
-      question: `Quem venceu a Copa do Mundo de ${edition.year}?`,
-      correctAnswer: edition.champion,
-      options: shuffle([edition.champion, ...pickDistractors(edition.champion, allChampions)]),
-      level: "easy",
-      category: "champion",
+      question: `Quem venceu a Copa do Mundo de ${e.year}?`,
+      correctAnswer: e.champion,
+      options: shuffle([e.champion, ...pickDistractors(e.champion, allChampions)]),
+      level: "easy", category: "champion", editionYear: e.year,
     });
 
     // EASY: Year champion won at host
     questions.push({
-      question: `Em que ano ${edition.champion} venceu a Copa sediada em ${edition.host}?`,
-      correctAnswer: String(edition.year),
-      options: shuffle([String(edition.year), ...pickDistractors(String(edition.year), allYears)]),
-      level: "easy",
-      category: "champion",
+      question: `Em que ano ${e.champion} venceu a Copa realizada ${withPreposition(e.host)}?`,
+      correctAnswer: String(e.year),
+      options: shuffle([String(e.year), ...pickDistractors(String(e.year), allYears)]),
+      level: "easy", category: "champion", editionYear: e.year,
     });
 
     // EASY: Host by year
     questions.push({
-      question: `Em qual país foi realizada a Copa do Mundo de ${edition.year}?`,
-      correctAnswer: edition.host,
-      options: shuffle([edition.host, ...pickDistractors(edition.host, allHosts)]),
-      level: "easy",
-      category: "host",
+      question: `Em qual país foi realizada a Copa do Mundo de ${e.year}?`,
+      correctAnswer: e.host,
+      options: shuffle([e.host, ...pickDistractors(e.host, allHosts)]),
+      level: "easy", category: "host", editionYear: e.year,
     });
 
     // MEDIUM: Runner-up
     questions.push({
-      question: `Qual país foi vice-campeão da Copa de ${edition.year}?`,
-      correctAnswer: edition.runnerUp,
-      options: shuffle([edition.runnerUp, ...pickDistractors(edition.runnerUp, allRunnerUps)]),
-      level: "medium",
-      category: "runner_up",
+      question: `Qual país foi vice-campeão da Copa de ${e.year}?`,
+      correctAnswer: e.runner_up,
+      options: shuffle([e.runner_up, ...pickDistractors(e.runner_up, allRunnerUps)]),
+      level: "medium", category: "runner_up", editionYear: e.year,
     });
 
     // MEDIUM: Best player
     questions.push({
-      question: `Quem foi eleito o melhor jogador da Copa de ${edition.year}?`,
-      correctAnswer: edition.bestPlayer,
-      options: shuffle([edition.bestPlayer, ...pickDistractors(edition.bestPlayer, allBestPlayers)]),
-      level: "medium",
-      category: "best_player",
+      question: `Quem foi eleito o melhor jogador da Copa de ${e.year}?`,
+      correctAnswer: e.best_player,
+      options: shuffle([e.best_player, ...pickDistractors(e.best_player, playerDistractorPool(idx, [e.best_player]))]),
+      level: "medium", category: "best_player", editionYear: e.year,
     });
 
     // MEDIUM: Top scorer name (skip 1962)
-    if (!edition.skipTopScorer) {
-      const acceptedAnswers = edition.topScorerAlt
-        ? [edition.topScorer, edition.topScorerAlt]
-        : [edition.topScorer];
+    if (e.top_scorer) {
+      const names = getAllScorerNames(e);
+      const primary = names[0];
+      const excludeFromPool = [...names];
       questions.push({
-        question: `Quem foi o artilheiro da Copa de ${edition.year}?`,
-        correctAnswer: acceptedAnswers[0],
-        options: shuffle([acceptedAnswers[0], ...pickDistractors(acceptedAnswers[0], allTopScorers.filter((s) => !acceptedAnswers.includes(s)))]),
-        level: "medium",
-        category: "top_scorer",
-        ...(edition.topScorerAlt ? { _altAnswers: acceptedAnswers } as any : {}),
+        question: `Quem foi o artilheiro da Copa de ${e.year}?`,
+        correctAnswer: primary,
+        options: shuffle([primary, ...pickDistractors(primary, playerDistractorPool(idx, excludeFromPool))]),
+        level: "medium", category: "top_scorer_name", editionYear: e.year,
+        ...(names.length > 1 ? { _altAnswers: names } : {}),
       });
     }
 
     // HARD: Top scorer goals (skip 1962)
-    if (!edition.skipTopScorer) {
+    if (e.top_scorer) {
+      const scorer = getFirstScorer(e)!;
+      const goalStr = `${scorer.goals} gols`;
       questions.push({
-        question: `Quantos gols ${edition.topScorer} marcou na Copa de ${edition.year}?`,
-        correctAnswer: `${edition.topScorerGoals} gols`,
-        options: shuffle([`${edition.topScorerGoals} gols`, ...pickDistractors(`${edition.topScorerGoals} gols`, allGoals.map((g) => `${g} gols`))]),
-        level: "hard",
-        category: "top_scorer_goals",
+        question: `Quantos gols ${scorer.name} marcou na Copa de ${e.year}?`,
+        correctAnswer: goalStr,
+        options: shuffle([goalStr, ...pickDistractors(goalStr, allGoals)]),
+        level: "hard", category: "top_scorer_goals", editionYear: e.year,
       });
     }
 
-    // HARD: Top scorer country
-    if (!edition.skipTopScorer) {
+    // HARD: Top scorer country (skip 1962)
+    if (e.top_scorer) {
+      const scorer = getFirstScorer(e)!;
       questions.push({
-        question: `De qual país era o artilheiro da Copa de ${edition.year}?`,
-        correctAnswer: edition.topScorerCountry,
-        options: shuffle([edition.topScorerCountry, ...pickDistractors(edition.topScorerCountry, allCountries)]),
-        level: "hard",
-        category: "top_scorer_country",
+        question: `De qual país era o artilheiro da Copa de ${e.year}?`,
+        correctAnswer: scorer.country,
+        options: shuffle([scorer.country, ...pickDistractors(scorer.country, allCountries)]),
+        level: "hard", category: "top_scorer_country", editionYear: e.year,
       });
     }
 
     // HARD: Final score (skip 1950 and 1978)
-    if (!edition.skipFinalScore) {
+    if (e.use_final_score && e.final_score) {
       questions.push({
-        question: `Qual foi o placar da final da Copa de ${edition.year}?`,
-        correctAnswer: edition.finalScore,
-        options: shuffle([edition.finalScore, ...pickDistractors(edition.finalScore, allFinalScores)]),
-        level: "hard",
-        category: "final_score",
+        question: `Qual foi o placar da final da Copa de ${e.year}?`,
+        correctAnswer: e.final_score,
+        options: shuffle([e.final_score, ...pickDistractors(e.final_score, allFinalScores)]),
+        level: "hard", category: "final_score", editionYear: e.year,
       });
     }
-
-    // Trivia
-    if (edition.trivia) {
-      for (const t of edition.trivia) {
-        questions.push({
-          question: t.question,
-          correctAnswer: t.answer,
-          options: shuffle(t.options),
-          level: t.level,
-          category: "trivia",
-        });
-      }
-    }
   }
 
-  if (level) {
-    return questions.filter((q) => q.level === level);
+  // Trivia
+  for (const t of triviaEasy) {
+    questions.push({ question: t.question, correctAnswer: t.answer, options: shuffle(t.options), level: "easy", category: "trivia_easy" });
   }
+  for (const t of triviaMedium) {
+    questions.push({ question: t.question, correctAnswer: t.answer, options: shuffle(t.options), level: "medium", category: "trivia_medium" });
+  }
+  for (const t of triviaHard) {
+    questions.push({ question: t.question, correctAnswer: t.answer, options: shuffle(t.options), level: "hard", category: "trivia_hard" });
+  }
+
   return questions;
 }
 
+// ── Anti-spoiler: ensure same-edition questions are ≥3 apart ──
+function antiSpoiler(questions: QuizQuestion[]): QuizQuestion[] {
+  const result: QuizQuestion[] = [];
+  const recent: (number | undefined)[] = []; // track editionYear of last 3
+
+  const remaining = [...questions];
+  const maxAttempts = remaining.length * 3;
+  let attempts = 0;
+
+  while (remaining.length > 0 && attempts < maxAttempts) {
+    attempts++;
+    let placed = false;
+    for (let i = 0; i < remaining.length; i++) {
+      const q = remaining[i];
+      const year = q.editionYear;
+      if (year && recent.slice(-3).includes(year)) continue;
+      result.push(q);
+      recent.push(year);
+      remaining.splice(i, 1);
+      placed = true;
+      break;
+    }
+    if (!placed) {
+      // Can't avoid spoiler, just place first
+      result.push(remaining.shift()!);
+      recent.push(result[result.length - 1].editionYear);
+    }
+  }
+  // Add any leftover
+  result.push(...remaining);
+  return result;
+}
+
+// ── Pick questions with frequency limits and anti-spoiler ──
 export function pickQuestions(level: QuizLevel | "all", count: number): QuizQuestion[] {
-  const pool = level === "all" ? generateQuestions() : generateQuestions(level);
-  return shuffle(pool).slice(0, count);
+  const all = generateAllQuestions();
+  const pool = level === "all" ? all : all.filter(q => q.level === level);
+  const shuffled = shuffle(pool);
+
+  const categoryCounts: Record<string, number> = {};
+  // Also enforce max 40% per category
+  const maxPerCategory = Math.max(2, Math.ceil(count * 0.4));
+
+  const selected: QuizQuestion[] = [];
+  for (const q of shuffled) {
+    if (selected.length >= count) break;
+    const cat = q.category;
+    const currentCount = categoryCounts[cat] || 0;
+    const limit = Math.min(FREQ_LIMITS[cat] ?? Infinity, maxPerCategory);
+    if (currentCount >= limit) continue;
+    categoryCounts[cat] = currentCount + 1;
+    selected.push(q);
+  }
+
+  return antiSpoiler(selected);
 }
 
 export function checkAnswer(question: QuizQuestion, answer: string): boolean {
   if (answer === question.correctAnswer) return true;
-  // Handle 1994 dual top scorer
-  if ((question as any)._altAnswers) {
-    return (question as any)._altAnswers.includes(answer);
-  }
+  if (question._altAnswers) return question._altAnswers.includes(answer);
   return false;
 }

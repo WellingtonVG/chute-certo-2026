@@ -23,12 +23,12 @@ const levels: { key: QuizLevel; label: string }[] = [
   { key: "hard", label: "Difícil" },
 ];
 
-const counts = [6, 12, 20];
+const counts = [5, 10, 20];
 
 const QuizMenu = ({ onStart }: Props) => {
   const [mode, setMode] = useState<QuizMode>("solo");
   const [level, setLevel] = useState<QuizLevel>("easy");
-  const [count, setCount] = useState(12);
+  const [count, setCount] = useState(10);
 
   const handleStart = () => {
     if (mode === "timed") {
@@ -46,7 +46,7 @@ const QuizMenu = ({ onStart }: Props) => {
         {modes.map((m) => (
           <Card
             key={m.key}
-            className={`cursor-pointer transition-all ${mode === m.key ? "ring-2 ring-primary border-primary" : "hover:shadow-md"}`}
+            className={`cursor-pointer transition-all tap-highlight-none ${mode === m.key ? "ring-2 ring-primary border-primary" : "hover:shadow-md"}`}
             onClick={() => setMode(m.key)}
           >
             <CardContent className="flex items-center gap-4 p-4">
@@ -85,6 +85,7 @@ const QuizMenu = ({ onStart }: Props) => {
                   variant={count === c ? "default" : "outline"}
                   size="sm"
                   onClick={() => setCount(c)}
+                  className="tap-highlight-none"
                 >
                   {c}
                 </Button>
@@ -94,7 +95,7 @@ const QuizMenu = ({ onStart }: Props) => {
         </>
       )}
 
-      <Button className="w-full" size="lg" onClick={handleStart}>
+      <Button className="w-full tap-highlight-none" size="lg" onClick={handleStart}>
         {mode === "multiplayer" ? "Criar Sala" : "Começar Quiz"}
       </Button>
     </div>
