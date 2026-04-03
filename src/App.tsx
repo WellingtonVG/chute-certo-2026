@@ -12,6 +12,7 @@ import BolaoList from "./pages/BolaoList";
 import BolaoDetail from "./pages/BolaoDetail";
 import Calendario from "./pages/Calendario";
 import Admin from "./pages/Admin";
+import Quiz from "./pages/Quiz";
 import Invite from "./pages/Invite";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
