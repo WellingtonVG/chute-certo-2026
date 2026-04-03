@@ -41,7 +41,7 @@ const Admin = () => {
   const [boloes, setBoloes] = useState<Bolao[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [members, setMembers] = useState<{ bolao_id: string; bolao_name: string; user_id: string; username: string; full_name: string | null; joined_at: string; member_id: string }[]>([]);
+  const [members, setMembers] = useState<{ bolao_id: string; bolao_name: string; user_id: string; username: string; joined_at: string; member_id: string }[]>([]);
   const [removingMember, setRemovingMember] = useState<string | null>(null);
 
   // New bolao form
@@ -100,10 +100,10 @@ const Admin = () => {
       // Load profiles for members
       const memberData = membersRes.data || [];
       const userIds = [...new Set(memberData.map((m) => m.user_id))];
-      let profileMap: Record<string, { username: string; full_name: string | null }> = {};
+      let profileMap: Record<string, { username: string }> = {};
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, username, full_name").in("user_id", userIds);
-        (profiles || []).forEach((p) => { profileMap[p.user_id] = { username: p.username, full_name: p.full_name }; });
+        const { data: profiles } = await supabase.from("profiles").select("user_id, username").in("user_id", userIds);
+        (profiles || []).forEach((p) => { profileMap[p.user_id] = { username: p.username }; });
       }
       const bolaoNameMap: Record<string, string> = {};
       boloesData.forEach((b) => { bolaoNameMap[b.id] = b.name; });
@@ -113,7 +113,7 @@ const Admin = () => {
         bolao_name: bolaoNameMap[m.bolao_id] || "?",
         user_id: m.user_id,
         username: profileMap[m.user_id]?.username || "?",
-        full_name: profileMap[m.user_id]?.full_name || null,
+        
         joined_at: m.joined_at,
         member_id: m.id,
       })));
@@ -358,7 +358,6 @@ const Admin = () => {
                       <div key={m.member_id} className="flex items-center justify-between rounded-lg border p-3">
                         <div>
                           <p className="text-sm font-medium">{m.username}</p>
-                          {m.full_name && <p className="text-xs text-muted-foreground">{m.full_name}</p>}
                           <p className="text-xs text-muted-foreground">
                             Entrou em {format(new Date(m.joined_at), "dd/MM/yyyy", { locale: ptBR })}
                           </p>
