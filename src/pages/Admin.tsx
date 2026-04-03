@@ -100,10 +100,10 @@ const Admin = () => {
       // Load profiles for members
       const memberData = membersRes.data || [];
       const userIds = [...new Set(memberData.map((m) => m.user_id))];
-      let profileMap: Record<string, { username: string; full_name: string | null }> = {};
+      let profileMap: Record<string, { username: string }> = {};
       if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, username, full_name").in("user_id", userIds);
-        (profiles || []).forEach((p) => { profileMap[p.user_id] = { username: p.username, full_name: p.full_name }; });
+        const { data: profiles } = await supabase.from("profiles").select("user_id, username").in("user_id", userIds);
+        (profiles || []).forEach((p) => { profileMap[p.user_id] = { username: p.username }; });
       }
       const bolaoNameMap: Record<string, string> = {};
       boloesData.forEach((b) => { bolaoNameMap[b.id] = b.name; });
