@@ -23,10 +23,10 @@ const menuItems = [
   {
     key: "quiz",
     label: "Quiz",
-    description: "Em breve",
+    description: "Teste seus conhecimentos",
     icon: HelpCircle,
     path: "/quiz",
-    disabled: true,
+    disabled: false,
   },
 ];
 

@@ -214,6 +214,119 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_participants: {
+        Row: {
+          created_at: string
+          finished: boolean
+          id: string
+          is_ready: boolean
+          room_id: string
+          score: number
+          time_taken: number | null
+          total: number
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          finished?: boolean
+          id?: string
+          is_ready?: boolean
+          room_id: string
+          score?: number
+          time_taken?: number | null
+          total?: number
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          finished?: boolean
+          id?: string
+          is_ready?: boolean
+          room_id?: string
+          score?: number
+          time_taken?: number | null
+          total?: number
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "quiz_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_results: {
+        Row: {
+          id: string
+          level: string | null
+          mode: string
+          played_at: string
+          score: number
+          time_taken: number | null
+          total: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          level?: string | null
+          mode: string
+          played_at?: string
+          score?: number
+          time_taken?: number | null
+          total?: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          level?: string | null
+          mode?: string
+          played_at?: string
+          score?: number
+          time_taken?: number | null
+          total?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quiz_rooms: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          id: string
+          level: string
+          question_count: number
+          questions: Json
+          status: string
+        }
+        Insert: {
+          code?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          level?: string
+          question_count?: number
+          questions?: Json
+          status?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          level?: string
+          question_count?: number
+          questions?: Json
+          status?: string
+        }
+        Relationships: []
+      }
       season_predictions: {
         Row: {
           best_player: string | null
