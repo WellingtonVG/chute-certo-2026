@@ -39,7 +39,7 @@ const QuizOptions = ({ question, selected, showResult, onSelect }: Props) => {
           <Button
             key={i}
             variant={variant}
-            className="h-auto justify-start whitespace-normal px-4 py-3 text-left text-sm tap-highlight-none focus:outline-none focus-visible:outline-none active:outline-none [&]:focus:bg-transparent [&]:hover:bg-accent/5"
+            className="h-auto justify-start whitespace-normal px-4 py-3 text-left text-sm tap-highlight-none focus:outline-none active:outline-none hover:bg-background hover:text-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
             style={{ WebkitTapHighlightColor: "transparent" }}
             onClick={() => onSelect(option)}
             onTouchEnd={handleTouchEnd}
