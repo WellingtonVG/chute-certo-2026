@@ -171,21 +171,6 @@ function pickDistractors(correct: string, pool: string[], count = 3): string[] {
   return shuffle(filtered).slice(0, count);
 }
 
-// ── Frequency limits from JSON ──
-const FREQ_LIMITS: Record<string, number> = {
-  runner_up: 1,
-  host: 2,
-  champion: 3,
-  final_score: 2,
-  top_scorer_name: 3,
-  best_player: 3,
-  top_scorer_goals: 2,
-  top_scorer_country: 2,
-  trivia_easy: 2,
-  trivia_medium: 2,
-  trivia_hard: 2,
-};
-
 // Difficulty map
 const DIFFICULTY_MAP: Record<QuizLevel, string[]> = {
   easy: ["champion", "host", "trivia_easy"],
@@ -318,7 +303,7 @@ function generateAllQuestions(): QuizQuestion[] {
 // ── Anti-spoiler: ensure same-edition questions are ≥3 apart ──
 function antiSpoiler(questions: QuizQuestion[]): QuizQuestion[] {
   const result: QuizQuestion[] = [];
-  const recent: (number | undefined)[] = []; // track editionYear of last 3
+  const recent: (number | undefined)[] = [];
 
   const remaining = [...questions];
   const maxAttempts = remaining.length * 3;
@@ -338,35 +323,51 @@ function antiSpoiler(questions: QuizQuestion[]): QuizQuestion[] {
       break;
     }
     if (!placed) {
-      // Can't avoid spoiler, just place first
       result.push(remaining.shift()!);
       recent.push(result[result.length - 1].editionYear);
     }
   }
-  // Add any leftover
   result.push(...remaining);
   return result;
 }
 
-// ── Pick questions with frequency limits and anti-spoiler ──
+// ── Pick questions with variety + fallback to always reach count ──
 export function pickQuestions(level: QuizLevel | "all", count: number): QuizQuestion[] {
   const all = generateAllQuestions();
   const pool = level === "all" ? all : all.filter(q => q.level === level);
   const shuffled = shuffle(pool);
 
-  const categoryCounts: Record<string, number> = {};
-  // Also enforce max 40% per category
   const maxPerCategory = Math.max(2, Math.ceil(count * 0.4));
-
+  const categoryCounts: Record<string, number> = {};
   const selected: QuizQuestion[] = [];
-  for (const q of shuffled) {
-    if (selected.length >= count) break;
+  const usedIndices = new Set<number>();
+
+  // Pass 1: respect 40% variety cap
+  for (let i = 0; i < shuffled.length && selected.length < count; i++) {
+    const q = shuffled[i];
     const cat = q.category;
     const currentCount = categoryCounts[cat] || 0;
-    const limit = Math.min(FREQ_LIMITS[cat] ?? Infinity, maxPerCategory);
-    if (currentCount >= limit) continue;
+    if (currentCount >= maxPerCategory) continue;
     categoryCounts[cat] = currentCount + 1;
     selected.push(q);
+    usedIndices.add(i);
+  }
+
+  // Pass 2: fallback — fill remaining slots ignoring category limits
+  if (selected.length < count) {
+    const usedEditions = new Set(selected.map(q => q.editionYear).filter(Boolean));
+    const remaining = shuffled
+      .map((q, i) => ({ q, i }))
+      .filter(({ i }) => !usedIndices.has(i));
+    remaining.sort((a, b) => {
+      const aUsed = a.q.editionYear && usedEditions.has(a.q.editionYear) ? 1 : 0;
+      const bUsed = b.q.editionYear && usedEditions.has(b.q.editionYear) ? 1 : 0;
+      return aUsed - bUsed;
+    });
+    for (const { q } of remaining) {
+      if (selected.length >= count) break;
+      selected.push(q);
+    }
   }
 
   return antiSpoiler(selected);
