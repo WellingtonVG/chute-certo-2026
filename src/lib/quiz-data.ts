@@ -328,7 +328,7 @@ function generateAllQuestions(): QuizQuestion[] {
       questions.push({
         question: `Quem foi eleito o Melhor Jovem Jogador da Copa de ${e.year}?`,
         correctAnswer: e.best_young,
-        options: shuffle([e.best_young, ...pickDistractors(e.best_young, playerDistractorPool(idx, [e.best_young]))]),
+        options: shuffle([e.best_young, ...pickDistractors(e.best_young, categoryDistractorPool(idx, "best_young", [e.best_young]))]),
         level: "medium", category: "best_young", editionYear: e.year,
       });
     }
