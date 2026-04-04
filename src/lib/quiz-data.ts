@@ -318,7 +318,7 @@ function generateAllQuestions(): QuizQuestion[] {
       questions.push({
         question: `Quem ganhou a Luva de Ouro na Copa de ${e.year}?`,
         correctAnswer: e.goalkeeper,
-        options: shuffle([e.goalkeeper, ...pickDistractors(e.goalkeeper, playerDistractorPool(idx, [e.goalkeeper]))]),
+        options: shuffle([e.goalkeeper, ...pickDistractors(e.goalkeeper, categoryDistractorPool(idx, "goalkeeper", [e.goalkeeper]))]),
         level: "medium", category: "goalkeeper", editionYear: e.year,
       });
     }
