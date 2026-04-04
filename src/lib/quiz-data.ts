@@ -1,4 +1,4 @@
-// World Cup Quiz data engine — generated from quiz_banco_dados_v2.json
+// World Cup Quiz data engine — generated from quiz_banco_dados_v3.json
 
 export type QuizLevel = "easy" | "medium" | "hard";
 
@@ -23,10 +23,16 @@ interface Edition {
   host: string;
   champion: string;
   runner_up: string;
+  third_place: string | null;
   final_score: string | null;
   top_scorer: TopScorer | TopScorer[] | null;
   best_player: string;
   best_player_country: string;
+  goalkeeper: string | null;
+  goalkeeper_country: string | null;
+  best_young: string | null;
+  best_young_country: string | null;
+  coach: string;
   use_final_score: boolean;
 }
 
@@ -67,28 +73,28 @@ function withPreposition(country: string): string {
 
 // ── Raw data ──
 const editions: Edition[] = [
-  { year: 1930, host: "Uruguai", champion: "Uruguai", runner_up: "Argentina", final_score: "4x2", top_scorer: { name: "Guillermo Stábile", country: "Argentina", goals: 8 }, best_player: "José Nasazzi", best_player_country: "Uruguai", use_final_score: true },
-  { year: 1934, host: "Itália", champion: "Itália", runner_up: "Tchecoslováquia", final_score: "2x1", top_scorer: { name: "Oldřich Nejedlý", country: "Tchecoslováquia", goals: 5 }, best_player: "Giuseppe Meazza", best_player_country: "Itália", use_final_score: true },
-  { year: 1938, host: "França", champion: "Itália", runner_up: "Hungria", final_score: "4x2", top_scorer: { name: "Leônidas da Silva", country: "Brasil", goals: 8 }, best_player: "Leônidas da Silva", best_player_country: "Brasil", use_final_score: true },
-  { year: 1950, host: "Brasil", champion: "Uruguai", runner_up: "Brasil", final_score: null, top_scorer: { name: "Ademir de Menezes", country: "Brasil", goals: 9 }, best_player: "Zizinho", best_player_country: "Brasil", use_final_score: false },
-  { year: 1954, host: "Suíça", champion: "Alemanha", runner_up: "Hungria", final_score: "3x2", top_scorer: { name: "Sándor Kocsis", country: "Hungria", goals: 11 }, best_player: "Ferenc Puskás", best_player_country: "Hungria", use_final_score: true },
-  { year: 1958, host: "Suécia", champion: "Brasil", runner_up: "Suécia", final_score: "5x2", top_scorer: { name: "Just Fontaine", country: "França", goals: 13 }, best_player: "Didi", best_player_country: "Brasil", use_final_score: true },
-  { year: 1962, host: "Chile", champion: "Brasil", runner_up: "Tchecoslováquia", final_score: "3x1", top_scorer: null, best_player: "Garrincha", best_player_country: "Brasil", use_final_score: true },
-  { year: 1966, host: "Inglaterra", champion: "Inglaterra", runner_up: "Alemanha", final_score: "4x2", top_scorer: { name: "Eusébio", country: "Portugal", goals: 9 }, best_player: "Bobby Charlton", best_player_country: "Inglaterra", use_final_score: true },
-  { year: 1970, host: "México", champion: "Brasil", runner_up: "Itália", final_score: "4x1", top_scorer: { name: "Gerd Müller", country: "Alemanha", goals: 10 }, best_player: "Pelé", best_player_country: "Brasil", use_final_score: true },
-  { year: 1974, host: "Alemanha", champion: "Alemanha", runner_up: "Holanda", final_score: "2x1", top_scorer: { name: "Grzegorz Lato", country: "Polônia", goals: 7 }, best_player: "Johan Cruyff", best_player_country: "Holanda", use_final_score: true },
-  { year: 1978, host: "Argentina", champion: "Argentina", runner_up: "Holanda", final_score: null, top_scorer: { name: "Mario Kempes", country: "Argentina", goals: 6 }, best_player: "Mario Kempes", best_player_country: "Argentina", use_final_score: false },
-  { year: 1982, host: "Espanha", champion: "Itália", runner_up: "Alemanha", final_score: "3x0", top_scorer: { name: "Paolo Rossi", country: "Itália", goals: 6 }, best_player: "Paolo Rossi", best_player_country: "Itália", use_final_score: true },
-  { year: 1986, host: "México", champion: "Argentina", runner_up: "Alemanha", final_score: "3x2", top_scorer: { name: "Gary Lineker", country: "Inglaterra", goals: 6 }, best_player: "Diego Maradona", best_player_country: "Argentina", use_final_score: true },
-  { year: 1990, host: "Itália", champion: "Alemanha", runner_up: "Argentina", final_score: "1x0", top_scorer: { name: "Salvatore Schillaci", country: "Itália", goals: 6 }, best_player: "Salvatore Schillaci", best_player_country: "Itália", use_final_score: true },
-  { year: 1994, host: "EUA", champion: "Brasil", runner_up: "Itália", final_score: "0x0 (pên. 3x2)", top_scorer: [{ name: "Hristo Stoichkov", country: "Bulgária", goals: 6 }, { name: "Oleg Salenko", country: "Rússia", goals: 6 }], best_player: "Romário", best_player_country: "Brasil", use_final_score: true },
-  { year: 1998, host: "França", champion: "França", runner_up: "Brasil", final_score: "3x0", top_scorer: { name: "Davor Šuker", country: "Croácia", goals: 6 }, best_player: "Ronaldo", best_player_country: "Brasil", use_final_score: true },
-  { year: 2002, host: "Coreia do Sul / Japão", champion: "Brasil", runner_up: "Alemanha", final_score: "2x0", top_scorer: { name: "Ronaldo", country: "Brasil", goals: 8 }, best_player: "Oliver Kahn", best_player_country: "Alemanha", use_final_score: true },
-  { year: 2006, host: "Alemanha", champion: "Itália", runner_up: "França", final_score: "1x1 (pên. 5x3)", top_scorer: { name: "Miroslav Klose", country: "Alemanha", goals: 5 }, best_player: "Zinedine Zidane", best_player_country: "França", use_final_score: true },
-  { year: 2010, host: "África do Sul", champion: "Espanha", runner_up: "Holanda", final_score: "1x0", top_scorer: { name: "Thomas Müller", country: "Alemanha", goals: 5 }, best_player: "Diego Forlán", best_player_country: "Uruguai", use_final_score: true },
-  { year: 2014, host: "Brasil", champion: "Alemanha", runner_up: "Argentina", final_score: "1x0", top_scorer: { name: "James Rodríguez", country: "Colômbia", goals: 6 }, best_player: "Lionel Messi", best_player_country: "Argentina", use_final_score: true },
-  { year: 2018, host: "Rússia", champion: "França", runner_up: "Croácia", final_score: "4x2", top_scorer: { name: "Harry Kane", country: "Inglaterra", goals: 6 }, best_player: "Luka Modric", best_player_country: "Croácia", use_final_score: true },
-  { year: 2022, host: "Qatar", champion: "Argentina", runner_up: "França", final_score: "3x3 (pên. 4x2)", top_scorer: { name: "Kylian Mbappé", country: "França", goals: 8 }, best_player: "Lionel Messi", best_player_country: "Argentina", use_final_score: true },
+  { year: 1930, host: "Uruguai", champion: "Uruguai", runner_up: "Argentina", third_place: null, final_score: "4x2", top_scorer: { name: "Guillermo Stábile", country: "Argentina", goals: 8 }, best_player: "José Nasazzi", best_player_country: "Uruguai", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Alberto Suppici", use_final_score: true },
+  { year: 1934, host: "Itália", champion: "Itália", runner_up: "Tchecoslováquia", third_place: "Alemanha", final_score: "2x1", top_scorer: { name: "Oldřich Nejedlý", country: "Tchecoslováquia", goals: 5 }, best_player: "Giuseppe Meazza", best_player_country: "Itália", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Vittorio Pozzo", use_final_score: true },
+  { year: 1938, host: "França", champion: "Itália", runner_up: "Hungria", third_place: "Brasil", final_score: "4x2", top_scorer: { name: "Leônidas da Silva", country: "Brasil", goals: 8 }, best_player: "Leônidas da Silva", best_player_country: "Brasil", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Vittorio Pozzo", use_final_score: true },
+  { year: 1950, host: "Brasil", champion: "Uruguai", runner_up: "Brasil", third_place: "Suécia", final_score: null, top_scorer: { name: "Ademir de Menezes", country: "Brasil", goals: 9 }, best_player: "Zizinho", best_player_country: "Brasil", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Juan López Fontana", use_final_score: false },
+  { year: 1954, host: "Suíça", champion: "Alemanha", runner_up: "Hungria", third_place: "Áustria", final_score: "3x2", top_scorer: { name: "Sándor Kocsis", country: "Hungria", goals: 11 }, best_player: "Ferenc Puskás", best_player_country: "Hungria", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Sepp Herberger", use_final_score: true },
+  { year: 1958, host: "Suécia", champion: "Brasil", runner_up: "Suécia", third_place: "França", final_score: "5x2", top_scorer: { name: "Just Fontaine", country: "França", goals: 13 }, best_player: "Didi", best_player_country: "Brasil", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Vicente Feola", use_final_score: true },
+  { year: 1962, host: "Chile", champion: "Brasil", runner_up: "Tchecoslováquia", third_place: "Chile", final_score: "3x1", top_scorer: null, best_player: "Garrincha", best_player_country: "Brasil", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Aymoré Moreira", use_final_score: true },
+  { year: 1966, host: "Inglaterra", champion: "Inglaterra", runner_up: "Alemanha", third_place: "Portugal", final_score: "4x2", top_scorer: { name: "Eusébio", country: "Portugal", goals: 9 }, best_player: "Bobby Charlton", best_player_country: "Inglaterra", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Alf Ramsey", use_final_score: true },
+  { year: 1970, host: "México", champion: "Brasil", runner_up: "Itália", third_place: "Alemanha", final_score: "4x1", top_scorer: { name: "Gerd Müller", country: "Alemanha", goals: 10 }, best_player: "Pelé", best_player_country: "Brasil", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Mário Zagallo", use_final_score: true },
+  { year: 1974, host: "Alemanha", champion: "Alemanha", runner_up: "Holanda", third_place: "Polônia", final_score: "2x1", top_scorer: { name: "Grzegorz Lato", country: "Polônia", goals: 7 }, best_player: "Johan Cruyff", best_player_country: "Holanda", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Helmut Schön", use_final_score: true },
+  { year: 1978, host: "Argentina", champion: "Argentina", runner_up: "Holanda", third_place: "Brasil", final_score: null, top_scorer: { name: "Mario Kempes", country: "Argentina", goals: 6 }, best_player: "Mario Kempes", best_player_country: "Argentina", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "César Luis Menotti", use_final_score: false },
+  { year: 1982, host: "Espanha", champion: "Itália", runner_up: "Alemanha", third_place: "Polônia", final_score: "3x0", top_scorer: { name: "Paolo Rossi", country: "Itália", goals: 6 }, best_player: "Paolo Rossi", best_player_country: "Itália", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Enzo Bearzot", use_final_score: true },
+  { year: 1986, host: "México", champion: "Argentina", runner_up: "Alemanha", third_place: "França", final_score: "3x2", top_scorer: { name: "Gary Lineker", country: "Inglaterra", goals: 6 }, best_player: "Diego Maradona", best_player_country: "Argentina", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Carlos Bilardo", use_final_score: true },
+  { year: 1990, host: "Itália", champion: "Alemanha", runner_up: "Argentina", third_place: "Itália", final_score: "1x0", top_scorer: { name: "Salvatore Schillaci", country: "Itália", goals: 6 }, best_player: "Salvatore Schillaci", best_player_country: "Itália", goalkeeper: null, goalkeeper_country: null, best_young: null, best_young_country: null, coach: "Franz Beckenbauer", use_final_score: true },
+  { year: 1994, host: "EUA", champion: "Brasil", runner_up: "Itália", third_place: "Suécia", final_score: "0x0 (pên. 3x2)", top_scorer: [{ name: "Hristo Stoichkov", country: "Bulgária", goals: 6 }, { name: "Oleg Salenko", country: "Rússia", goals: 6 }], best_player: "Romário", best_player_country: "Brasil", goalkeeper: "Michel Preud'homme", goalkeeper_country: "Bélgica", best_young: null, best_young_country: null, coach: "Carlos Alberto Parreira", use_final_score: true },
+  { year: 1998, host: "França", champion: "França", runner_up: "Brasil", third_place: "Croácia", final_score: "3x0", top_scorer: { name: "Davor Šuker", country: "Croácia", goals: 6 }, best_player: "Ronaldo", best_player_country: "Brasil", goalkeeper: "Fabien Barthez", goalkeeper_country: "França", best_young: null, best_young_country: null, coach: "Aimé Jacquet", use_final_score: true },
+  { year: 2002, host: "Coreia do Sul / Japão", champion: "Brasil", runner_up: "Alemanha", third_place: "Turquia", final_score: "2x0", top_scorer: { name: "Ronaldo", country: "Brasil", goals: 8 }, best_player: "Oliver Kahn", best_player_country: "Alemanha", goalkeeper: "Oliver Kahn", goalkeeper_country: "Alemanha", best_young: null, best_young_country: null, coach: "Luiz Felipe Scolari", use_final_score: true },
+  { year: 2006, host: "Alemanha", champion: "Itália", runner_up: "França", third_place: "Alemanha", final_score: "1x1 (pên. 5x3)", top_scorer: { name: "Miroslav Klose", country: "Alemanha", goals: 5 }, best_player: "Zinedine Zidane", best_player_country: "França", goalkeeper: "Gianluigi Buffon", goalkeeper_country: "Itália", best_young: "Lukas Podolski", best_young_country: "Alemanha", coach: "Marcello Lippi", use_final_score: true },
+  { year: 2010, host: "África do Sul", champion: "Espanha", runner_up: "Holanda", third_place: "Alemanha", final_score: "1x0", top_scorer: { name: "Thomas Müller", country: "Alemanha", goals: 5 }, best_player: "Diego Forlán", best_player_country: "Uruguai", goalkeeper: "Iker Casillas", goalkeeper_country: "Espanha", best_young: "Thomas Müller", best_young_country: "Alemanha", coach: "Vicente del Bosque", use_final_score: true },
+  { year: 2014, host: "Brasil", champion: "Alemanha", runner_up: "Argentina", third_place: "Holanda", final_score: "1x0", top_scorer: { name: "James Rodríguez", country: "Colômbia", goals: 6 }, best_player: "Lionel Messi", best_player_country: "Argentina", goalkeeper: "Manuel Neuer", goalkeeper_country: "Alemanha", best_young: "Paul Pogba", best_young_country: "França", coach: "Joachim Löw", use_final_score: true },
+  { year: 2018, host: "Rússia", champion: "França", runner_up: "Croácia", third_place: "Bélgica", final_score: "4x2", top_scorer: { name: "Harry Kane", country: "Inglaterra", goals: 6 }, best_player: "Luka Modric", best_player_country: "Croácia", goalkeeper: "Thibaut Courtois", goalkeeper_country: "Bélgica", best_young: "Kylian Mbappé", best_young_country: "França", coach: "Didier Deschamps", use_final_score: true },
+  { year: 2022, host: "Qatar", champion: "Argentina", runner_up: "França", third_place: "Croácia", final_score: "3x3 (pên. 4x2)", top_scorer: { name: "Kylian Mbappé", country: "França", goals: 8 }, best_player: "Lionel Messi", best_player_country: "Argentina", goalkeeper: "Emiliano Martínez", goalkeeper_country: "Argentina", best_young: "Enzo Fernández", best_young_country: "Argentina", coach: "Lionel Scaloni", use_final_score: true },
 ];
 
 const triviaEasy: TriviaQ[] = [
@@ -100,18 +106,41 @@ const triviaEasy: TriviaQ[] = [
   { id: "t_e_06", question: "Qual é o único goleiro a ser eleito melhor jogador de uma Copa do Mundo?", answer: "Oliver Kahn", options: ["Oliver Kahn", "Buffon", "Casillas", "Neuer"] },
   { id: "t_e_07", question: "Qual foi o placar da goleada da Alemanha sobre o Brasil na semifinal de 2014?", answer: "7x1", options: ["5x0", "6x0", "7x1", "7x0"] },
   { id: "t_e_08", question: "Em que edição a Copa do Mundo não teve uma final clássica, sendo decidida em rodada de grupos?", answer: "1950", options: ["1930", "1950", "1954", "1962"] },
+  { id: "t_e_09", question: "Quantos títulos mundiais o Brasil possui?", answer: "5", options: ["3", "4", "5", "6"] },
+  { id: "t_e_10", question: "Quantos títulos mundiais a Alemanha possui?", answer: "4", options: ["3", "4", "5", "6"] },
+  { id: "t_e_11", question: "Quantos títulos mundiais a Itália possui?", answer: "4", options: ["2", "3", "4", "5"] },
+  { id: "t_e_12", question: "Quantos títulos mundiais a Argentina possui?", answer: "3", options: ["1", "2", "3", "4"] },
+  { id: "t_e_13", question: "Qual foi a última seleção a defender o título da Copa do Mundo?", answer: "Brasil (1962)", options: ["Brasil (1962)", "Itália (1938)", "França (2022)", "Alemanha (2018)"] },
+  { id: "t_e_14", question: "Qual foi o único técnico a vencer duas Copas do Mundo como treinador?", answer: "Vittorio Pozzo", options: ["Vittorio Pozzo", "Mário Zagallo", "Franz Beckenbauer", "Didier Deschamps"] },
 ];
 
 const triviaMedium: TriviaQ[] = [
   { id: "t_m_01", question: "Qual jogador marcou gols em todas as partidas da Copa do Mundo de 1970?", answer: "Jairzinho", options: ["Jairzinho", "Pelé", "Tostão", "Gerd Müller"] },
   { id: "t_m_02", question: "Qual é o recorde de gols em uma única edição da Copa do Mundo?", answer: "13 gols", options: ["11 gols", "12 gols", "13 gols", "14 gols"] },
   { id: "t_m_03", question: "Qual país disputou mais finais de Copa do Mundo sem vencer nenhuma?", answer: "Holanda", options: ["Holanda", "Hungria", "Croácia", "Tchecoslováquia"] },
+  { id: "t_m_04", question: "Quais seleções foram campeãs em Copas consecutivas?", answer: "Itália (1934/1938) e Brasil (1958/1962)", options: ["Itália (1934/1938) e Brasil (1958/1962)", "Brasil (1958/1962) e Alemanha (1974/1978)", "Uruguai (1930/1950) e Brasil (1958/1962)", "Argentina (1978/1986) e Brasil (1994/2002)"] },
+  { id: "t_m_05", question: "Quem foi o primeiro a ganhar a Copa do Mundo como jogador e como treinador?", answer: "Mário Zagallo", options: ["Mário Zagallo", "Franz Beckenbauer", "Didier Deschamps", "Johan Cruyff"] },
+  { id: "t_m_06", question: "Quantos técnicos venceram a Copa do Mundo tanto como jogador quanto como treinador?", answer: "3 (Zagallo, Beckenbauer e Deschamps)", options: ["1", "2", "3 (Zagallo, Beckenbauer e Deschamps)", "4"] },
+  { id: "t_m_07", question: "Em que ano a Copa do Mundo foi realizada pela primeira vez na África?", answer: "2010", options: ["2002", "2006", "2010", "2014"] },
+  { id: "t_m_08", question: "Qual seleção ficou em terceiro lugar na Copa de 1998?", answer: "Croácia", options: ["Holanda", "Itália", "Croácia", "Dinamarca"] },
+  { id: "t_m_09", question: "Qual foi o prêmio de melhor goleiro chamado antes de ser renomeado Luva de Ouro?", answer: "Troféu Lev Yashin", options: ["Troféu Lev Yashin", "Troféu Gordon Banks", "Troféu Dino Zoff", "Troféu Zamora"] },
+  { id: "t_m_10", question: "Em que Copa do Mundo o prêmio de Melhor Jovem Jogador foi criado?", answer: "2006", options: ["1998", "2002", "2006", "2010"] },
+  { id: "t_m_11", question: "Qual jogador ganhou o prêmio de Melhor Jovem Jogador na Copa de 2018?", answer: "Kylian Mbappé", options: ["Kylian Mbappé", "Paul Pogba", "Thomas Müller", "Enzo Fernández"] },
+  { id: "t_m_12", question: "Qual seleção ficou em terceiro lugar na Copa de 2022?", answer: "Croácia", options: ["Marrocos", "Bélgica", "Croácia", "Holanda"] },
 ];
 
 const triviaHard: TriviaQ[] = [
   { id: "t_h_01", question: "Quem marcou o primeiro gol da história das Copas do Mundo?", answer: "Lucien Laurent (França)", options: ["Lucien Laurent (França)", "Guillermo Stábile (Argentina)", "Pedro Cea (Uruguai)", "Bert Patenaude (EUA)"] },
   { id: "t_h_02", question: "Quem marcou 5 gols em uma única partida de Copa do Mundo?", answer: "Oleg Salenko", options: ["Oleg Salenko", "Just Fontaine", "Gerd Müller", "Eusébio"] },
   { id: "t_h_03", question: "Quais países foram campeões da Copa do Mundo jogando em casa?", answer: "Uruguai, Itália, Inglaterra, Alemanha, Argentina e França", options: ["Uruguai, Itália, Inglaterra, Alemanha, Argentina e França", "Brasil, Uruguai, Itália e França", "Uruguai, Itália, Brasil, Argentina e França", "Itália, Inglaterra, Alemanha e França"] },
+  { id: "t_h_04", question: "Qual seleção ficou em terceiro lugar na Copa de 2002?", answer: "Turquia", options: ["Coreia do Sul", "Turquia", "Senegal", "EUA"] },
+  { id: "t_h_06", question: "Quem ganhou o prêmio de Melhor Jovem Jogador na Copa de 2014?", answer: "Paul Pogba", options: ["Paul Pogba", "Thomas Müller", "Lukas Podolski", "Enzo Fernández"] },
+  { id: "t_h_07", question: "Qual seleção ficou em terceiro lugar na Copa de 1966?", answer: "Portugal", options: ["Portugal", "Brasil", "URSS", "Hungria"] },
+  { id: "t_h_08", question: "Qual seleção ficou em terceiro lugar na Copa de 1978?", answer: "Brasil", options: ["Brasil", "Itália", "Polônia", "Peru"] },
+  { id: "t_h_09", question: "Qual foi o técnico da Alemanha campeã em 2014?", answer: "Joachim Löw", options: ["Joachim Löw", "Jürgen Klinsmann", "Ottmar Hitzfeld", "Berti Vogts"] },
+  { id: "t_h_10", question: "Qual foi o técnico da França campeã em 2018?", answer: "Didier Deschamps", options: ["Didier Deschamps", "Aimé Jacquet", "Raymond Domenech", "Laurent Blanc"] },
+  { id: "t_h_11", question: "Qual goleiro ganhou a Luva de Ouro na Copa de 2022?", answer: "Emiliano Martínez", options: ["Emiliano Martínez", "Hugo Lloris", "Dominik Livaković", "Yassine Bounou"] },
+  { id: "t_h_12", question: "Qual goleiro ganhou a Luva de Ouro na Copa de 2018?", answer: "Thibaut Courtois", options: ["Thibaut Courtois", "Hugo Lloris", "Danijel Subašić", "Kasper Schmeichel"] },
 ];
 
 // ── Helpers ──
@@ -135,30 +164,33 @@ function getAllScorerNames(e: Edition): string[] {
   return [e.top_scorer.name];
 }
 
-// Player distractor pool: scorers + best players from ±2 editions window
+// Player distractor pool: scorers + best players + goalkeepers + best young + coaches from ±2 editions window
 function playerDistractorPool(editionIndex: number, excludeNames: string[]): string[] {
-  const window = 2;
-  const start = Math.max(0, editionIndex - window);
-  const end = Math.min(editions.length - 1, editionIndex + window);
+  const windowSize = 2;
+  const start = Math.max(0, editionIndex - windowSize);
+  const end = Math.min(editions.length - 1, editionIndex + windowSize);
   const pool = new Set<string>();
   for (let i = start; i <= end; i++) {
-    pool.add(editions[i].best_player);
-    const scorer = getFirstScorer(editions[i]);
+    const ed = editions[i];
+    pool.add(ed.best_player);
+    const scorer = getFirstScorer(ed);
     if (scorer) pool.add(scorer.name);
+    if (ed.goalkeeper) pool.add(ed.goalkeeper);
+    if (ed.best_young) pool.add(ed.best_young);
+    pool.add(ed.coach);
   }
-  // Also add best_player of own edition if asking about scorer, and vice versa
-  pool.add(editions[editionIndex].best_player);
-  const ownScorer = getFirstScorer(editions[editionIndex]);
-  if (ownScorer) pool.add(ownScorer.name);
 
   for (const name of excludeNames) pool.delete(name);
-  
+
   // If pool too small, expand to all editions
   if (pool.size < 3) {
     for (const e of editions) {
       pool.add(e.best_player);
       const s = getFirstScorer(e);
       if (s) pool.add(s.name);
+      if (e.goalkeeper) pool.add(e.goalkeeper);
+      if (e.best_young) pool.add(e.best_young);
+      pool.add(e.coach);
     }
     for (const name of excludeNames) pool.delete(name);
   }
@@ -172,8 +204,8 @@ function pickDistractors(correct: string, pool: string[], count = 3): string[] {
 
 // Difficulty map
 const DIFFICULTY_MAP: Record<QuizLevel, string[]> = {
-  easy: ["champion", "host", "trivia_easy"],
-  medium: ["runner_up", "best_player", "top_scorer_name", "trivia_medium"],
+  easy: ["champion", "host", "runner_up", "trivia_easy"],
+  medium: ["third_place", "best_player", "top_scorer_name", "goalkeeper", "best_young", "coach", "trivia_medium"],
   hard: ["top_scorer_goals", "top_scorer_country", "final_score", "trivia_hard"],
 };
 
@@ -183,6 +215,7 @@ function generateAllQuestions(): QuizQuestion[] {
   const allChampions = [...new Set(editions.map(e => e.champion))];
   const allHosts = [...new Set(editions.map(e => e.host))];
   const allRunnerUps = [...new Set(editions.map(e => e.runner_up))];
+  const allThirdPlaces = [...new Set(editions.map(e => e.third_place).filter(Boolean) as string[])];
   const allYears = editions.map(e => String(e.year));
   const allCountries = [...new Set(editions.filter(e => e.top_scorer).map(e => {
     const s = getFirstScorer(e);
@@ -193,6 +226,7 @@ function generateAllQuestions(): QuizQuestion[] {
     const s = getFirstScorer(e);
     return s ? `${s.goals} gols` : "";
   }).filter(Boolean))];
+  const allCoaches = [...new Set(editions.map(e => e.coach))];
 
   for (let idx = 0; idx < editions.length; idx++) {
     const e = editions[idx];
@@ -221,13 +255,23 @@ function generateAllQuestions(): QuizQuestion[] {
       level: "easy", category: "host", editionYear: e.year,
     });
 
-    // MEDIUM: Runner-up
+    // EASY: Runner-up (moved from medium to easy)
     questions.push({
       question: `Qual país foi vice-campeão da Copa de ${e.year}?`,
       correctAnswer: e.runner_up,
       options: shuffle([e.runner_up, ...pickDistractors(e.runner_up, allRunnerUps)]),
-      level: "medium", category: "runner_up", editionYear: e.year,
+      level: "easy", category: "runner_up", editionYear: e.year,
     });
+
+    // MEDIUM: Third place (skip 1930 which is null)
+    if (e.third_place) {
+      questions.push({
+        question: `Qual país ficou em terceiro lugar na Copa de ${e.year}?`,
+        correctAnswer: e.third_place,
+        options: shuffle([e.third_place, ...pickDistractors(e.third_place, allThirdPlaces)]),
+        level: "medium", category: "third_place", editionYear: e.year,
+      });
+    }
 
     // MEDIUM: Best player
     questions.push({
@@ -250,6 +294,34 @@ function generateAllQuestions(): QuizQuestion[] {
         ...(names.length > 1 ? { _altAnswers: names } : {}),
       });
     }
+
+    // MEDIUM: Goalkeeper (available from 1994)
+    if (e.goalkeeper && e.year >= 1994) {
+      questions.push({
+        question: `Quem ganhou a Luva de Ouro na Copa de ${e.year}?`,
+        correctAnswer: e.goalkeeper,
+        options: shuffle([e.goalkeeper, ...pickDistractors(e.goalkeeper, playerDistractorPool(idx, [e.goalkeeper]))]),
+        level: "medium", category: "goalkeeper", editionYear: e.year,
+      });
+    }
+
+    // MEDIUM: Best young player (available from 2006)
+    if (e.best_young && e.year >= 2006) {
+      questions.push({
+        question: `Quem foi eleito o Melhor Jovem Jogador da Copa de ${e.year}?`,
+        correctAnswer: e.best_young,
+        options: shuffle([e.best_young, ...pickDistractors(e.best_young, playerDistractorPool(idx, [e.best_young]))]),
+        level: "medium", category: "best_young", editionYear: e.year,
+      });
+    }
+
+    // MEDIUM: Coach
+    questions.push({
+      question: `Quem era o técnico da seleção campeã na Copa de ${e.year}?`,
+      correctAnswer: e.coach,
+      options: shuffle([e.coach, ...pickDistractors(e.coach, allCoaches)]),
+      level: "medium", category: "coach", editionYear: e.year,
+    });
 
     // HARD: Top scorer goals (skip 1962)
     if (e.top_scorer) {
