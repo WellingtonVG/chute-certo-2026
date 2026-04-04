@@ -70,20 +70,23 @@ const QuizMultiplayerGame = ({ roomId, questions, onFinish }: Props) => {
   }, [finished, roomId]);
 
   if (finished && result) {
-    return (
-      <div className="space-y-4">
-        {!allDone && (
+    if (!allDone) {
+      return (
+        <div className="space-y-4">
           <div className="flex items-center justify-center gap-2 rounded-lg bg-accent/10 p-3 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Aguardando outros jogadores...
           </div>
-        )}
-        <QuizResult
-          result={result}
-          onPlayAgain={() => onFinish(result)}
-          rankings={rankings}
-        />
-      </div>
+          <QuizResult result={result} onPlayAgain={() => {}} />
+        </div>
+      );
+    }
+    return (
+      <QuizResult
+        result={result}
+        onPlayAgain={() => onFinish(result)}
+        rankings={rankings}
+      />
     );
   }
 
