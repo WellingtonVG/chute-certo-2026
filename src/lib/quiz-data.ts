@@ -164,33 +164,51 @@ function getAllScorerNames(e: Edition): string[] {
   return [e.top_scorer.name];
 }
 
-// Player distractor pool: scorers + best players + goalkeepers + best young + coaches from ±2 editions window
-function playerDistractorPool(editionIndex: number, excludeNames: string[]): string[] {
+// Category-specific distractor pools from ±2 editions window
+type PoolCategory = "top_scorer" | "best_player" | "goalkeeper" | "best_young" | "coach";
+
+const POOL_SOURCES: Record<PoolCategory, ((ed: Edition) => string[])[]> = {
+  top_scorer: [
+    (ed) => { const s = getFirstScorer(ed); return s ? [s.name] : []; },
+    (ed) => [ed.best_player],
+  ],
+  best_player: [
+    (ed) => [ed.best_player],
+    (ed) => { const s = getFirstScorer(ed); return s ? [s.name] : []; },
+  ],
+  goalkeeper: [
+    (ed) => ed.goalkeeper ? [ed.goalkeeper] : [],
+  ],
+  best_young: [
+    (ed) => ed.best_young ? [ed.best_young] : [],
+    (ed) => { const s = getFirstScorer(ed); return s ? [s.name] : []; },
+    (ed) => [ed.best_player],
+  ],
+  coach: [
+    (ed) => [ed.coach],
+  ],
+};
+
+function categoryDistractorPool(editionIndex: number, category: PoolCategory, excludeNames: string[]): string[] {
   const windowSize = 2;
   const start = Math.max(0, editionIndex - windowSize);
   const end = Math.min(editions.length - 1, editionIndex + windowSize);
   const pool = new Set<string>();
-  for (let i = start; i <= end; i++) {
-    const ed = editions[i];
-    pool.add(ed.best_player);
-    const scorer = getFirstScorer(ed);
-    if (scorer) pool.add(scorer.name);
-    if (ed.goalkeeper) pool.add(ed.goalkeeper);
-    if (ed.best_young) pool.add(ed.best_young);
-    pool.add(ed.coach);
-  }
+  const extractors = POOL_SOURCES[category];
 
+  for (let i = start; i <= end; i++) {
+    for (const fn of extractors) {
+      for (const name of fn(editions[i])) pool.add(name);
+    }
+  }
   for (const name of excludeNames) pool.delete(name);
 
   // If pool too small, expand to all editions
   if (pool.size < 3) {
-    for (const e of editions) {
-      pool.add(e.best_player);
-      const s = getFirstScorer(e);
-      if (s) pool.add(s.name);
-      if (e.goalkeeper) pool.add(e.goalkeeper);
-      if (e.best_young) pool.add(e.best_young);
-      pool.add(e.coach);
+    for (const ed of editions) {
+      for (const fn of extractors) {
+        for (const name of fn(ed)) pool.add(name);
+      }
     }
     for (const name of excludeNames) pool.delete(name);
   }
@@ -277,7 +295,7 @@ function generateAllQuestions(): QuizQuestion[] {
     questions.push({
       question: `Quem foi eleito o melhor jogador da Copa de ${e.year}?`,
       correctAnswer: e.best_player,
-      options: shuffle([e.best_player, ...pickDistractors(e.best_player, playerDistractorPool(idx, [e.best_player]))]),
+      options: shuffle([e.best_player, ...pickDistractors(e.best_player, categoryDistractorPool(idx, "best_player", [e.best_player]))]),
       level: "medium", category: "best_player", editionYear: e.year,
     });
 
@@ -289,7 +307,7 @@ function generateAllQuestions(): QuizQuestion[] {
       questions.push({
         question: `Quem foi o artilheiro da Copa de ${e.year}?`,
         correctAnswer: primary,
-        options: shuffle([primary, ...pickDistractors(primary, playerDistractorPool(idx, excludeFromPool))]),
+        options: shuffle([primary, ...pickDistractors(primary, categoryDistractorPool(idx, "top_scorer", excludeFromPool))]),
         level: "medium", category: "top_scorer_name", editionYear: e.year,
         ...(names.length > 1 ? { _altAnswers: names } : {}),
       });
@@ -300,7 +318,7 @@ function generateAllQuestions(): QuizQuestion[] {
       questions.push({
         question: `Quem ganhou a Luva de Ouro na Copa de ${e.year}?`,
         correctAnswer: e.goalkeeper,
-        options: shuffle([e.goalkeeper, ...pickDistractors(e.goalkeeper, playerDistractorPool(idx, [e.goalkeeper]))]),
+        options: shuffle([e.goalkeeper, ...pickDistractors(e.goalkeeper, categoryDistractorPool(idx, "goalkeeper", [e.goalkeeper]))]),
         level: "medium", category: "goalkeeper", editionYear: e.year,
       });
     }
@@ -310,7 +328,7 @@ function generateAllQuestions(): QuizQuestion[] {
       questions.push({
         question: `Quem foi eleito o Melhor Jovem Jogador da Copa de ${e.year}?`,
         correctAnswer: e.best_young,
-        options: shuffle([e.best_young, ...pickDistractors(e.best_young, playerDistractorPool(idx, [e.best_young]))]),
+        options: shuffle([e.best_young, ...pickDistractors(e.best_young, categoryDistractorPool(idx, "best_young", [e.best_young]))]),
         level: "medium", category: "best_young", editionYear: e.year,
       });
     }
