@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useCallback, useRef } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuizMenu from "@/components/quiz/QuizMenu";
@@ -28,11 +28,13 @@ type Screen = "menu" | "game" | "result" | "mp-lobby" | "mp-game";
 
 const Quiz = () => {
   const navigate = useNavigate();
-  const [screen, setScreen] = useState<Screen>("menu");
-  const [config, setConfig] = useState<QuizConfig>({ mode: "solo", level: "easy", count: 12 });
+  const { code } = useParams<{ code?: string }>();
+  const [screen, setScreen] = useState<Screen>(code ? "mp-lobby" : "menu");
+  const [config, setConfig] = useState<QuizConfig>({ mode: "multiplayer", level: "all", count: 12 });
   const [result, setResult] = useState<QuizResultData | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [mpQuestions, setMpQuestions] = useState<QuizQuestion[]>([]);
+  const mpStartedRef = useRef(false);
 
   const handleStart = (cfg: QuizConfig) => {
     setConfig(cfg);
@@ -48,10 +50,17 @@ const Quiz = () => {
     setScreen("result");
   };
 
-  const handleMpStart = (rId: string, questions: QuizQuestion[]) => {
+  const handleMpStart = useCallback((rId: string, questions: QuizQuestion[]) => {
+    if (mpStartedRef.current) return;
+    mpStartedRef.current = true;
     setRoomId(rId);
     setMpQuestions(questions);
     setScreen("mp-game");
+  }, []);
+
+  const handleBackToMenu = () => {
+    mpStartedRef.current = false;
+    setScreen("menu");
   };
 
   return (
@@ -61,7 +70,7 @@ const Quiz = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => (screen === "menu" ? navigate("/") : setScreen("menu"))}
+            onClick={() => (screen === "menu" ? navigate("/") : handleBackToMenu())}
             className="text-primary-foreground hover:bg-primary-foreground/10"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -76,10 +85,15 @@ const Quiz = () => {
           <QuizGame config={config} onFinish={handleFinish} />
         )}
         {screen === "result" && result && (
-          <QuizResult result={result} onPlayAgain={() => setScreen("menu")} />
+          <QuizResult result={result} onPlayAgain={handleBackToMenu} />
         )}
         {screen === "mp-lobby" && (
-          <QuizMultiplayerLobby config={config} onStart={handleMpStart} onBack={() => setScreen("menu")} />
+          <QuizMultiplayerLobby
+            config={config}
+            onStart={handleMpStart}
+            onBack={handleBackToMenu}
+            initialCode={code}
+          />
         )}
         {screen === "mp-game" && roomId && (
           <QuizMultiplayerGame

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { pickQuestions, type QuizQuestion } from "@/lib/quiz-data";
 import type { QuizConfig } from "@/pages/Quiz";
-import { Copy, Users, Check, ArrowLeft, Loader2 } from "lucide-react";
+import { Copy, Users, Check, ArrowLeft, Loader2, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { QuizLevel } from "@/lib/quiz-data";
 
@@ -14,6 +14,7 @@ interface Props {
   config: QuizConfig;
   onStart: (roomId: string, questions: QuizQuestion[]) => void;
   onBack: () => void;
+  initialCode?: string;
 }
 
 interface Participant {
@@ -22,10 +23,10 @@ interface Participant {
   is_ready: boolean;
 }
 
-const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
+const QuizMultiplayerLobby = ({ config, onStart, onBack, initialCode }: Props) => {
   const { user, profile } = useAuth();
-  const [mode, setMode] = useState<"create" | "join">("create");
-  const [joinCode, setJoinCode] = useState("");
+  const [mode, setMode] = useState<"create" | "join">(initialCode ? "join" : "create");
+  const [joinCode, setJoinCode] = useState(initialCode || "");
   const [roomId, setRoomId] = useState<string | null>(null);
   const [roomCode, setRoomCode] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -33,8 +34,15 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
   const [isCreator, setIsCreator] = useState(false);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(false);
+  const hasStartedRef = useRef(false);
 
-  // Create room
+  // Auto-join when initialCode is provided
+  useEffect(() => {
+    if (initialCode && !roomId && !loading) {
+      joinRoom(initialCode);
+    }
+  }, [initialCode]);
+
   const createRoom = async () => {
     if (!user || !profile) return;
     setLoading(true);
@@ -62,7 +70,6 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
     setRoomCode(data.code);
     setIsCreator(true);
 
-    // Join as participant
     await supabase.from("quiz_participants").insert({
       room_id: data.id,
       user_id: user.id,
@@ -72,15 +79,18 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
     setLoading(false);
   };
 
-  // Join room
-  const joinRoom = async () => {
-    if (!user || !profile || !joinCode.trim()) return;
+  const joinRoom = async (codeOverride?: string) => {
+    const codeToUse = codeOverride || joinCode.trim();
+    if (!user || !profile || !codeToUse) return;
     setLoading(true);
+
+    // Extract code from URL if a full link was pasted
+    const extracted = extractCodeFromInput(codeToUse);
 
     const { data: room } = await supabase
       .from("quiz_rooms")
       .select("*")
-      .eq("code", joinCode.trim().toLowerCase())
+      .eq("code", extracted.toLowerCase())
       .eq("status", "waiting")
       .maybeSingle();
 
@@ -95,16 +105,33 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
     setQuestions(room.questions as any as QuizQuestion[]);
     setIsCreator(room.created_by === user.id);
 
-    await supabase.from("quiz_participants").insert({
-      room_id: room.id,
-      user_id: user.id,
-      username: profile.username,
-    });
+    // Check if already a participant
+    const { data: existing } = await supabase
+      .from("quiz_participants")
+      .select("id")
+      .eq("room_id", room.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!existing) {
+      await supabase.from("quiz_participants").insert({
+        room_id: room.id,
+        user_id: user.id,
+        username: profile.username,
+      });
+    }
 
     setLoading(false);
   };
 
-  // Subscribe to participants
+  const extractCodeFromInput = (input: string): string => {
+    // Match /quiz/sala/CODE pattern in a URL
+    const match = input.match(/\/quiz\/sala\/([a-zA-Z0-9]+)/);
+    if (match) return match[1];
+    return input.trim();
+  };
+
+  // Subscribe to participants and room status
   useEffect(() => {
     if (!roomId) return;
 
@@ -125,7 +152,10 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "quiz_rooms", filter: `id=eq.${roomId}` }, (payload) => {
         if (payload.new && (payload.new as any).status === "playing") {
-          onStart(roomId, questions);
+          if (!hasStartedRef.current) {
+            hasStartedRef.current = true;
+            onStart(roomId, questions);
+          }
         }
       })
       .subscribe();
@@ -148,51 +178,64 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
 
   const startGame = async () => {
     if (!roomId) return;
+    // Only update DB — the realtime trigger will call onStart for everyone (including creator)
     await supabase
       .from("quiz_rooms")
       .update({ status: "playing" })
       .eq("id", roomId);
-    onStart(roomId, questions);
   };
 
   const allReady = participants.length >= 2 && participants.every((p) => p.is_ready);
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(roomCode);
-    toast.success("Código copiado!");
+  const getInviteLink = () => {
+    return `${window.location.origin}/quiz/sala/${roomCode}`;
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(getInviteLink());
+    toast.success("Link copiado!");
   };
 
   // Not yet in a room
   if (!roomId) {
     return (
       <div className="space-y-5">
-        <div className="flex gap-2">
-          <Button variant={mode === "create" ? "default" : "outline"} className="flex-1" onClick={() => setMode("create")}>
-            Criar Sala
-          </Button>
-          <Button variant={mode === "join" ? "default" : "outline"} className="flex-1" onClick={() => setMode("join")}>
-            Entrar em Sala
-          </Button>
-        </div>
+        {!initialCode && (
+          <div className="flex gap-2">
+            <Button variant={mode === "create" ? "default" : "outline"} className="flex-1" onClick={() => setMode("create")}>
+              Criar Sala
+            </Button>
+            <Button variant={mode === "join" ? "default" : "outline"} className="flex-1" onClick={() => setMode("join")}>
+              Entrar em Sala
+            </Button>
+          </div>
+        )}
 
-        {mode === "create" && (
+        {mode === "create" && !initialCode && (
           <Button className="w-full" size="lg" onClick={createRoom} disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Criar Sala
           </Button>
         )}
 
-        {mode === "join" && (
+        {mode === "join" && !initialCode && (
           <div className="space-y-3">
             <Input
-              placeholder="Código da sala"
+              placeholder="Cole o link ou código da sala"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
             />
-            <Button className="w-full" size="lg" onClick={joinRoom} disabled={loading || !joinCode.trim()}>
+            <Button className="w-full" size="lg" onClick={() => joinRoom()} disabled={loading || !joinCode.trim()}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Entrar
             </Button>
+          </div>
+        )}
+
+        {initialCode && (
+          <div className="flex items-center justify-center gap-2 py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="text-muted-foreground">Entrando na sala...</span>
           </div>
         )}
 
@@ -209,11 +252,13 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
     <div className="space-y-5">
       <Card>
         <CardContent className="p-4">
-          <p className="mb-2 text-xs text-muted-foreground">Código da sala</p>
+          <p className="mb-2 text-xs text-muted-foreground">Link de convite</p>
           <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold tracking-widest text-primary">{roomCode.toUpperCase()}</span>
-            <Button variant="ghost" size="icon" onClick={copyCode}>
-              <Copy className="h-4 w-4" />
+            <div className="flex-1 truncate rounded-md bg-secondary/50 px-3 py-2 text-sm font-mono text-foreground">
+              {getInviteLink()}
+            </div>
+            <Button variant="ghost" size="icon" onClick={copyLink}>
+              <LinkIcon className="h-4 w-4" />
             </Button>
           </div>
         </CardContent>
