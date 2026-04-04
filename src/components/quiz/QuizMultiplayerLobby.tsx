@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { pickQuestions, type QuizQuestion } from "@/lib/quiz-data";
 import type { QuizConfig } from "@/pages/Quiz";
-import { Copy, Users, Check, ArrowLeft, Loader2, Link as LinkIcon } from "lucide-react";
+import { Copy, Users, Check, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import type { QuizLevel } from "@/lib/quiz-data";
 
@@ -14,7 +14,6 @@ interface Props {
   config: QuizConfig;
   onStart: (roomId: string, questions: QuizQuestion[]) => void;
   onBack: () => void;
-  initialCode?: string;
 }
 
 interface Participant {
@@ -23,10 +22,10 @@ interface Participant {
   is_ready: boolean;
 }
 
-const QuizMultiplayerLobby = ({ config, onStart, onBack, initialCode }: Props) => {
+const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
   const { user, profile } = useAuth();
-  const [mode, setMode] = useState<"create" | "join">(initialCode ? "join" : "create");
-  const [joinCode, setJoinCode] = useState(initialCode || "");
+  const [mode, setMode] = useState<"create" | "join">("create");
+  const [joinCode, setJoinCode] = useState("");
   const [roomId, setRoomId] = useState<string | null>(null);
   const [roomCode, setRoomCode] = useState("");
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -35,13 +34,6 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack, initialCode }: Props) =
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [loading, setLoading] = useState(false);
   const hasStartedRef = useRef(false);
-
-  // Auto-join when initialCode is provided
-  useEffect(() => {
-    if (initialCode && !roomId && !loading) {
-      joinRoom(initialCode);
-    }
-  }, [initialCode]);
 
   const createRoom = async () => {
     if (!user || !profile) return;
@@ -79,18 +71,15 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack, initialCode }: Props) =
     setLoading(false);
   };
 
-  const joinRoom = async (codeOverride?: string) => {
-    const codeToUse = codeOverride || joinCode.trim();
+  const joinRoom = async () => {
+    const codeToUse = joinCode.trim().toUpperCase();
     if (!user || !profile || !codeToUse) return;
     setLoading(true);
-
-    // Extract code from URL if a full link was pasted
-    const extracted = extractCodeFromInput(codeToUse);
 
     const { data: room } = await supabase
       .from("quiz_rooms")
       .select("*")
-      .eq("code", extracted.toLowerCase())
+      .eq("code", codeToUse.toLowerCase())
       .eq("status", "waiting")
       .maybeSingle();
 
@@ -105,7 +94,6 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack, initialCode }: Props) =
     setQuestions(room.questions as any as QuizQuestion[]);
     setIsCreator(room.created_by === user.id);
 
-    // Check if already a participant
     const { data: existing } = await supabase
       .from("quiz_participants")
       .select("id")
@@ -122,13 +110,6 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack, initialCode }: Props) =
     }
 
     setLoading(false);
-  };
-
-  const extractCodeFromInput = (input: string): string => {
-    // Match /quiz/sala/CODE pattern in a URL
-    const match = input.match(/\/quiz\/sala\/([a-zA-Z0-9]+)/);
-    if (match) return match[1];
-    return input.trim();
   };
 
   // Subscribe to participants and room status
@@ -178,7 +159,6 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack, initialCode }: Props) =
 
   const startGame = async () => {
     if (!roomId) return;
-    // Only update DB — the realtime trigger will call onStart for everyone (including creator)
     await supabase
       .from("quiz_rooms")
       .update({ status: "playing" })
@@ -187,55 +167,43 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack, initialCode }: Props) =
 
   const allReady = participants.length >= 2 && participants.every((p) => p.is_ready);
 
-  const getInviteLink = () => {
-    return `${window.location.origin}/quiz/sala/${roomCode}`;
-  };
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(getInviteLink());
-    toast.success("Link copiado!");
+  const copyInvite = () => {
+    const text = `🏆 Te convido para um duelo no Quiz Copa 2026! Entre com o código abaixo em chute-certo-2026.lovable.app/quiz\n\nCódigo: ${roomCode.toUpperCase()}`;
+    navigator.clipboard.writeText(text);
+    toast.success("Convite copiado!");
   };
 
   // Not yet in a room
   if (!roomId) {
     return (
       <div className="space-y-5">
-        {!initialCode && (
-          <div className="flex gap-2">
-            <Button variant={mode === "create" ? "default" : "outline"} className="flex-1" onClick={() => setMode("create")}>
-              Criar Sala
-            </Button>
-            <Button variant={mode === "join" ? "default" : "outline"} className="flex-1" onClick={() => setMode("join")}>
-              Entrar em Sala
-            </Button>
-          </div>
-        )}
+        <div className="flex gap-2">
+          <Button variant={mode === "create" ? "default" : "outline"} className="flex-1" onClick={() => setMode("create")}>
+            Criar Sala
+          </Button>
+          <Button variant={mode === "join" ? "default" : "outline"} className="flex-1" onClick={() => setMode("join")}>
+            Entrar em Sala
+          </Button>
+        </div>
 
-        {mode === "create" && !initialCode && (
+        {mode === "create" && (
           <Button className="w-full" size="lg" onClick={createRoom} disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Criar Sala
           </Button>
         )}
 
-        {mode === "join" && !initialCode && (
+        {mode === "join" && (
           <div className="space-y-3">
             <Input
-              placeholder="Cole o link ou código da sala"
+              placeholder="Digite o código da sala"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
             />
-            <Button className="w-full" size="lg" onClick={() => joinRoom()} disabled={loading || !joinCode.trim()}>
+            <Button className="w-full" size="lg" onClick={joinRoom} disabled={loading || !joinCode.trim()}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Entrar
             </Button>
-          </div>
-        )}
-
-        {initialCode && (
-          <div className="flex items-center justify-center gap-2 py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <span className="text-muted-foreground">Entrando na sala...</span>
           </div>
         )}
 
@@ -251,16 +219,22 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack, initialCode }: Props) =
   return (
     <div className="space-y-5">
       <Card>
-        <CardContent className="p-4">
-          <p className="mb-2 text-xs text-muted-foreground">Link de convite</p>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 truncate rounded-md bg-secondary/50 px-3 py-2 text-sm font-mono text-foreground">
-              {getInviteLink()}
-            </div>
-            <Button variant="ghost" size="icon" onClick={copyLink}>
-              <LinkIcon className="h-4 w-4" />
-            </Button>
+        <CardContent className="p-4 space-y-4">
+          <p className="text-sm text-muted-foreground text-center">
+            🏆 Te convido para um duelo no Quiz Copa 2026! Entre com o código abaixo em{" "}
+            <span className="font-medium text-foreground">chute-certo-2026.lovable.app/quiz</span>
+          </p>
+
+          <div className="flex items-center justify-center rounded-lg border border-primary/30 bg-primary/10 px-4 py-3">
+            <span className="text-3xl font-bold font-mono tracking-widest text-primary">
+              {roomCode.toUpperCase()}
+            </span>
           </div>
+
+          <Button variant="outline" className="w-full" onClick={copyInvite}>
+            <Copy className="mr-2 h-4 w-4" />
+            Copiar convite
+          </Button>
         </CardContent>
       </Card>
 

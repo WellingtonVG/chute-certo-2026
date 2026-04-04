@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuizMenu from "@/components/quiz/QuizMenu";
@@ -28,8 +28,7 @@ type Screen = "menu" | "game" | "result" | "mp-lobby" | "mp-game";
 
 const Quiz = () => {
   const navigate = useNavigate();
-  const { code } = useParams<{ code?: string }>();
-  const [screen, setScreen] = useState<Screen>(code ? "mp-lobby" : "menu");
+  const [screen, setScreen] = useState<Screen>("menu");
   const [config, setConfig] = useState<QuizConfig>({ mode: "multiplayer", level: "all", count: 12 });
   const [result, setResult] = useState<QuizResultData | null>(null);
   const [roomId, setRoomId] = useState<string | null>(null);
@@ -92,7 +91,6 @@ const Quiz = () => {
             config={config}
             onStart={handleMpStart}
             onBack={handleBackToMenu}
-            initialCode={code}
           />
         )}
         {screen === "mp-game" && roomId && (

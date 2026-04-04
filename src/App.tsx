@@ -119,14 +119,6 @@ const App = () => (
               }
             />
             <Route
-              path="/quiz/sala/:code"
-              element={
-                <ProtectedRoute>
-                  <Quiz />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/configuracoes"
               element={
                 <ProtectedRoute>
