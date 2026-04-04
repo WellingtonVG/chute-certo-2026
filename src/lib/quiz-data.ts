@@ -307,7 +307,7 @@ function generateAllQuestions(): QuizQuestion[] {
       questions.push({
         question: `Quem foi o artilheiro da Copa de ${e.year}?`,
         correctAnswer: primary,
-        options: shuffle([primary, ...pickDistractors(primary, playerDistractorPool(idx, excludeFromPool))]),
+        options: shuffle([primary, ...pickDistractors(primary, categoryDistractorPool(idx, "top_scorer", excludeFromPool))]),
         level: "medium", category: "top_scorer_name", editionYear: e.year,
         ...(names.length > 1 ? { _altAnswers: names } : {}),
       });
