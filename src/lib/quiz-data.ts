@@ -295,7 +295,7 @@ function generateAllQuestions(): QuizQuestion[] {
     questions.push({
       question: `Quem foi eleito o melhor jogador da Copa de ${e.year}?`,
       correctAnswer: e.best_player,
-      options: shuffle([e.best_player, ...pickDistractors(e.best_player, playerDistractorPool(idx, [e.best_player]))]),
+      options: shuffle([e.best_player, ...pickDistractors(e.best_player, categoryDistractorPool(idx, "best_player", [e.best_player]))]),
       level: "medium", category: "best_player", editionYear: e.year,
     });
 
