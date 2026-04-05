@@ -168,7 +168,7 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
   const allReady = participants.length >= 2 && participants.every((p) => p.is_ready);
 
   const copyInvite = () => {
-    const text = `🏆 Te convido para um duelo no Quiz Copa 2026! Acessa o link e entra com o código:\n\nhttps://chute-certo-2026.lovable.app/quiz\n\nCódigo: ${roomCode}`;
+    const text = `🏆 Te convido para um duelo no Quiz Copa 2026!\n\nhttps://chute-certo-2026.lovable.app/quiz\n\nCódigo: ${roomCode}`;
     navigator.clipboard.writeText(text);
     toast.success("Convite copiado!");
   };
