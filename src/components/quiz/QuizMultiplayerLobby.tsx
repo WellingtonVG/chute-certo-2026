@@ -168,7 +168,7 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
   const allReady = participants.length >= 2 && participants.every((p) => p.is_ready);
 
   const copyInvite = () => {
-    const text = `🏆 Te convido para um duelo no Quiz Copa 2026! Entre com o código abaixo em chute-certo-2026.lovable.app/quiz\n\nCódigo: ${roomCode.toUpperCase()}`;
+    const text = `🏆 Te convido para um duelo no Quiz Copa 2026! Acessa o link e entra com o código:\n\nhttps://chute-certo-2026.lovable.app/quiz\n\nCódigo: ${roomCode}`;
     navigator.clipboard.writeText(text);
     toast.success("Convite copiado!");
   };
@@ -221,14 +221,27 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
       <Card>
         <CardContent className="p-4 space-y-4">
           <p className="text-sm text-muted-foreground text-center">
-            🏆 Te convido para um duelo no Quiz Copa 2026! Entre com o código abaixo em{" "}
-            <span className="font-medium text-foreground">chute-certo-2026.lovable.app/quiz</span>
+            🏆 Te convido para um duelo no Quiz Copa 2026! Acessa o link e entra com o código:
+          </p>
+          <p className="text-sm text-center font-medium text-foreground break-all">
+            chute-certo-2026.lovable.app/quiz
           </p>
 
-          <div className="flex items-center justify-center rounded-lg border border-primary/30 bg-primary/10 px-4 py-3">
+          <div className="flex items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3">
             <span className="text-3xl font-bold font-mono tracking-widest text-primary">
-              {roomCode.toUpperCase()}
+              {roomCode}
             </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={() => {
+                navigator.clipboard.writeText(roomCode);
+                toast.success("Código copiado!");
+              }}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
           </div>
 
           <Button variant="outline" className="w-full" onClick={copyInvite}>
