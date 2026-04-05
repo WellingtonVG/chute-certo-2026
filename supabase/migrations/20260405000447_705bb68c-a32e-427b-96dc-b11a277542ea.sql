@@ -1,0 +1,1 @@
+ALTER TABLE public.quiz_rooms ALTER COLUMN code SET DEFAULT lpad(floor(random() * 10000)::text, 4, '0');
