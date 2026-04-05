@@ -221,11 +221,11 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
       <Card>
         <CardContent className="p-4 space-y-4">
           <p className="text-sm text-muted-foreground text-center">
-            🏆 Te convido para um duelo no Quiz Copa 2026! Acessa o link e entra com o código:
+            🏆 Te convido para um duelo no Quiz Copa 2026!
           </p>
-          <p className="text-sm text-center font-medium text-foreground break-all">
-            chute-certo-2026.lovable.app/quiz
-          </p>
+          <a href="https://chute-certo-2026.lovable.app/quiz" target="_blank" rel="noopener noreferrer" className="text-sm text-center font-medium text-primary underline break-all block">
+            https://chute-certo-2026.lovable.app/quiz
+          </a>
 
           <div className="flex items-center justify-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3">
             <span className="text-3xl font-bold font-mono tracking-widest text-primary">
