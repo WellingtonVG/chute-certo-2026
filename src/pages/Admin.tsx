@@ -502,6 +502,19 @@ const Admin = () => {
                     onChange={(e) => setMatchForm({ ...matchForm, round_name: e.target.value })}
                   />
                 </div>
+                <div>
+                  <Label className="text-xs">Pergunta bônus (Brasileirão)</Label>
+                  <Select value={matchForm.bonus_question} onValueChange={(v) => setMatchForm({ ...matchForm, bonus_question: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bonusQuestionOptions.map((q) => (
+                        <SelectItem key={q} value={q}>{q}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button onClick={createMatch} disabled={creatingMatch}>
                   {creatingMatch ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                   Adicionar
