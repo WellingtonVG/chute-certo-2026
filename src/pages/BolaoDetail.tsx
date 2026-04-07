@@ -356,8 +356,9 @@ const MatchPredictionCard = ({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground">
-            {stageLabels[match.stage] || match.stage}
-            {match.group_name && ` • ${match.group_name}`}
+            {isBrasileirao
+              ? ((match as any).round_name || "")
+              : `${stageLabels[match.stage] || match.stage}${match.group_name ? ` • ${match.group_name}` : ""}`}
           </span>
           <span className="text-xs text-muted-foreground">
             {matchDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
