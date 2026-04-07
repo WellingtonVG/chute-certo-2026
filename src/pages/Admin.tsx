@@ -546,20 +546,97 @@ const Admin = () => {
                     onChange={(e) => setMatchForm({ ...matchForm, round_name: e.target.value })}
                   />
                 </div>
-                <div>
-                  <Label className="text-xs">Pergunta bônus (Brasileirão)</Label>
-                  <Select value={matchForm.bonus_question} onValueChange={(v) => setMatchForm({ ...matchForm, bonus_question: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {bonusQuestionOptions.map((q) => (
-                        <SelectItem key={q} value={q}>{q}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <Button onClick={createMatch} disabled={creatingMatch}>
+                  {creatingMatch ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                  Adicionar
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Round bonus section */}
+            {availableRounds.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Pergunta bônus por rodada</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <p className="text-xs text-muted-foreground font-medium">Definir pergunta</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Rodada</Label>
+                        <Select value={bonusRound} onValueChange={(v) => {
+                          setBonusRound(v);
+                          const roundMatch = matches.find(m => m.round_name === v && m.bonus_question);
+                          setBonusRoundQuestion(roundMatch?.bonus_question || "Nenhuma");
+                        }}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableRounds.map(r => (
+                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Pergunta</Label>
+                        <Select value={bonusRoundQuestion} onValueChange={setBonusRoundQuestion}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {bonusQuestionOptions.map(q => (
+                              <SelectItem key={q} value={q}>{q}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={saveRoundBonus} disabled={savingBonusRound || !bonusRound}>
+                      {savingBonusRound ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                      Salvar pergunta da rodada
+                    </Button>
+                  </div>
+
+                  <div className="border-t pt-3 space-y-3">
+                    <p className="text-xs text-muted-foreground font-medium">Definir resultado bônus</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Rodada</Label>
+                        <Select value={bonusResultRound} onValueChange={setBonusResultRound}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableRounds.filter(r => matches.some(m => m.round_name === r && m.bonus_question)).map(r => (
+                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-xs">Resposta</Label>
+                        <Select value={bonusResultAnswer} onValueChange={setBonusResultAnswer}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sim">Sim</SelectItem>
+                            <SelectItem value="nao">Não</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={saveRoundBonusResult} disabled={savingBonusResult || !bonusResultRound || !bonusResultAnswer}>
+                      {savingBonusResult ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                      Salvar resultado bônus
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
                   {creatingMatch ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                   Adicionar
                 </Button>
