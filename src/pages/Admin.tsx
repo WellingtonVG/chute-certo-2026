@@ -637,11 +637,6 @@ const Admin = () => {
                 </CardContent>
               </Card>
             )}
-                  {creatingMatch ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                  Adicionar
-                </Button>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Resultados Tab */}
