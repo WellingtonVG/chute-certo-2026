@@ -317,12 +317,14 @@ const MatchPredictionCard = ({
   locked,
   saving,
   onSave,
+  isBrasileirao = false,
 }: {
   match: Tables<"matches">;
   prediction?: Tables<"predictions">;
   locked: boolean;
   saving: boolean;
   onSave: (matchId: string, home: number, away: number, scorer: string) => void;
+  isBrasileirao?: boolean;
 }) => {
   const [homeScore, setHomeScore] = useState(prediction?.home_score?.toString() || "");
   const [awayScore, setAwayScore] = useState(prediction?.away_score?.toString() || "");
