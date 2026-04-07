@@ -81,6 +81,8 @@ export type Database = {
           api_football_id: number | null
           away_score: number | null
           away_team: string
+          bonus_question: string | null
+          bonus_result: boolean | null
           city: string | null
           created_at: string
           group_name: string | null
@@ -99,6 +101,8 @@ export type Database = {
           api_football_id?: number | null
           away_score?: number | null
           away_team: string
+          bonus_question?: string | null
+          bonus_result?: boolean | null
           city?: string | null
           created_at?: string
           group_name?: string | null
@@ -117,6 +121,8 @@ export type Database = {
           api_football_id?: number | null
           away_score?: number | null
           away_team?: string
+          bonus_question?: string | null
+          bonus_result?: boolean | null
           city?: string | null
           created_at?: string
           group_name?: string | null
@@ -137,6 +143,8 @@ export type Database = {
         Row: {
           away_score: number
           bolao_id: string
+          bonus_answer: boolean | null
+          bonus_points: number | null
           created_at: string
           home_score: number
           id: string
@@ -150,6 +158,8 @@ export type Database = {
         Insert: {
           away_score: number
           bolao_id: string
+          bonus_answer?: boolean | null
+          bonus_points?: number | null
           created_at?: string
           home_score: number
           id?: string
@@ -163,6 +173,8 @@ export type Database = {
         Update: {
           away_score?: number
           bolao_id?: string
+          bonus_answer?: boolean | null
+          bonus_points?: number | null
           created_at?: string
           home_score?: number
           id?: string
