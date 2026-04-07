@@ -1,43 +1,29 @@
 
 
-## Plano: Corrigir join multiplayer e redesenhar convite
+## Plano: Pergunta bônus por rodada (Brasileirão)
 
-### Problema
-Race condition no auto-join via URL `/quiz/sala/:code` — auth não carregado no mount causa erro "Sala não encontrada".
+### Abordagem
+Usar as colunas existentes `bonus_question`/`bonus_result` em `matches`. Sem nova tabela, sem migração.
 
 ### Mudanças
 
-**1. `src/App.tsx`** — Remover a rota `/quiz/sala/:code`
+**1. `src/pages/Admin.tsx`** — Aba Jogos
 
-**2. `src/pages/Quiz.tsx`** — Remover `useParams`, `initialCode`, referência a `code`. Estado inicial sempre `"menu"`. Remover prop `initialCode` do `QuizMultiplayerLobby`.
+- Adicionar seção "Pergunta bônus por rodada" acima ou abaixo da lista de jogos
+- UI: Select de rodada (lista dinâmica das `round_name` distintas dos matches existentes) + dropdown de pergunta bônus (mesmas opções atuais + "Nenhuma")
+- Botão "Salvar pergunta da rodada"
+- Ao salvar: `UPDATE matches SET bonus_question = X WHERE round_name = Y` (ou `null` se "Nenhuma")
+- Para resultado: Select de rodada + toggle Sim/Não + botão salvar → `UPDATE matches SET bonus_result = Z WHERE round_name = Y`
+- Remover o dropdown de `bonus_question` individual do formulário de criação de jogo (campo por jogo)
 
-**3. `src/components/quiz/QuizMultiplayerLobby.tsx`**
-- Remover prop `initialCode` da interface e do componente
-- Remover `useEffect` de auto-join
-- Remover `extractCodeFromInput` e `getInviteLink`
-- Remover import de `LinkIcon`
-- Substituir card de link de convite por:
+**2. `src/pages/BolaoDetail.tsx`** — Card de palpite
 
-```text
-┌─────────────────────────────────────────┐
-│  🏆 Te convido para um duelo no Quiz    │
-│  Copa 2026! Entre com o código abaixo   │
-│  em chute-certo-2026.lovable.app/quiz   │
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │         A1B2C3D4                │    │
-│  │   (text-3xl font-bold mono     │    │
-│  │    bg-primary/10 border-primary)│    │
-│  └─────────────────────────────────┘    │
-│                                         │
-│  [ 📋 Copiar convite ]                  │
-└─────────────────────────────────────────┘
-```
+- Nenhuma mudança necessária na exibição — a pergunta já é lida de `match.bonus_question` e exibida no card. Como todos os jogos da rodada terão a mesma pergunta, o comportamento visual já está correto.
 
-- `copyInvite` copia: `"🏆 Te convido para um duelo no Quiz Copa 2026! Entre com o código abaixo em chute-certo-2026.lovable.app/quiz\n\nCódigo: A1B2C3D4"`
-- Input de "Entrar em Sala" aceita apenas código plain, sem parsing de URL
-- Estado `mode` sempre começa em `"create"` (sem `initialCode`)
+**3. Nenhuma migração de banco** — colunas já existem.
 
-### Escopo
-3 arquivos. Nenhuma outra funcionalidade alterada. Bug do ranking já corrigido anteriormente.
+### Resultado
+- Admin define pergunta bônus por rodada inteira em vez de jogo a jogo
+- Usuário vê a mesma pergunta em todos os jogos da rodada
+- Pontuação (+2/-1) continua funcionando igual
 
