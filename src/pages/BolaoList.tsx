@@ -67,6 +67,9 @@ const BolaoList = () => {
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg">{bolao.name}</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    {(bolao as any).competition === "brasileirao_2026" ? "Brasileirão 2026" : "Copa do Mundo 2026"}
+                  </p>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -206,11 +206,13 @@ const BolaoDetail = () => {
           </TabsList>
 
           <TabsContent value="palpites" className="space-y-3 pt-4">
-            <SeasonPredictions
-              bolaoId={id!}
-              userId={user!.id}
-              firstMatchDate={matches.length > 0 ? matches[0].match_date : null}
-            />
+            {(bolao as any).competition !== "brasileirao_2026" && (
+              <SeasonPredictions
+                bolaoId={id!}
+                userId={user!.id}
+                firstMatchDate={matches.length > 0 ? matches[0].match_date : null}
+              />
+            )}
             {matches.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">
                 Nenhum jogo cadastrado ainda

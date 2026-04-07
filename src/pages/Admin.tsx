@@ -481,6 +481,14 @@ const Admin = () => {
                     />
                   </div>
                 </div>
+                <div>
+                  <Label className="text-xs">Rodada (Brasileirão)</Label>
+                  <Input
+                    placeholder="Ex: Rodada 11"
+                    value={matchForm.round_name}
+                    onChange={(e) => setMatchForm({ ...matchForm, round_name: e.target.value })}
+                  />
+                </div>
                 <Button onClick={createMatch} disabled={creatingMatch}>
                   {creatingMatch ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                   Adicionar
