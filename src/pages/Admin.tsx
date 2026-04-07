@@ -70,11 +70,54 @@ const Admin = () => {
     stage: "group" as string,
     group_name: "",
     round_name: "",
-    bonus_question: "Nenhuma",
   });
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [regenerating, setRegenerating] = useState<string | null>(null);
+
+  // Round bonus
+  const [bonusRound, setBonusRound] = useState("");
+  const [bonusRoundQuestion, setBonusRoundQuestion] = useState("Nenhuma");
+  const [savingBonusRound, setSavingBonusRound] = useState(false);
+  const [bonusResultRound, setBonusResultRound] = useState("");
+  const [bonusResultAnswer, setBonusResultAnswer] = useState("");
+  const [savingBonusResult, setSavingBonusResult] = useState(false);
+
+  const availableRounds = [...new Set(matches.filter(m => m.round_name).map(m => m.round_name!))].sort();
+
+  const saveRoundBonus = async () => {
+    if (!bonusRound) return;
+    setSavingBonusRound(true);
+    const questionValue = bonusRoundQuestion !== "Nenhuma" ? bonusRoundQuestion : null;
+    const { error } = await supabase
+      .from("matches")
+      .update({ bonus_question: questionValue } as any)
+      .eq("round_name", bonusRound);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      setMatches(prev => prev.map(m => m.round_name === bonusRound ? { ...m, bonus_question: questionValue } : m));
+      toast({ title: "Pergunta bônus salva para " + bonusRound + "!" });
+    }
+    setSavingBonusRound(false);
+  };
+
+  const saveRoundBonusResult = async () => {
+    if (!bonusResultRound || !bonusResultAnswer) return;
+    setSavingBonusResult(true);
+    const result = bonusResultAnswer === "sim";
+    const { error } = await supabase
+      .from("matches")
+      .update({ bonus_result: result } as any)
+      .eq("round_name", bonusResultRound);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      setMatches(prev => prev.map(m => m.round_name === bonusResultRound ? { ...m, bonus_result: result } : m));
+      toast({ title: "Resultado bônus salvo para " + bonusResultRound + "!" });
+    }
+    setSavingBonusResult(false);
+  };
 
   const syncFixtures = async () => {
     setSyncing(true);
