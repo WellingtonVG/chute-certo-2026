@@ -46,6 +46,7 @@ const Admin = () => {
 
   // New bolao form
   const [newBolaoName, setNewBolaoName] = useState("");
+  const [newBolaoCompetition, setNewBolaoCompetition] = useState("copa_do_mundo_2026");
   const [creatingBolao, setCreatingBolao] = useState(false);
 
   // New match form
