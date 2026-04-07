@@ -171,7 +171,8 @@ const Admin = () => {
         stage: matchForm.stage as any,
         group_name: matchForm.group_name || null,
         round_name: matchForm.round_name || null,
-      })
+        bonus_question: matchForm.bonus_question !== "Nenhuma" ? matchForm.bonus_question : null,
+      } as any)
       .select()
       .single();
 
@@ -179,7 +180,7 @@ const Admin = () => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else if (data) {
       setMatches((prev) => [...prev, data].sort((a, b) => a.match_date.localeCompare(b.match_date)));
-      setMatchForm({ home_team: "", away_team: "", match_date: "", stadium: "", city: "", stage: "group", group_name: "", round_name: "" });
+      setMatchForm({ home_team: "", away_team: "", match_date: "", stadium: "", city: "", stage: "group", group_name: "", round_name: "", bonus_question: "Nenhuma" });
       toast({ title: "Jogo criado!" });
     }
     setCreatingMatch(false);
