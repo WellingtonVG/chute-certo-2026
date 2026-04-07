@@ -222,7 +222,7 @@ const Admin = () => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else if (data) {
       setMatches((prev) => [...prev, data].sort((a, b) => a.match_date.localeCompare(b.match_date)));
-      setMatchForm({ home_team: "", away_team: "", match_date: "", stadium: "", city: "", stage: "group", group_name: "", round_name: "", bonus_question: "Nenhuma" });
+      setMatchForm({ home_team: "", away_team: "", match_date: "", stadium: "", city: "", stage: "group", group_name: "", round_name: "" });
       toast({ title: "Jogo criado!" });
     }
     setCreatingMatch(false);
