@@ -217,6 +217,36 @@ const BolaoDetail = () => {
               <p className="py-8 text-center text-muted-foreground">
                 Nenhum jogo cadastrado ainda
               </p>
+            ) : (bolao as any).competition === "brasileirao_2026" ? (
+              // Group by round for Brasileirão
+              (() => {
+                const byRound: Record<string, Match[]> = {};
+                matches.forEach((m) => {
+                  const round = (m as any).round_name || "Sem rodada";
+                  if (!byRound[round]) byRound[round] = [];
+                  byRound[round].push(m);
+                });
+                return Object.entries(byRound).map(([round, roundMatches]) => (
+                  <div key={round} className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground">{round}</h3>
+                    {roundMatches.map((match) => {
+                      const pred = predictions[match.id];
+                      const locked = isMatchLocked(match);
+                      return (
+                        <MatchPredictionCard
+                          key={match.id}
+                          match={match}
+                          prediction={pred}
+                          locked={locked}
+                          saving={savingMatch === match.id}
+                          onSave={savePrediction}
+                          isBrasileirao
+                        />
+                      );
+                    })}
+                  </div>
+                ));
+              })()
             ) : (
               matches.map((match) => {
                 const pred = predictions[match.id];
