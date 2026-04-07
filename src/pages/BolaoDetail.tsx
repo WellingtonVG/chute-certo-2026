@@ -100,26 +100,32 @@ const BolaoDetail = () => {
     matchId: string,
     homeScore: number,
     awayScore: number,
-    scorerName: string
+    scorerName: string,
+    bonusAnswer?: boolean | null
   ) => {
     if (!user || !id) return;
     setSavingMatch(matchId);
+
+    const predData: any = {
+      home_score: homeScore,
+      away_score: awayScore,
+      scorer_name: scorerName || null,
+    };
+    if (bonusAnswer !== undefined) predData.bonus_answer = bonusAnswer;
 
     const existing = predictions[matchId];
     if (existing) {
       await supabase
         .from("predictions")
-        .update({ home_score: homeScore, away_score: awayScore, scorer_name: scorerName || null })
+        .update(predData)
         .eq("id", existing.id);
     } else {
       await supabase.from("predictions").insert({
         bolao_id: id,
         user_id: user.id,
         match_id: matchId,
-        home_score: homeScore,
-        away_score: awayScore,
-        scorer_name: scorerName || null,
-      });
+        ...predData,
+      } as any);
     }
 
     // Refresh predictions
