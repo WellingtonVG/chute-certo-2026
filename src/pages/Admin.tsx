@@ -49,6 +49,17 @@ const Admin = () => {
   const [newBolaoCompetition, setNewBolaoCompetition] = useState("copa_do_mundo_2026");
   const [creatingBolao, setCreatingBolao] = useState(false);
 
+  const bonusQuestionOptions = [
+    "Nenhuma",
+    "Vai ter gol no primeiro tempo?",
+    "Vai ter gol no segundo tempo?",
+    "Vai ter cartão vermelho?",
+    "Vai ter pênalti?",
+    "Vai ter gol nos acréscimos?",
+    "O time mandante vai marcar?",
+    "Vai ter mais de 2 gols no jogo?",
+  ];
+
   // New match form
   const [matchForm, setMatchForm] = useState({
     home_team: "",
@@ -59,6 +70,7 @@ const Admin = () => {
     stage: "group" as string,
     group_name: "",
     round_name: "",
+    bonus_question: "Nenhuma",
   });
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -159,7 +171,8 @@ const Admin = () => {
         stage: matchForm.stage as any,
         group_name: matchForm.group_name || null,
         round_name: matchForm.round_name || null,
-      })
+        bonus_question: matchForm.bonus_question !== "Nenhuma" ? matchForm.bonus_question : null,
+      } as any)
       .select()
       .single();
 
@@ -167,16 +180,18 @@ const Admin = () => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else if (data) {
       setMatches((prev) => [...prev, data].sort((a, b) => a.match_date.localeCompare(b.match_date)));
-      setMatchForm({ home_team: "", away_team: "", match_date: "", stadium: "", city: "", stage: "group", group_name: "", round_name: "" });
+      setMatchForm({ home_team: "", away_team: "", match_date: "", stadium: "", city: "", stage: "group", group_name: "", round_name: "", bonus_question: "Nenhuma" });
       toast({ title: "Jogo criado!" });
     }
     setCreatingMatch(false);
   };
 
-  const updateMatchResult = async (matchId: string, homeScore: number, awayScore: number) => {
+  const updateMatchResult = async (matchId: string, homeScore: number, awayScore: number, bonusResult?: boolean | null) => {
+    const updateData: any = { home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true };
+    if (bonusResult !== undefined) updateData.bonus_result = bonusResult;
     const { error } = await supabase
       .from("matches")
-      .update({ home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true })
+      .update(updateData)
       .eq("id", matchId);
 
     if (error) {
@@ -185,7 +200,7 @@ const Admin = () => {
       setMatches((prev) =>
         prev.map((m) =>
           m.id === matchId
-            ? { ...m, home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true }
+            ? { ...m, home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true, ...(bonusResult !== undefined ? { bonus_result: bonusResult } : {}) }
             : m
         )
       );
@@ -489,6 +504,19 @@ const Admin = () => {
                     onChange={(e) => setMatchForm({ ...matchForm, round_name: e.target.value })}
                   />
                 </div>
+                <div>
+                  <Label className="text-xs">Pergunta bônus (Brasileirão)</Label>
+                  <Select value={matchForm.bonus_question} onValueChange={(v) => setMatchForm({ ...matchForm, bonus_question: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {bonusQuestionOptions.map((q) => (
+                        <SelectItem key={q} value={q}>{q}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button onClick={createMatch} disabled={creatingMatch}>
                   {creatingMatch ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                   Adicionar
@@ -514,10 +542,14 @@ const MatchResultEditor = ({
   onSave,
 }: {
   match: Match;
-  onSave: (id: string, home: number, away: number) => void;
+  onSave: (id: string, home: number, away: number, bonusResult?: boolean | null) => void;
 }) => {
   const [homeScore, setHomeScore] = useState(match.home_score?.toString() || "");
   const [awayScore, setAwayScore] = useState(match.away_score?.toString() || "");
+  const bonusQ = (match as any).bonus_question as string | null;
+  const [bonusResult, setBonusResult] = useState<string>(
+    (match as any).bonus_result === true ? "sim" : (match as any).bonus_result === false ? "nao" : ""
+  );
 
   return (
     <Card>
@@ -554,12 +586,29 @@ const MatchResultEditor = ({
             onClick={() => {
               const h = parseInt(homeScore);
               const a = parseInt(awayScore);
-              if (!isNaN(h) && !isNaN(a)) onSave(match.id, h, a);
+              if (!isNaN(h) && !isNaN(a)) {
+                const br = bonusResult === "sim" ? true : bonusResult === "nao" ? false : null;
+                onSave(match.id, h, a, br);
+              }
             }}
           >
             <Save className="h-4 w-4" />
           </Button>
         </div>
+        {bonusQ && (
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">{bonusQ}</p>
+            <Select value={bonusResult} onValueChange={setBonusResult}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Resposta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sim">Sim</SelectItem>
+                <SelectItem value="nao">Não</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
