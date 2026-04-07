@@ -128,7 +128,7 @@ const Admin = () => {
     setCreatingBolao(true);
     const { data, error } = await supabase
       .from("boloes")
-      .insert({ name: newBolaoName.trim(), created_by: user.id })
+      .insert({ name: newBolaoName.trim(), created_by: user.id, competition: newBolaoCompetition } as any)
       .select()
       .single();
 
@@ -138,6 +138,7 @@ const Admin = () => {
       await supabase.from("bolao_members").insert({ bolao_id: data.id, user_id: user.id });
       setBoloes((prev) => [data as Bolao, ...prev]);
       setNewBolaoName("");
+      setNewBolaoCompetition("copa_do_mundo_2026");
       toast({ title: "Bolão criado!" });
     }
     setCreatingBolao(false);
