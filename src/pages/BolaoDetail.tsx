@@ -53,7 +53,7 @@ const BolaoDetail = () => {
 
       const totals: Record<string, number> = {};
       (allPreds || []).forEach((p) => {
-        totals[p.user_id] = (totals[p.user_id] || 0) + (p.points || 0) + (p.scorer_points || 0);
+        totals[p.user_id] = (totals[p.user_id] || 0) + (p.points || 0) + (p.scorer_points || 0) + ((p as any).bonus_points || 0);
       });
 
       // Season predictions only for Copa
