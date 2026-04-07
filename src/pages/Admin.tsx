@@ -99,22 +99,6 @@ const Admin = () => {
     setSavingBonusRound(false);
   };
 
-  const saveRoundBonusResult = async () => {
-    if (!bonusResultRound || !bonusResultAnswer) return;
-    setSavingBonusResult(true);
-    const result = bonusResultAnswer === "sim";
-    const { error } = await supabase
-      .from("matches")
-      .update({ bonus_result: result } as any)
-      .eq("round_name", bonusResultRound);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      setMatches(prev => prev.map(m => m.round_name === bonusResultRound ? { ...m, bonus_result: result } : m));
-      toast({ title: "Resultado bônus salvo para " + bonusResultRound + "!" });
-    }
-    setSavingBonusResult(false);
-  };
 
   const syncFixtures = async () => {
     setSyncing(true);
