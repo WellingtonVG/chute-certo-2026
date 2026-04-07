@@ -46,6 +46,7 @@ const Admin = () => {
 
   // New bolao form
   const [newBolaoName, setNewBolaoName] = useState("");
+  const [newBolaoCompetition, setNewBolaoCompetition] = useState("copa_do_mundo_2026");
   const [creatingBolao, setCreatingBolao] = useState(false);
 
   // New match form
@@ -57,6 +58,7 @@ const Admin = () => {
     city: "",
     stage: "group" as string,
     group_name: "",
+    round_name: "",
   });
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -127,7 +129,7 @@ const Admin = () => {
     setCreatingBolao(true);
     const { data, error } = await supabase
       .from("boloes")
-      .insert({ name: newBolaoName.trim(), created_by: user.id })
+      .insert({ name: newBolaoName.trim(), created_by: user.id, competition: newBolaoCompetition } as any)
       .select()
       .single();
 
@@ -137,6 +139,7 @@ const Admin = () => {
       await supabase.from("bolao_members").insert({ bolao_id: data.id, user_id: user.id });
       setBoloes((prev) => [data as Bolao, ...prev]);
       setNewBolaoName("");
+      setNewBolaoCompetition("copa_do_mundo_2026");
       toast({ title: "Bolão criado!" });
     }
     setCreatingBolao(false);
@@ -155,6 +158,7 @@ const Admin = () => {
         city: matchForm.city || null,
         stage: matchForm.stage as any,
         group_name: matchForm.group_name || null,
+        round_name: matchForm.round_name || null,
       })
       .select()
       .single();
@@ -163,7 +167,7 @@ const Admin = () => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else if (data) {
       setMatches((prev) => [...prev, data].sort((a, b) => a.match_date.localeCompare(b.match_date)));
-      setMatchForm({ home_team: "", away_team: "", match_date: "", stadium: "", city: "", stage: "group", group_name: "" });
+      setMatchForm({ home_team: "", away_team: "", match_date: "", stadium: "", city: "", stage: "group", group_name: "", round_name: "" });
       toast({ title: "Jogo criado!" });
     }
     setCreatingMatch(false);
@@ -275,6 +279,18 @@ const Admin = () => {
                   value={newBolaoName}
                   onChange={(e) => setNewBolaoName(e.target.value)}
                 />
+                <div>
+                  <Label className="text-xs">Competição</Label>
+                  <Select value={newBolaoCompetition} onValueChange={setNewBolaoCompetition}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="copa_do_mundo_2026">Copa do Mundo 2026</SelectItem>
+                      <SelectItem value="brasileirao_2026">Brasileirão 2026</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button onClick={createBolao} disabled={creatingBolao || !newBolaoName.trim()}>
                   {creatingBolao ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                   Criar
@@ -464,6 +480,14 @@ const Admin = () => {
                       onChange={(e) => setMatchForm({ ...matchForm, group_name: e.target.value })}
                     />
                   </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Rodada (Brasileirão)</Label>
+                  <Input
+                    placeholder="Ex: Rodada 11"
+                    value={matchForm.round_name}
+                    onChange={(e) => setMatchForm({ ...matchForm, round_name: e.target.value })}
+                  />
                 </div>
                 <Button onClick={createMatch} disabled={creatingMatch}>
                   {creatingMatch ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}

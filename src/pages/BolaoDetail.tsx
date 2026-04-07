@@ -51,18 +51,23 @@ const BolaoDetail = () => {
         .select("user_id, points, scorer_points")
         .eq("bolao_id", id);
 
-      const { data: seasonPreds } = await supabase
-        .from("season_predictions")
-        .select("*")
-        .eq("bolao_id", id);
-
       const totals: Record<string, number> = {};
       (allPreds || []).forEach((p) => {
         totals[p.user_id] = (totals[p.user_id] || 0) + (p.points || 0) + (p.scorer_points || 0);
       });
-      (seasonPreds || []).forEach((sp) => {
-        totals[sp.user_id] = (totals[sp.user_id] || 0) + (sp.champion_points || 0) + (sp.top_scorer_points || 0) + ((sp as any).best_player_points || 0);
-      });
+
+      // Season predictions only for Copa
+      const isBrasileirao = (bolaoRes.data as any)?.competition === "brasileirao_2026";
+      if (!isBrasileirao) {
+        const { data: seasonPreds } = await supabase
+          .from("season_predictions")
+          .select("*")
+          .eq("bolao_id", id);
+
+        (seasonPreds || []).forEach((sp) => {
+          totals[sp.user_id] = (totals[sp.user_id] || 0) + (sp.champion_points || 0) + (sp.top_scorer_points || 0) + ((sp as any).best_player_points || 0);
+        });
+      }
 
       const userIds = Object.keys(totals);
       if (userIds.length > 0) {
@@ -206,15 +211,47 @@ const BolaoDetail = () => {
           </TabsList>
 
           <TabsContent value="palpites" className="space-y-3 pt-4">
-            <SeasonPredictions
-              bolaoId={id!}
-              userId={user!.id}
-              firstMatchDate={matches.length > 0 ? matches[0].match_date : null}
-            />
+            {(bolao as any).competition !== "brasileirao_2026" && (
+              <SeasonPredictions
+                bolaoId={id!}
+                userId={user!.id}
+                firstMatchDate={matches.length > 0 ? matches[0].match_date : null}
+              />
+            )}
             {matches.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">
                 Nenhum jogo cadastrado ainda
               </p>
+            ) : (bolao as any).competition === "brasileirao_2026" ? (
+              // Group by round for Brasileirão
+              (() => {
+                const byRound: Record<string, Match[]> = {};
+                matches.forEach((m) => {
+                  const round = (m as any).round_name || "Sem rodada";
+                  if (!byRound[round]) byRound[round] = [];
+                  byRound[round].push(m);
+                });
+                return Object.entries(byRound).map(([round, roundMatches]) => (
+                  <div key={round} className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground">{round}</h3>
+                    {roundMatches.map((match) => {
+                      const pred = predictions[match.id];
+                      const locked = isMatchLocked(match);
+                      return (
+                        <MatchPredictionCard
+                          key={match.id}
+                          match={match}
+                          prediction={pred}
+                          locked={locked}
+                          saving={savingMatch === match.id}
+                          onSave={savePrediction}
+                          isBrasileirao
+                        />
+                      );
+                    })}
+                  </div>
+                ));
+              })()
             ) : (
               matches.map((match) => {
                 const pred = predictions[match.id];
@@ -285,12 +322,14 @@ const MatchPredictionCard = ({
   locked,
   saving,
   onSave,
+  isBrasileirao = false,
 }: {
   match: Tables<"matches">;
   prediction?: Tables<"predictions">;
   locked: boolean;
   saving: boolean;
   onSave: (matchId: string, home: number, away: number, scorer: string) => void;
+  isBrasileirao?: boolean;
 }) => {
   const [homeScore, setHomeScore] = useState(prediction?.home_score?.toString() || "");
   const [awayScore, setAwayScore] = useState(prediction?.away_score?.toString() || "");
@@ -322,8 +361,9 @@ const MatchPredictionCard = ({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground">
-            {stageLabels[match.stage] || match.stage}
-            {match.group_name && ` • ${match.group_name}`}
+            {isBrasileirao
+              ? ((match as any).round_name || "")
+              : `${stageLabels[match.stage] || match.stage}${match.group_name ? ` • ${match.group_name}` : ""}`}
           </span>
           <span className="text-xs text-muted-foreground">
             {matchDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}

@@ -45,6 +45,7 @@ export type Database = {
       }
       boloes: {
         Row: {
+          competition: string
           created_at: string
           created_by: string
           id: string
@@ -54,6 +55,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          competition?: string
           created_at?: string
           created_by: string
           id?: string
@@ -63,6 +65,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          competition?: string
           created_at?: string
           created_by?: string
           id?: string
@@ -87,6 +90,7 @@ export type Database = {
           is_finished: boolean
           is_manual_override: boolean
           match_date: string
+          round_name: string | null
           stadium: string | null
           stage: Database["public"]["Enums"]["match_stage"]
           updated_at: string
@@ -104,6 +108,7 @@ export type Database = {
           is_finished?: boolean
           is_manual_override?: boolean
           match_date: string
+          round_name?: string | null
           stadium?: string | null
           stage?: Database["public"]["Enums"]["match_stage"]
           updated_at?: string
@@ -121,6 +126,7 @@ export type Database = {
           is_finished?: boolean
           is_manual_override?: boolean
           match_date?: string
+          round_name?: string | null
           stadium?: string | null
           stage?: Database["public"]["Enums"]["match_stage"]
           updated_at?: string
