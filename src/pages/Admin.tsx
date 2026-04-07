@@ -49,6 +49,17 @@ const Admin = () => {
   const [newBolaoCompetition, setNewBolaoCompetition] = useState("copa_do_mundo_2026");
   const [creatingBolao, setCreatingBolao] = useState(false);
 
+  const bonusQuestionOptions = [
+    "Nenhuma",
+    "Vai ter gol no primeiro tempo?",
+    "Vai ter gol no segundo tempo?",
+    "Vai ter cartão vermelho?",
+    "Vai ter pênalti?",
+    "Vai ter gol nos acréscimos?",
+    "O time mandante vai marcar?",
+    "Vai ter mais de 2 gols no jogo?",
+  ];
+
   // New match form
   const [matchForm, setMatchForm] = useState({
     home_team: "",
@@ -59,6 +70,7 @@ const Admin = () => {
     stage: "group" as string,
     group_name: "",
     round_name: "",
+    bonus_question: "Nenhuma",
   });
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [syncing, setSyncing] = useState(false);
