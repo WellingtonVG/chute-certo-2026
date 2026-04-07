@@ -51,8 +51,13 @@ const BolaoDetail = () => {
         .select("user_id, points, scorer_points")
         .eq("bolao_id", id);
 
+      const totals: Record<string, number> = {};
+      (allPreds || []).forEach((p) => {
+        totals[p.user_id] = (totals[p.user_id] || 0) + (p.points || 0) + (p.scorer_points || 0);
+      });
+
       // Season predictions only for Copa
-      const isBrasileirao = bolaoRes.data?.competition === "brasileirao_2026";
+      const isBrasileirao = (bolaoRes.data as any)?.competition === "brasileirao_2026";
       if (!isBrasileirao) {
         const { data: seasonPreds } = await supabase
           .from("season_predictions")
