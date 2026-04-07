@@ -79,9 +79,6 @@ const Admin = () => {
   const [bonusRound, setBonusRound] = useState("");
   const [bonusRoundQuestion, setBonusRoundQuestion] = useState("Nenhuma");
   const [savingBonusRound, setSavingBonusRound] = useState(false);
-  const [bonusResultRound, setBonusResultRound] = useState("");
-  const [bonusResultAnswer, setBonusResultAnswer] = useState("");
-  const [savingBonusResult, setSavingBonusResult] = useState(false);
 
   const availableRounds = [...new Set(matches.filter(m => m.round_name).map(m => m.round_name!))].sort();
 
