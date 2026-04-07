@@ -158,6 +158,7 @@ const Admin = () => {
         city: matchForm.city || null,
         stage: matchForm.stage as any,
         group_name: matchForm.group_name || null,
+        round_name: matchForm.round_name || null,
       })
       .select()
       .single();
