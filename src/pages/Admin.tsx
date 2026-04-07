@@ -186,10 +186,12 @@ const Admin = () => {
     setCreatingMatch(false);
   };
 
-  const updateMatchResult = async (matchId: string, homeScore: number, awayScore: number) => {
+  const updateMatchResult = async (matchId: string, homeScore: number, awayScore: number, bonusResult?: boolean | null) => {
+    const updateData: any = { home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true };
+    if (bonusResult !== undefined) updateData.bonus_result = bonusResult;
     const { error } = await supabase
       .from("matches")
-      .update({ home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true })
+      .update(updateData)
       .eq("id", matchId);
 
     if (error) {
@@ -198,7 +200,7 @@ const Admin = () => {
       setMatches((prev) =>
         prev.map((m) =>
           m.id === matchId
-            ? { ...m, home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true }
+            ? { ...m, home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true, ...(bonusResult !== undefined ? { bonus_result: bonusResult } : {}) }
             : m
         )
       );
