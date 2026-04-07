@@ -334,20 +334,26 @@ const MatchPredictionCard = ({
   prediction?: Tables<"predictions">;
   locked: boolean;
   saving: boolean;
-  onSave: (matchId: string, home: number, away: number, scorer: string) => void;
+  onSave: (matchId: string, home: number, away: number, scorer: string, bonusAnswer?: boolean | null) => void;
   isBrasileirao?: boolean;
 }) => {
   const [homeScore, setHomeScore] = useState(prediction?.home_score?.toString() || "");
   const [awayScore, setAwayScore] = useState(prediction?.away_score?.toString() || "");
   const [scorer, setScorer] = useState(prediction?.scorer_name || "");
+  const [bonusAnswer, setBonusAnswer] = useState<string>(
+    (prediction as any)?.bonus_answer === true ? "sim" : (prediction as any)?.bonus_answer === false ? "nao" : ""
+  );
   const awayScoreRef = useRef<HTMLInputElement>(null);
   const scorerRef = useRef<HTMLInputElement>(null);
+
+  const bonusQuestion = (match as any).bonus_question as string | null;
 
   const handleSave = () => {
     const h = parseInt(homeScore);
     const a = parseInt(awayScore);
     if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
-    onSave(match.id, h, a, scorer);
+    const ba = bonusAnswer === "sim" ? true : bonusAnswer === "nao" ? false : null;
+    onSave(match.id, h, a, scorer, ba);
   };
 
   const stageLabels: Record<string, string> = {
@@ -393,11 +399,14 @@ const MatchPredictionCard = ({
               <p>
                 Seu palpite: <span className="font-bold">{prediction.home_score} × {prediction.away_score}</span>
               </p>
-              {prediction.scorer_name && (
+              {!isBrasileirao && prediction.scorer_name && (
                 <p>Goleador: <span className="font-medium">{prediction.scorer_name}</span></p>
               )}
+              {isBrasileirao && bonusQuestion && (prediction as any)?.bonus_answer !== null && (
+                <p>{bonusQuestion} <span className="font-medium">{(prediction as any)?.bonus_answer ? "Sim" : "Não"}</span></p>
+              )}
               {prediction.points !== null && (
-                <p className="font-bold text-accent">+{(prediction.points || 0) + (prediction.scorer_points || 0)} pts</p>
+                <p className="font-bold text-accent">+{(prediction.points || 0) + (prediction.scorer_points || 0) + ((prediction as any)?.bonus_points || 0)} pts</p>
               )}
             </div>
           ) : (
@@ -435,19 +444,43 @@ const MatchPredictionCard = ({
                 onChange={(e) => {
                   const val = e.target.value;
                   setAwayScore(val);
-                  if (val.length >= 1 && /^\d+$/.test(val)) {
+                  if (val.length >= 1 && /^\d+$/.test(val) && !isBrasileirao) {
                     scorerRef.current?.focus();
                   }
                 }}
                 className="w-16 text-center"
               />
             </div>
-            <Input
-              ref={scorerRef}
-              placeholder="Jogador que marca (opcional)"
-              value={scorer}
-              onChange={(e) => setScorer(e.target.value)}
-            />
+            {isBrasileirao && bonusQuestion ? (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">{bonusQuestion}</p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={bonusAnswer === "sim" ? "default" : "outline"}
+                    onClick={() => setBonusAnswer(bonusAnswer === "sim" ? "" : "sim")}
+                  >
+                    Sim
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={bonusAnswer === "nao" ? "default" : "outline"}
+                    onClick={() => setBonusAnswer(bonusAnswer === "nao" ? "" : "nao")}
+                  >
+                    Não
+                  </Button>
+                </div>
+              </div>
+            ) : !isBrasileirao ? (
+              <Input
+                ref={scorerRef}
+                placeholder="Jogador que marca (opcional)"
+                value={scorer}
+                onChange={(e) => setScorer(e.target.value)}
+              />
+            ) : null}
             <Button size="sm" onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
             </Button>
