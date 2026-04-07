@@ -593,40 +593,6 @@ const Admin = () => {
                     </Button>
                   </div>
 
-                  <div className="border-t pt-3 space-y-3">
-                    <p className="text-xs text-muted-foreground font-medium">Definir resultado bônus</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-xs">Rodada</Label>
-                        <Select value={bonusResultRound} onValueChange={setBonusResultRound}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableRounds.filter(r => matches.some(m => m.round_name === r && m.bonus_question)).map(r => (
-                              <SelectItem key={r} value={r}>{r}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label className="text-xs">Resposta</Label>
-                        <Select value={bonusResultAnswer} onValueChange={setBonusResultAnswer}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="sim">Sim</SelectItem>
-                            <SelectItem value="nao">Não</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <Button size="sm" onClick={saveRoundBonusResult} disabled={savingBonusResult || !bonusResultRound || !bonusResultAnswer}>
-                      {savingBonusResult ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                      Salvar resultado bônus
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             )}
