@@ -79,9 +79,6 @@ const Admin = () => {
   const [bonusRound, setBonusRound] = useState("");
   const [bonusRoundQuestion, setBonusRoundQuestion] = useState("Nenhuma");
   const [savingBonusRound, setSavingBonusRound] = useState(false);
-  const [bonusResultRound, setBonusResultRound] = useState("");
-  const [bonusResultAnswer, setBonusResultAnswer] = useState("");
-  const [savingBonusResult, setSavingBonusResult] = useState(false);
 
   const availableRounds = [...new Set(matches.filter(m => m.round_name).map(m => m.round_name!))].sort();
 
@@ -102,22 +99,6 @@ const Admin = () => {
     setSavingBonusRound(false);
   };
 
-  const saveRoundBonusResult = async () => {
-    if (!bonusResultRound || !bonusResultAnswer) return;
-    setSavingBonusResult(true);
-    const result = bonusResultAnswer === "sim";
-    const { error } = await supabase
-      .from("matches")
-      .update({ bonus_result: result } as any)
-      .eq("round_name", bonusResultRound);
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      setMatches(prev => prev.map(m => m.round_name === bonusResultRound ? { ...m, bonus_result: result } : m));
-      toast({ title: "Resultado bônus salvo para " + bonusResultRound + "!" });
-    }
-    setSavingBonusResult(false);
-  };
 
   const syncFixtures = async () => {
     setSyncing(true);
@@ -238,16 +219,28 @@ const Admin = () => {
 
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      setMatches((prev) =>
-        prev.map((m) =>
-          m.id === matchId
-            ? { ...m, home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true, ...(bonusResult !== undefined ? { bonus_result: bonusResult } : {}) }
-            : m
-        )
-      );
-      toast({ title: "Resultado atualizado!" });
+      return;
     }
+
+    // Recalculate bonus points if bonus result is set
+    if (bonusResult !== undefined && bonusResult !== null) {
+      const { error: rpcError } = await supabase.rpc("calculate_bonus_points", {
+        match_id_input: matchId,
+        bonus_result_input: bonusResult,
+      } as any);
+      if (rpcError) {
+        toast({ title: "Erro ao calcular bônus", description: rpcError.message, variant: "destructive" });
+      }
+    }
+
+    setMatches((prev) =>
+      prev.map((m) =>
+        m.id === matchId
+          ? { ...m, home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true, ...(bonusResult !== undefined ? { bonus_result: bonusResult } : {}) }
+          : m
+      )
+    );
+    toast({ title: "Resultado atualizado!" });
   };
 
   const copyInviteLink = (code: string) => {
@@ -600,40 +593,6 @@ const Admin = () => {
                     </Button>
                   </div>
 
-                  <div className="border-t pt-3 space-y-3">
-                    <p className="text-xs text-muted-foreground font-medium">Definir resultado bônus</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-xs">Rodada</Label>
-                        <Select value={bonusResultRound} onValueChange={setBonusResultRound}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableRounds.filter(r => matches.some(m => m.round_name === r && m.bonus_question)).map(r => (
-                              <SelectItem key={r} value={r}>{r}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label className="text-xs">Resposta</Label>
-                        <Select value={bonusResultAnswer} onValueChange={setBonusResultAnswer}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="sim">Sim</SelectItem>
-                            <SelectItem value="nao">Não</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <Button size="sm" onClick={saveRoundBonusResult} disabled={savingBonusResult || !bonusResultRound || !bonusResultAnswer}>
-                      {savingBonusResult ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                      Salvar resultado bônus
-                    </Button>
-                  </div>
                 </CardContent>
               </Card>
             )}
