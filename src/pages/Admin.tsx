@@ -58,6 +58,7 @@ const Admin = () => {
     city: "",
     stage: "group" as string,
     group_name: "",
+    round_name: "",
   });
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [syncing, setSyncing] = useState(false);
