@@ -540,10 +540,14 @@ const MatchResultEditor = ({
   onSave,
 }: {
   match: Match;
-  onSave: (id: string, home: number, away: number) => void;
+  onSave: (id: string, home: number, away: number, bonusResult?: boolean | null) => void;
 }) => {
   const [homeScore, setHomeScore] = useState(match.home_score?.toString() || "");
   const [awayScore, setAwayScore] = useState(match.away_score?.toString() || "");
+  const bonusQ = (match as any).bonus_question as string | null;
+  const [bonusResult, setBonusResult] = useState<string>(
+    (match as any).bonus_result === true ? "sim" : (match as any).bonus_result === false ? "nao" : ""
+  );
 
   return (
     <Card>
@@ -580,12 +584,29 @@ const MatchResultEditor = ({
             onClick={() => {
               const h = parseInt(homeScore);
               const a = parseInt(awayScore);
-              if (!isNaN(h) && !isNaN(a)) onSave(match.id, h, a);
+              if (!isNaN(h) && !isNaN(a)) {
+                const br = bonusResult === "sim" ? true : bonusResult === "nao" ? false : null;
+                onSave(match.id, h, a, br);
+              }
             }}
           >
             <Save className="h-4 w-4" />
           </Button>
         </div>
+        {bonusQ && (
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">{bonusQ}</p>
+            <Select value={bonusResult} onValueChange={setBonusResult}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Resposta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sim">Sim</SelectItem>
+                <SelectItem value="nao">Não</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
