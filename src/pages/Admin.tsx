@@ -214,7 +214,6 @@ const Admin = () => {
         stage: matchForm.stage as any,
         group_name: matchForm.group_name || null,
         round_name: matchForm.round_name || null,
-        bonus_question: matchForm.bonus_question !== "Nenhuma" ? matchForm.bonus_question : null,
       } as any)
       .select()
       .single();
