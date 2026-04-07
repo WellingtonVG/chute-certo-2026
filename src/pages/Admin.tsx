@@ -277,6 +277,18 @@ const Admin = () => {
                   value={newBolaoName}
                   onChange={(e) => setNewBolaoName(e.target.value)}
                 />
+                <div>
+                  <Label className="text-xs">Competição</Label>
+                  <Select value={newBolaoCompetition} onValueChange={setNewBolaoCompetition}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="copa_do_mundo_2026">Copa do Mundo 2026</SelectItem>
+                      <SelectItem value="brasileirao_2026">Brasileirão 2026</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button onClick={createBolao} disabled={creatingBolao || !newBolaoName.trim()}>
                   {creatingBolao ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                   Criar
