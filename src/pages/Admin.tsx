@@ -219,16 +219,28 @@ const Admin = () => {
 
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      setMatches((prev) =>
-        prev.map((m) =>
-          m.id === matchId
-            ? { ...m, home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true, ...(bonusResult !== undefined ? { bonus_result: bonusResult } : {}) }
-            : m
-        )
-      );
-      toast({ title: "Resultado atualizado!" });
+      return;
     }
+
+    // Recalculate bonus points if bonus result is set
+    if (bonusResult !== undefined && bonusResult !== null) {
+      const { error: rpcError } = await supabase.rpc("calculate_bonus_points", {
+        match_id_input: matchId,
+        bonus_result_input: bonusResult,
+      } as any);
+      if (rpcError) {
+        toast({ title: "Erro ao calcular bônus", description: rpcError.message, variant: "destructive" });
+      }
+    }
+
+    setMatches((prev) =>
+      prev.map((m) =>
+        m.id === matchId
+          ? { ...m, home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true, ...(bonusResult !== undefined ? { bonus_result: bonusResult } : {}) }
+          : m
+      )
+    );
+    toast({ title: "Resultado atualizado!" });
   };
 
   const copyInviteLink = (code: string) => {
