@@ -418,6 +418,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_bonus_points: {
+        Args: { bonus_result_input: boolean; match_id_input: string }
+        Returns: undefined
+      }
       get_user_bolao_ids: { Args: never; Returns: string[] }
       has_role: {
         Args: {
