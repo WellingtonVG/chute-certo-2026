@@ -12,6 +12,15 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectPath = searchParams.get("redirect");
 
   // Redirect already-authenticated users away from auth page
   if (!isLoading && user) {
@@ -22,15 +31,6 @@ const Auth = () => {
     }
     return <Navigate to="/" replace />;
   }
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const redirectPath = searchParams.get("redirect");
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
