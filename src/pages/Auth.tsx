@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Trophy } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Auth = () => {
+  const { user, isLoading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +21,16 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectPath = searchParams.get("redirect");
+
+  // Redirect already-authenticated users away from auth page
+  if (!isLoading && user) {
+    const savedRedirect = localStorage.getItem("invite_redirect");
+    if (savedRedirect) {
+      localStorage.removeItem("invite_redirect");
+      return <Navigate to={savedRedirect} replace />;
+    }
+    return <Navigate to="/" replace />;
+  }
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
