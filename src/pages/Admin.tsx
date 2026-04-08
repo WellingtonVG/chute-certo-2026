@@ -600,9 +600,7 @@ const Admin = () => {
 
           {/* Resultados Tab */}
           <TabsContent value="resultados" className="space-y-3 pt-4">
-            {matches.map((match) => (
-              <MatchResultEditor key={match.id} match={match} onSave={updateMatchResult} />
-            ))}
+            <ResultsTab matches={matches} onSave={updateMatchResult} />
           </TabsContent>
         </Tabs>
       </main>
