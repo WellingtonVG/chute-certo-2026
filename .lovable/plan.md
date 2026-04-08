@@ -1,60 +1,25 @@
 
 
-## Plano: Resultado bônus por jogo + recálculo automático
+## Plano: Corrigir tela branca após login com Google
 
-### Situação atual
-- `MatchResultEditor` (aba Resultados) já mostra toggle Sim/Não para jogos com `bonus_question` — isso já funciona visualmente
-- Seção "Definir resultado bônus por rodada" existe na aba Jogos (linhas 603-636) — precisa ser removida
-- **Problema crítico**: quando o admin salva o resultado, os `bonus_points` dos palpites dos usuários NÃO são recalculados automaticamente. A RLS de `predictions` só permite UPDATE por `auth.uid() = user_id`, então o admin não consegue atualizar pontos de outros usuários diretamente
-
-### Impacto na pontuação
-- O ranking em `BolaoDetail.tsx` (linha 56) já soma `bonus_points` ao total
-- Basta garantir que `bonus_points` seja preenchido corretamente em cada prediction quando o admin salva o resultado do jogo
-- Regra: `bonus_answer === bonus_result` → +2 pts; `bonus_answer !== bonus_result` → -1 pt; sem resposta → 0
+### Causa raiz
+Dois problemas combinados:
+1. **Auth.tsx não redireciona usuários já logados** — falta um `if (user) return <Navigate to="/" />` no componente Auth
+2. **Falha silenciosa no fetchProfile** — se o trigger `handle_new_user` não criou o profile (ou demorou), `fetchProfile` retorna `null` e o `isLoading` pode não resolver corretamente, ou `ProtectedRoute` fica em loop de redirect para `/set-username`
 
 ### Mudanças
 
-**1. Migração SQL** — Criar função `calculate_bonus_points`
-- Função `SECURITY DEFINER` que recebe `match_id` e `bonus_result`
-- Atualiza todas as predictions daquele match: se `bonus_answer IS NOT NULL`, calcula +2 ou -1 conforme acerto
-- Só admins podem chamar (check `has_role`)
+**1. `src/pages/Auth.tsx`**
+- Adicionar import do `useAuth`
+- No início do componente, verificar se já existe user autenticado: `if (user) return <Navigate to="/" replace />`
+- Isso garante que após o callback do Google, se o user já está logado, ele é redirecionado automaticamente
 
-**2. `src/pages/Admin.tsx`**
-- Em `updateMatchResult`: após salvar o resultado do jogo, se `bonusResult` não for null, chamar `supabase.rpc('calculate_bonus_points', { match_id_input, bonus_result_input })`
-- Remover seção "Definir resultado bônus por rodada" (linhas 603-636) e estados associados (`bonusResultRound`, `bonusResultAnswer`, `savingBonusResult`, `saveRoundBonusResult`)
-- Manter seção "Definir pergunta por rodada" intacta
+**2. `src/contexts/AuthContext.tsx`**
+- Em `fetchProfile`, adicionar tratamento para caso o profile não exista ainda (retry ou fallback)
+- Garantir que `isLoading` sempre resolve para `false`, mesmo se `fetchProfile` ou `fetchIsAdmin` falharem (adicionar try/catch)
 
-**3. Nenhuma mudança em `BolaoDetail.tsx`** — ranking já soma bonus_points
-
-### Função SQL
-
-```sql
-CREATE OR REPLACE FUNCTION public.calculate_bonus_points(match_id_input uuid, bonus_result_input boolean)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-BEGIN
-  IF NOT public.has_role(auth.uid(), 'admin') THEN
-    RAISE EXCEPTION 'Unauthorized';
-  END IF;
-
-  UPDATE public.predictions
-  SET bonus_points = CASE
-    WHEN bonus_answer IS NULL THEN 0
-    WHEN bonus_answer = bonus_result_input THEN 2
-    ELSE -1
-  END
-  WHERE match_id = match_id_input AND bonus_answer IS NOT NULL;
-END;
-$$;
-```
-
-### Resumo
-- 1 migração (função SQL)
-- 1 arquivo editado (Admin.tsx)
-- Pergunta bônus continua definida por rodada
-- Resultado bônus agora é por jogo (já estava no UI, falta só o recálculo)
-- Pontuação recalculada automaticamente ao salvar resultado
+### Resultado
+- Usuário Google é redirecionado para `/` após autenticação
+- Sem tela branca mesmo se profile demorar para ser criado
+- Nenhuma funcionalidade existente alterada
 
