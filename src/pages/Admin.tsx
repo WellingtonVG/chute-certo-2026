@@ -661,7 +661,7 @@ const ResultsTab = ({
   );
 };
 
-
+const MatchResultEditor = ({
   match,
   onSave,
 }: {
