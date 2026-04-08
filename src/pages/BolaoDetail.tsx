@@ -37,7 +37,13 @@ const BolaoDetail = () => {
         supabase.from("predictions").select("*").eq("bolao_id", id).eq("user_id", user.id),
       ]);
       setBolao(bolaoRes.data);
-      setMatches(matchesRes.data || []);
+      
+      // Filter matches by competition type
+      const isBrasileraoComp = (bolaoRes.data as any)?.competition === "brasileirao_2026";
+      const filteredMatches = (matchesRes.data || []).filter((m) =>
+        isBrasileraoComp ? !!m.round_name : !m.round_name
+      );
+      setMatches(filteredMatches);
 
       const predsMap: Record<string, Prediction> = {};
       (predsRes.data || []).forEach((p) => {

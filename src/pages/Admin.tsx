@@ -600,12 +600,63 @@ const Admin = () => {
 
           {/* Resultados Tab */}
           <TabsContent value="resultados" className="space-y-3 pt-4">
-            {matches.map((match) => (
-              <MatchResultEditor key={match.id} match={match} onSave={updateMatchResult} />
-            ))}
+            <ResultsTab matches={matches} onSave={updateMatchResult} />
           </TabsContent>
         </Tabs>
       </main>
+    </div>
+  );
+};
+
+const ResultsTab = ({
+  matches,
+  onSave,
+}: {
+  matches: Match[];
+  onSave: (id: string, home: number, away: number, bonusResult?: boolean | null) => void;
+}) => {
+  const [competition, setCompetition] = useState("copa_do_mundo_2026");
+
+  const filteredMatches = matches.filter((m) =>
+    competition === "brasileirao_2026" ? !!m.round_name : !m.round_name
+  );
+
+  // Group by round for Brasileirão
+  const byRound: Record<string, Match[]> = {};
+  if (competition === "brasileirao_2026") {
+    filteredMatches.forEach((m) => {
+      const round = m.round_name || "Sem rodada";
+      if (!byRound[round]) byRound[round] = [];
+      byRound[round].push(m);
+    });
+  }
+
+  return (
+    <div className="space-y-3">
+      <Select value={competition} onValueChange={setCompetition}>
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="copa_do_mundo_2026">Copa do Mundo</SelectItem>
+          <SelectItem value="brasileirao_2026">Brasileirão</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {competition === "brasileirao_2026" ? (
+        Object.entries(byRound).map(([round, roundMatches]) => (
+          <div key={round} className="space-y-2">
+            <h3 className="text-sm font-semibold text-muted-foreground">{round}</h3>
+            {roundMatches.map((match) => (
+              <MatchResultEditor key={match.id} match={match} onSave={onSave} />
+            ))}
+          </div>
+        ))
+      ) : (
+        filteredMatches.map((match) => (
+          <MatchResultEditor key={match.id} match={match} onSave={onSave} />
+        ))
+      )}
     </div>
   );
 };
