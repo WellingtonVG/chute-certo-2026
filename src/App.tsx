@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -20,9 +20,10 @@ import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, allowDefaultUsername = false }: { children: React.ReactNode; allowDefaultUsername?: boolean }) => {
   const { user, profile, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -44,9 +45,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) return <Navigate to="/auth" replace />;
 
-  // If user has default username (user_XXXX), redirect to set username
-  if (profile && profile.username.startsWith("user_")) {
-    return <Navigate to="/set-username" replace />;
+  // Redirect to set-username if needed, but NOT if we're already allowing default username (i.e. on /set-username)
+  if (!allowDefaultUsername && profile && profile.username.startsWith("user_")) {
+    return <Navigate to="/set-username" replace state={{ from: location.pathname }} />;
   }
 
   return <>{children}</>;
@@ -65,7 +66,7 @@ const App = () => (
             <Route
               path="/set-username"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allowDefaultUsername>
                   <SetUsername />
                 </ProtectedRoute>
               }

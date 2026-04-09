@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -27,6 +27,8 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext);
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -34,70 +36,80 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
-      setProfile(data);
-    } catch {
-      setProfile(null);
+  const fetchProfile = useCallback(async (userId: string, retries = 3): Promise<Profile | null> => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", userId)
+          .single();
+        if (data) return data;
+      } catch {
+        // ignore
+      }
+      if (i < retries - 1) await sleep(800);
     }
-  };
+    return null;
+  }, []);
 
-  const fetchIsAdmin = async (userId: string) => {
+  const fetchIsAdmin = useCallback(async (userId: string): Promise<boolean> => {
     try {
       const { data } = await supabase.rpc("has_role", {
         _user_id: userId,
         _role: "admin",
       });
-      setIsAdmin(!!data);
+      return !!data;
     } catch {
-      setIsAdmin(false);
+      return false;
     }
-  };
+  }, []);
 
-  const refreshProfile = async () => {
-    if (user) {
-      await fetchProfile(user.id);
+  const loadUserState = useCallback(async (s: Session | null) => {
+    try {
+      setSession(s);
+      setUser(s?.user ?? null);
+      if (s?.user) {
+        const [p, admin] = await Promise.all([
+          fetchProfile(s.user.id),
+          fetchIsAdmin(s.user.id),
+        ]);
+        setProfile(p);
+        setIsAdmin(admin);
+      } else {
+        setProfile(null);
+        setIsAdmin(false);
+      }
+    } catch {
+      setProfile(null);
+      setIsAdmin(false);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [fetchProfile, fetchIsAdmin]);
+
+  const refreshProfile = useCallback(async () => {
+    if (user) {
+      const p = await fetchProfile(user.id, 1);
+      setProfile(p);
+    }
+  }, [user, fetchProfile]);
 
   useEffect(() => {
+    // Restore session first
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      loadUserState(s);
+    });
+
+    // Listen for subsequent changes — no async work inside callback
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          setTimeout(async () => {
-            await fetchProfile(session.user.id);
-            await fetchIsAdmin(session.user.id);
-            setIsLoading(false);
-          }, 0);
-        } else {
-          setProfile(null);
-          setIsAdmin(false);
-          setIsLoading(false);
-        }
+      (_event, s) => {
+        loadUserState(s);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id).then(() =>
-          fetchIsAdmin(session.user.id).then(() => setIsLoading(false))
-        );
-      } else {
-        setIsLoading(false);
-      }
-    });
-
     return () => subscription.unsubscribe();
-  }, []);
+  }, [loadUserState]);
 
   const signOut = async () => {
     await supabase.auth.signOut();

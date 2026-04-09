@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ const SetUsername = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!username.trim()) {
@@ -51,7 +52,14 @@ const SetUsername = () => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       await refreshProfile();
-      navigate("/");
+      const from = (location.state as any)?.from;
+      const savedRedirect = localStorage.getItem("invite_redirect");
+      if (savedRedirect) {
+        localStorage.removeItem("invite_redirect");
+        navigate(savedRedirect, { replace: true });
+      } else {
+        navigate(from || "/", { replace: true });
+      }
     }
     setLoading(false);
   };
