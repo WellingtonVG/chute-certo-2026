@@ -120,7 +120,7 @@ const triviaMedium: TriviaQ[] = [
   { id: "t_m_03", question: "Qual país disputou mais finais de Copa do Mundo sem vencer nenhuma?", answer: "Holanda", options: ["Holanda", "Hungria", "Croácia", "Tchecoslováquia"] },
   { id: "t_m_04", question: "Quais seleções foram campeãs em Copas consecutivas?", answer: "Itália (1934/1938) e Brasil (1958/1962)", options: ["Itália (1934/1938) e Brasil (1958/1962)", "Brasil (1958/1962) e Alemanha (1974/1978)", "Uruguai (1930/1950) e Brasil (1958/1962)", "Argentina (1978/1986) e Brasil (1994/2002)"] },
   { id: "t_m_05", question: "Quem foi o primeiro a ganhar a Copa do Mundo como jogador e como treinador?", answer: "Mário Zagallo", options: ["Mário Zagallo", "Franz Beckenbauer", "Didier Deschamps", "Johan Cruyff"] },
-  { id: "t_m_06", question: "Quantos técnicos venceram a Copa do Mundo tanto como jogador quanto como treinador?", answer: "3 (Zagallo, Beckenbauer e Deschamps)", options: ["1", "2", "3 (Zagallo, Beckenbauer e Deschamps)", "4"] },
+  { id: "t_m_06", question: "Quantos técnicos venceram a Copa do Mundo tanto como jogador quanto como treinador?", answer: "3", options: ["1", "2", "3", "4"] },
   { id: "t_m_07", question: "Em que ano a Copa do Mundo foi realizada pela primeira vez na África?", answer: "2010", options: ["2002", "2006", "2010", "2014"] },
   { id: "t_m_08", question: "Qual seleção ficou em terceiro lugar na Copa de 1998?", answer: "Croácia", options: ["Holanda", "Itália", "Croácia", "Dinamarca"] },
   { id: "t_m_09", question: "Qual foi o prêmio de melhor goleiro chamado antes de ser renomeado Luva de Ouro?", answer: "Troféu Lev Yashin", options: ["Troféu Lev Yashin", "Troféu Gordon Banks", "Troféu Dino Zoff", "Troféu Zamora"] },
