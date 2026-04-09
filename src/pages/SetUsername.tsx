@@ -18,6 +18,7 @@ const SetUsername = () => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!username.trim()) {
