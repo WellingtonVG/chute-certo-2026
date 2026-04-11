@@ -54,10 +54,7 @@ const ScoringRulesModal = () => {
               </li>
               <li className="flex justify-between">
                 <span>Outro placar de empate</span>
-                <span className="font-bold text-foreground">1 pt</span>
-              </li>
-              <li className="text-xs italic">
-                Não existe categoria de 3 pts para empates
+                <span className="font-bold text-foreground">2 pts</span>
               </li>
             </ul>
           </div>

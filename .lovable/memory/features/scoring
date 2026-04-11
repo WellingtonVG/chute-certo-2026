@@ -1,0 +1,24 @@
+---
+name: Scoring rules
+description: Point calculation for match predictions and season predictions
+type: feature
+---
+## Match predictions
+- Exact score: 5 pts
+- Result + goal difference (non-draws only): 3 pts
+- Non-exact draw (both predicted draw): 2 pts
+- Correct result only: 1 pt
+
+## Scorer bonus
+- Correct: +2 pts
+- Wrong: -1 pt
+
+## Knockout multiplier
+- Stages: round_of_32, round_of_16, quarter_final, semi_final, third_place, final
+- Multiplier: 1.5× (CEIL)
+
+## Season predictions
+- Champion: 30 pts
+- Best player: 25 pts
+- Top scorer: 20 pts
+- Locked after first match
