@@ -209,7 +209,7 @@ const Admin = () => {
     setCreatingMatch(false);
   };
 
-  const updateMatchResult = async (matchId: string, homeScore: number, awayScore: number, bonusResult?: boolean | null) => {
+  const updateMatchResult = async (matchId: string, homeScore: number, awayScore: number, bonusResult?: boolean | null): Promise<void> => {
     const updateData: any = { home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true };
     if (bonusResult !== undefined) updateData.bonus_result = bonusResult;
     const { error } = await supabase
@@ -220,6 +220,14 @@ const Admin = () => {
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;
+    }
+
+    // Recalculate match points for all predictions
+    const { error: pointsError } = await supabase.rpc("calculate_match_points", {
+      match_id_input: matchId,
+    } as any);
+    if (pointsError) {
+      toast({ title: "Erro ao calcular pontos", description: pointsError.message, variant: "destructive" });
     }
 
     // Recalculate bonus points if bonus result is set
@@ -240,7 +248,7 @@ const Admin = () => {
           : m
       )
     );
-    toast({ title: "Resultado atualizado!" });
+    toast({ title: "Resultado salvo e pontos recalculados!" });
   };
 
   const copyInviteLink = (code: string) => {
@@ -613,7 +621,7 @@ const ResultsTab = ({
   onSave,
 }: {
   matches: Match[];
-  onSave: (id: string, home: number, away: number, bonusResult?: boolean | null) => void;
+  onSave: (id: string, home: number, away: number, bonusResult?: boolean | null) => Promise<void>;
 }) => {
   const [competition, setCompetition] = useState("copa_do_mundo_2026");
 
@@ -666,14 +674,34 @@ const MatchResultEditor = ({
   onSave,
 }: {
   match: Match;
-  onSave: (id: string, home: number, away: number, bonusResult?: boolean | null) => void;
+  onSave: (id: string, home: number, away: number, bonusResult?: boolean | null) => Promise<void>;
 }) => {
   const [homeScore, setHomeScore] = useState(match.home_score?.toString() || "");
   const [awayScore, setAwayScore] = useState(match.away_score?.toString() || "");
+  const [saving, setSaving] = useState(false);
   const bonusQ = (match as any).bonus_question as string | null;
   const [bonusResult, setBonusResult] = useState<string>(
     (match as any).bonus_result === true ? "sim" : (match as any).bonus_result === false ? "nao" : ""
   );
+
+  // Sync state when match prop changes (after parent updates)
+  useEffect(() => {
+    setHomeScore(match.home_score?.toString() || "");
+    setAwayScore(match.away_score?.toString() || "");
+    setBonusResult(
+      (match as any).bonus_result === true ? "sim" : (match as any).bonus_result === false ? "nao" : ""
+    );
+  }, [match.home_score, match.away_score, (match as any).bonus_result]);
+
+  const handleSave = async () => {
+    const h = parseInt(homeScore);
+    const a = parseInt(awayScore);
+    if (isNaN(h) || isNaN(a)) return;
+    setSaving(true);
+    const br = bonusResult === "sim" ? true : bonusResult === "nao" ? false : null;
+    await onSave(match.id, h, a, br);
+    setSaving(false);
+  };
 
   return (
     <Card>
@@ -683,8 +711,7 @@ const MatchResultEditor = ({
         </p>
         <p className="text-xs text-muted-foreground">
           {new Date(match.match_date).toLocaleDateString("pt-BR")}
-          {match.is_finished && " • ✅ Finalizado"}
-          {match.is_manual_override && " • Manual"}
+          {match.is_finished && " • ✅ Resultado salvo"}
         </p>
         <div className="flex items-center gap-2">
           <Input
@@ -707,16 +734,10 @@ const MatchResultEditor = ({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => {
-              const h = parseInt(homeScore);
-              const a = parseInt(awayScore);
-              if (!isNaN(h) && !isNaN(a)) {
-                const br = bonusResult === "sim" ? true : bonusResult === "nao" ? false : null;
-                onSave(match.id, h, a, br);
-              }
-            }}
+            disabled={saving}
+            onClick={handleSave}
           >
-            <Save className="h-4 w-4" />
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           </Button>
         </div>
         {bonusQ && (
