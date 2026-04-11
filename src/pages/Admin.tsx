@@ -209,7 +209,7 @@ const Admin = () => {
     setCreatingMatch(false);
   };
 
-  const updateMatchResult = async (matchId: string, homeScore: number, awayScore: number, bonusResult?: boolean | null) => {
+  const updateMatchResult = async (matchId: string, homeScore: number, awayScore: number, bonusResult?: boolean | null): Promise<void> => {
     const updateData: any = { home_score: homeScore, away_score: awayScore, is_finished: true, is_manual_override: true };
     if (bonusResult !== undefined) updateData.bonus_result = bonusResult;
     const { error } = await supabase
