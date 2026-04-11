@@ -621,7 +621,7 @@ const ResultsTab = ({
   onSave,
 }: {
   matches: Match[];
-  onSave: (id: string, home: number, away: number, bonusResult?: boolean | null) => void;
+  onSave: (id: string, home: number, away: number, bonusResult?: boolean | null) => Promise<void>;
 }) => {
   const [competition, setCompetition] = useState("copa_do_mundo_2026");
 
