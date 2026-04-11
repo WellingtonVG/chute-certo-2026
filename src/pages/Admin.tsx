@@ -674,7 +674,7 @@ const MatchResultEditor = ({
   onSave,
 }: {
   match: Match;
-  onSave: (id: string, home: number, away: number, bonusResult?: boolean | null) => void;
+  onSave: (id: string, home: number, away: number, bonusResult?: boolean | null) => Promise<void>;
 }) => {
   const [homeScore, setHomeScore] = useState(match.home_score?.toString() || "");
   const [awayScore, setAwayScore] = useState(match.away_score?.toString() || "");
