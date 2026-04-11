@@ -28,6 +28,51 @@ const BolaoDetail = () => {
   const [loading, setLoading] = useState(true);
   const [savingMatch, setSavingMatch] = useState<string | null>(null);
 
+  const fetchRanking = async (bolaoId: string, competition: string) => {
+    const { data: allPreds } = await supabase
+      .from("predictions")
+      .select("user_id, points, scorer_points, bonus_points")
+      .eq("bolao_id", bolaoId);
+
+    const totals: Record<string, number> = {};
+    (allPreds || []).forEach((p) => {
+      totals[p.user_id] = (totals[p.user_id] || 0) + (p.points || 0) + (p.scorer_points || 0) + (p.bonus_points || 0);
+    });
+
+    // Season predictions only for Copa
+    if (competition !== "brasileirao_2026") {
+      const { data: seasonPreds } = await supabase
+        .from("season_predictions")
+        .select("*")
+        .eq("bolao_id", bolaoId);
+
+      (seasonPreds || []).forEach((sp) => {
+        totals[sp.user_id] = (totals[sp.user_id] || 0) + (sp.champion_points || 0) + (sp.top_scorer_points || 0) + ((sp as any).best_player_points || 0);
+      });
+    }
+
+    const userIds = Object.keys(totals);
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, username")
+        .in("user_id", userIds);
+
+      const profileMap: Record<string, string> = {};
+      (profiles || []).forEach((p) => {
+        profileMap[p.user_id] = p.username;
+      });
+
+      setRanking(
+        userIds
+          .map((uid) => ({ username: profileMap[uid] || "?", total: totals[uid] }))
+          .sort((a, b) => b.total - a.total)
+      );
+    } else {
+      setRanking([]);
+    }
+  };
+
   useEffect(() => {
     if (!id || !user) return;
     const fetchData = async () => {
@@ -52,55 +97,31 @@ const BolaoDetail = () => {
       setPredictions(predsMap);
 
       // Fetch ranking
-      const { data: allPreds } = await supabase
-        .from("predictions")
-        .select("user_id, points, scorer_points")
-        .eq("bolao_id", id);
-
-      const totals: Record<string, number> = {};
-      (allPreds || []).forEach((p) => {
-        totals[p.user_id] = (totals[p.user_id] || 0) + (p.points || 0) + (p.scorer_points || 0) + ((p as any).bonus_points || 0);
-      });
-
-      // Season predictions only for Copa
-      const isBrasileirao = (bolaoRes.data as any)?.competition === "brasileirao_2026";
-      if (!isBrasileirao) {
-        const { data: seasonPreds } = await supabase
-          .from("season_predictions")
-          .select("*")
-          .eq("bolao_id", id);
-
-        (seasonPreds || []).forEach((sp) => {
-          totals[sp.user_id] = (totals[sp.user_id] || 0) + (sp.champion_points || 0) + (sp.top_scorer_points || 0) + ((sp as any).best_player_points || 0);
-        });
-      }
-
-      const userIds = Object.keys(totals);
-      if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, username")
-          .in("user_id", userIds);
-
-        const profileMap: Record<string, string> = {};
-        (profiles || []).forEach((p) => {
-          profileMap[p.user_id] = p.username;
-        });
-
-        const rankingData = userIds
-          .map((uid) => ({
-            username: profileMap[uid] || "?",
-            total: totals[uid],
-          }))
-          .sort((a, b) => b.total - a.total);
-
-        setRanking(rankingData);
-      }
+      await fetchRanking(id, (bolaoRes.data as any)?.competition || "copa_do_mundo_2026");
 
       setLoading(false);
     };
     fetchData();
   }, [id, user]);
+
+  // Realtime subscription to refresh ranking when predictions change
+  useEffect(() => {
+    if (!id || !bolao) return;
+    const channel = supabase
+      .channel(`predictions-${id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'predictions', filter: `bolao_id=eq.${id}` },
+        () => {
+          fetchRanking(id, (bolao as any)?.competition || "copa_do_mundo_2026");
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, bolao]);
 
   const savePrediction = async (
     matchId: string,
