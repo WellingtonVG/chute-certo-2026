@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,6 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { ArrowLeft, Loader2, Trophy, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
@@ -13,6 +19,14 @@ import { getFlag } from "@/lib/country-flags";
 import SeasonPredictions from "@/components/SeasonPredictions";
 import ScoringRulesModal from "@/components/ScoringRulesModal";
 import BolaoFeed from "@/components/BolaoFeed";
+import {
+  STAGE_LABELS,
+  getClosestGroupName,
+  getClosestStage,
+  groupByName,
+  groupByStage,
+  orderedStages,
+} from "@/lib/match-stages";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
