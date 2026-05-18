@@ -1,47 +1,50 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trophy, Calendar, HelpCircle, Shield, LogOut, Settings } from "lucide-react";
+import { Cog, LogOut, Settings, Trophy, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const menuItems = [
-  {
-    key: "bolao",
-    label: "Bolão",
-    description: "Seus palpites e rankings",
-    icon: Trophy,
-    path: "/bolao",
-    disabled: false,
-  },
-  {
-    key: "calendario",
-    label: "Calendário",
-    description: "Tabela de jogos",
-    icon: Calendar,
-    path: "/calendario",
-    disabled: false,
-  },
-  {
-    key: "quiz",
-    label: "Quiz",
-    description: "Teste seus conhecimentos",
-    icon: HelpCircle,
-    path: "/quiz",
-    disabled: false,
-  },
-];
+import BolaoFeed from "@/components/BolaoFeed";
+import BottomNav from "@/components/BottomNav";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { profile, isAdmin, signOut } = useAuth();
+  const { user, profile, isAdmin, signOut } = useAuth();
+  const [bolaoId, setBolaoId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCopaBolao = async () => {
+      if (!user) return;
+      const { data: memberships } = await supabase
+        .from("bolao_members")
+        .select("bolao_id")
+        .eq("user_id", user.id);
+      const ids = (memberships || []).map((m) => m.bolao_id);
+      if (ids.length === 0) {
+        setLoading(false);
+        return;
+      }
+      const { data: bs } = await supabase
+        .from("boloes")
+        .select("id, created_at")
+        .in("id", ids)
+        .eq("competition", "copa_do_mundo_2026")
+        .order("created_at", { ascending: true })
+        .limit(1);
+      setBolaoId(bs?.[0]?.id ?? null);
+      setLoading(false);
+    };
+    fetchCopaBolao();
+  }, [user]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Header */}
-      <header className="border-b bg-primary px-4 py-6 text-primary-foreground">
+    <div className="flex min-h-screen flex-col bg-background pb-20">
+      <header className="border-b bg-primary px-4 py-5 text-primary-foreground">
         <div className="mx-auto flex max-w-lg items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Copa 2026</h1>
-            <p className="text-sm opacity-80">
+            <h1 className="text-xl font-bold tracking-tight">Copa 2026</h1>
+            <p className="text-xs opacity-80">
               Olá, <span className="font-semibold">{profile?.username}</span>
             </p>
           </div>
@@ -51,14 +54,27 @@ const Index = () => {
               size="icon"
               onClick={() => navigate("/configuracoes")}
               className="text-primary-foreground hover:bg-primary-foreground/10"
+              aria-label="Configurações"
             >
               <Settings className="h-5 w-5" />
             </Button>
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/admin")}
+                className="text-primary-foreground hover:bg-primary-foreground/10"
+                aria-label="Admin"
+              >
+                <Cog className="h-5 w-5" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
               onClick={signOut}
               className="text-primary-foreground hover:bg-primary-foreground/10"
+              aria-label="Sair"
             >
               <LogOut className="h-5 w-5" />
             </Button>
@@ -66,51 +82,33 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Menu Grid */}
       <main className="mx-auto w-full max-w-lg flex-1 p-4">
-        <div className="grid grid-cols-2 gap-3">
-          {menuItems.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => !item.disabled && navigate(item.path)}
-              disabled={item.disabled}
-              className="group relative flex flex-col items-center justify-center gap-3 rounded-xl border bg-card p-6 text-card-foreground shadow-sm transition-all hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {item.disabled && (
-                <span className="absolute right-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground">
-                  Em breve
-                </span>
-              )}
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                <item.icon className="h-6 w-6" />
-              </div>
-              <div className="text-center">
-                <p className="font-semibold">{item.label}</p>
-                <p className="text-xs text-muted-foreground">{item.description}</p>
-              </div>
-            </button>
-          ))}
-
-          {isAdmin && (
-            <button
-              onClick={() => navigate("/admin")}
-              className="group flex flex-col items-center justify-center gap-3 rounded-xl border border-accent bg-accent/10 p-6 text-card-foreground shadow-sm transition-all hover:shadow-md"
-            >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/20 text-accent transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
-                <Shield className="h-6 w-6" />
-              </div>
-              <div className="text-center">
-                <p className="font-semibold">Admin</p>
-                <p className="text-xs text-muted-foreground">Gerenciar</p>
-              </div>
-            </button>
-          )}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : !bolaoId ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Trophy className="mb-4 h-12 w-12 text-muted-foreground/50" />
+            <p className="text-base font-medium">Você ainda não está em nenhum bolão da Copa</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Peça um link de convite para participar.
+            </p>
+            <Button className="mt-4" onClick={() => navigate("/bolao")}>
+              Ver meus bolões
+            </Button>
+          </div>
+        ) : (
+          <>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Feed do bolão
+            </h2>
+            <BolaoFeed bolaoId={bolaoId} />
+          </>
+        )}
       </main>
 
-      <footer className="border-t px-4 py-3 text-center text-xs text-muted-foreground">
-        Bolão Copa do Mundo 2026 ⚽
-      </footer>
+      <BottomNav />
     </div>
   );
 };
