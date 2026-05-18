@@ -331,6 +331,89 @@ const BolaoDetail = () => {
   );
 };
 
+const RoundsAccordion = ({
+  matches,
+  predictions,
+  savingMatch,
+  onSave,
+  isMatchLocked,
+  isBrasileirao,
+}: {
+  matches: Match[];
+  predictions: Record<string, Prediction>;
+  savingMatch: string | null;
+  onSave: (matchId: string, home: number, away: number, scorer: string, bonusAnswer?: boolean | null) => void;
+  isMatchLocked: (m: Match) => boolean;
+  isBrasileirao: boolean;
+}) => {
+  const byRound = useMemo(() => groupByRound(matches), [matches]);
+  const rounds = useMemo(() => orderedRounds(byRound), [byRound]);
+  const closestRound = useMemo(() => getClosestRound(matches), [matches]);
+  const [openRounds, setOpenRounds] = useState<string[]>([]);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (!initialized && rounds.length > 0) {
+      setOpenRounds(closestRound ? [closestRound] : []);
+      setInitialized(true);
+    }
+  }, [rounds, closestRound, initialized]);
+
+  const allExpanded = openRounds.length === rounds.length && rounds.length > 0;
+  const toggleAll = () => setOpenRounds(allExpanded ? [] : [...rounds]);
+
+  return (
+    <>
+      <div className="mb-3 flex justify-end">
+        <Button variant="outline" size="sm" onClick={toggleAll}>
+          {allExpanded ? "Recolher tudo" : "Expandir tudo"}
+        </Button>
+      </div>
+      <Accordion
+        type="multiple"
+        value={openRounds}
+        onValueChange={setOpenRounds}
+        className="space-y-2"
+      >
+        {rounds.map((round) => {
+          const roundMatches = byRound[round];
+          return (
+            <AccordionItem
+              key={round}
+              value={round}
+              className="rounded-lg border bg-card px-3"
+            >
+              <AccordionTrigger className="hover:no-underline">
+                <span className="text-left font-semibold">
+                  {round}
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    {roundMatches.length} jogos
+                  </span>
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-2">
+                  {roundMatches.map((match) => (
+                    <MatchPredictionCard
+                      key={match.id}
+                      match={match}
+                      prediction={predictions[match.id]}
+                      locked={isMatchLocked(match)}
+                      saving={savingMatch === match.id}
+                      onSave={onSave}
+                      isBrasileirao={isBrasileirao}
+                    />
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
+    </>
+  );
+};
+
 // Sub-component for match prediction
 const MatchPredictionCard = ({
   match,
