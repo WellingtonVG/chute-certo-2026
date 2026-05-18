@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Copy, Loader2, MapPin } from "lucide-react";
+import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { getFlag } from "@/lib/country-flags";
@@ -104,7 +105,7 @@ const Calendario = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background pb-20">
       <header className="border-b bg-primary px-4 py-4 text-primary-foreground">
         <div className="mx-auto flex max-w-lg items-center gap-3">
           <Button
@@ -192,6 +193,7 @@ const Calendario = () => {
           </div>
         )}
       </main>
+      <BottomNav />
     </div>
   );
 };
