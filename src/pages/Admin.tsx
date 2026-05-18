@@ -354,7 +354,6 @@ const Admin = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="copa_do_mundo_2026">Copa do Mundo 2026</SelectItem>
-                      <SelectItem value="brasileirao_2026">Brasileirão 2026</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
