@@ -7,6 +7,7 @@ import QuizGame from "@/components/quiz/QuizGame";
 import QuizResult from "@/components/quiz/QuizResult";
 import QuizMultiplayerLobby from "@/components/quiz/QuizMultiplayerLobby";
 import QuizMultiplayerGame from "@/components/quiz/QuizMultiplayerGame";
+import BottomNav from "@/components/BottomNav";
 import type { QuizQuestion, QuizLevel } from "@/lib/quiz-data";
 
 export type QuizMode = "solo" | "timed" | "multiplayer";
@@ -63,7 +64,7 @@ const Quiz = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background pb-20">
       <header className="border-b bg-primary px-4 py-4 text-primary-foreground">
         <div className="mx-auto flex max-w-lg items-center gap-3">
           <Button
@@ -101,6 +102,7 @@ const Quiz = () => {
           />
         )}
       </main>
+      <BottomNav />
     </div>
   );
 };

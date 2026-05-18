@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Users, Trophy, Loader2 } from "lucide-react";
+import BottomNav from "@/components/BottomNav";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Bolao = Tables<"boloes">;
@@ -29,7 +30,7 @@ const BolaoList = () => {
   }, [user]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background pb-20">
       <header className="border-b bg-primary px-4 py-4 text-primary-foreground">
         <div className="mx-auto flex max-w-lg items-center gap-3">
           <Button
@@ -67,9 +68,7 @@ const BolaoList = () => {
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg">{bolao.name}</CardTitle>
-                  <p className="text-xs text-muted-foreground">
-                    {(bolao as any).competition === "brasileirao_2026" ? "Brasileirão 2026" : "Copa do Mundo 2026"}
-                  </p>
+                  <p className="text-xs text-muted-foreground">Copa do Mundo 2026</p>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -82,6 +81,7 @@ const BolaoList = () => {
           </div>
         )}
       </main>
+      <BottomNav />
     </div>
   );
 };
