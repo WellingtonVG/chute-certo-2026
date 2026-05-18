@@ -76,51 +76,6 @@ export type Database = {
         }
         Relationships: []
       }
-      feed_events: {
-        Row: {
-          bolao_id: string
-          created_at: string
-          event_type: string
-          id: string
-          match_id: string | null
-          message: string
-          user_id: string | null
-        }
-        Insert: {
-          bolao_id: string
-          created_at?: string
-          event_type: string
-          id?: string
-          match_id?: string | null
-          message: string
-          user_id?: string | null
-        }
-        Update: {
-          bolao_id?: string
-          created_at?: string
-          event_type?: string
-          id?: string
-          match_id?: string | null
-          message?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "feed_events_bolao_id_fkey"
-            columns: ["bolao_id"]
-            isOneToOne: false
-            referencedRelation: "boloes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feed_events_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "matches"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       matches: {
         Row: {
           api_football_id: number | null
