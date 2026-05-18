@@ -14,15 +14,7 @@ import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { getFlag } from "@/lib/country-flags";
-import {
-  STAGE_LABELS,
-  STAGE_ORDER,
-  getClosestGroupName,
-  getClosestStage,
-  groupByName,
-  groupByStage,
-  orderedStages,
-} from "@/lib/match-stages";
+import { getClosestRound, groupByRound, orderedRounds } from "@/lib/match-stages";
 
 type Match = Tables<"matches">;
 
@@ -30,6 +22,8 @@ const Calendario = () => {
   const navigate = useNavigate();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openRounds, setOpenRounds] = useState<string[]>([]);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
@@ -43,10 +37,19 @@ const Calendario = () => {
     fetch();
   }, []);
 
-  const byStage = useMemo(() => groupByStage(matches), [matches]);
-  const stages = useMemo(() => orderedStages(byStage), [byStage]);
-  const closestStage = useMemo(() => getClosestStage(matches), [matches]);
-  const closestGroup = useMemo(() => getClosestGroupName(matches), [matches]);
+  const byRound = useMemo(() => groupByRound(matches), [matches]);
+  const rounds = useMemo(() => orderedRounds(byRound), [byRound]);
+  const closestRound = useMemo(() => getClosestRound(matches), [matches]);
+
+  useEffect(() => {
+    if (!initialized && rounds.length > 0) {
+      setOpenRounds(closestRound ? [closestRound] : []);
+      setInitialized(true);
+    }
+  }, [rounds, closestRound, initialized]);
+
+  const allExpanded = openRounds.length === rounds.length && rounds.length > 0;
+  const toggleAll = () => setOpenRounds(allExpanded ? [] : [...rounds]);
 
   const buildShareText = () => {
     let text = "⚽ *Copa do Mundo 2026 — Calendário*\n\n";
@@ -161,61 +164,42 @@ const Calendario = () => {
             Nenhum jogo cadastrado ainda
           </p>
         ) : (
-          <Accordion
-            type="multiple"
-            defaultValue={closestStage ? [closestStage] : []}
-            className="space-y-2"
-          >
-            {stages.map((stage) => {
-              const stageMatches = byStage[stage];
-              return (
-                <AccordionItem
-                  key={stage}
-                  value={stage}
-                  className="rounded-lg border bg-card px-3"
-                >
-                  <AccordionTrigger className="hover:no-underline">
-                    <span className="text-left font-semibold">
-                      {STAGE_LABELS[stage] || stage}
-                      <span className="ml-2 text-xs font-normal text-muted-foreground">
-                        {stageMatches.length} jogos
+          <>
+            <div className="mb-3 flex justify-end">
+              <Button variant="outline" size="sm" onClick={toggleAll}>
+                {allExpanded ? "Recolher tudo" : "Expandir tudo"}
+              </Button>
+            </div>
+            <Accordion
+              type="multiple"
+              value={openRounds}
+              onValueChange={setOpenRounds}
+              className="space-y-2"
+            >
+              {rounds.map((round) => {
+                const roundMatches = byRound[round];
+                return (
+                  <AccordionItem
+                    key={round}
+                    value={round}
+                    className="rounded-lg border bg-card px-3"
+                  >
+                    <AccordionTrigger className="hover:no-underline">
+                      <span className="text-left font-semibold">
+                        {round}
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          {roundMatches.length} jogos
+                        </span>
                       </span>
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    {stage === "group" ? (
-                      <Accordion
-                        type="multiple"
-                        defaultValue={closestGroup ? [closestGroup] : []}
-                        className="space-y-2"
-                      >
-                        {Object.entries(groupByName(stageMatches))
-                          .sort(([a], [b]) => a.localeCompare(b))
-                          .map(([groupName, groupMatches]) => (
-                            <AccordionItem
-                              key={groupName}
-                              value={groupName}
-                              className="rounded-md border bg-background px-3"
-                            >
-                              <AccordionTrigger className="hover:no-underline py-2 text-sm">
-                                Grupo {groupName.replace(/^Grupo\s+/i, "")}
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                <div className="space-y-2">
-                                  {groupMatches.map(renderMatch)}
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          ))}
-                      </Accordion>
-                    ) : (
-                      <div className="space-y-2">{stageMatches.map(renderMatch)}</div>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-2">{roundMatches.map(renderMatch)}</div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </>
         )}
       </main>
       <BottomNav />

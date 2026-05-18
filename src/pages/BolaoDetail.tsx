@@ -19,14 +19,7 @@ import { getFlag } from "@/lib/country-flags";
 import SeasonPredictions from "@/components/SeasonPredictions";
 import ScoringRulesModal from "@/components/ScoringRulesModal";
 import BolaoFeed from "@/components/BolaoFeed";
-import {
-  STAGE_LABELS,
-  getClosestGroupName,
-  getClosestStage,
-  groupByName,
-  groupByStage,
-  orderedStages,
-} from "@/lib/match-stages";
+import { getClosestRound, groupByRound, orderedRounds } from "@/lib/match-stages";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
@@ -274,112 +267,15 @@ const BolaoDetail = () => {
               <p className="py-8 text-center text-muted-foreground">
                 Nenhum jogo cadastrado ainda
               </p>
-            ) : (bolao as any).competition === "brasileirao_2026" ? (
-              // Group by round for Brasileirão
-              (() => {
-                const byRound: Record<string, Match[]> = {};
-                matches.forEach((m) => {
-                  const round = (m as any).round_name || "Sem rodada";
-                  if (!byRound[round]) byRound[round] = [];
-                  byRound[round].push(m);
-                });
-                return Object.entries(byRound).map(([round, roundMatches]) => (
-                  <div key={round} className="space-y-2">
-                    <h3 className="text-sm font-semibold text-muted-foreground">{round}</h3>
-                    {roundMatches.map((match) => {
-                      const pred = predictions[match.id];
-                      const locked = isMatchLocked(match);
-                      return (
-                        <MatchPredictionCard
-                          key={match.id}
-                          match={match}
-                          prediction={pred}
-                          locked={locked}
-                          saving={savingMatch === match.id}
-                          onSave={savePrediction}
-                          isBrasileirao
-                        />
-                      );
-                    })}
-                  </div>
-                ));
-              })()
             ) : (
-              (() => {
-                const byStage = groupByStage(matches);
-                const stages = orderedStages(byStage);
-                const closestStage = getClosestStage(matches);
-                const closestGroup = getClosestGroupName(matches);
-                const renderCard = (match: Match) => (
-                  <MatchPredictionCard
-                    key={match.id}
-                    match={match}
-                    prediction={predictions[match.id]}
-                    locked={isMatchLocked(match)}
-                    saving={savingMatch === match.id}
-                    onSave={savePrediction}
-                  />
-                );
-                return (
-                  <Accordion
-                    type="multiple"
-                    defaultValue={closestStage ? [closestStage] : []}
-                    className="space-y-2"
-                  >
-                    {stages.map((stage) => {
-                      const stageMatches = byStage[stage];
-                      return (
-                        <AccordionItem
-                          key={stage}
-                          value={stage}
-                          className="rounded-lg border bg-card px-3"
-                        >
-                          <AccordionTrigger className="hover:no-underline">
-                            <span className="text-left font-semibold">
-                              {STAGE_LABELS[stage] || stage}
-                              <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                {stageMatches.length} jogos
-                              </span>
-                            </span>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            {stage === "group" ? (
-                              <Accordion
-                                type="multiple"
-                                defaultValue={closestGroup ? [closestGroup] : []}
-                                className="space-y-2"
-                              >
-                                {Object.entries(groupByName(stageMatches))
-                                  .sort(([a], [b]) => a.localeCompare(b))
-                                  .map(([groupName, groupMatches]) => (
-                                    <AccordionItem
-                                      key={groupName}
-                                      value={groupName}
-                                      className="rounded-md border bg-background px-3"
-                                    >
-                                      <AccordionTrigger className="hover:no-underline py-2 text-sm">
-                                        Grupo {groupName.replace(/^Grupo\s+/i, "")}
-                                      </AccordionTrigger>
-                                      <AccordionContent>
-                                        <div className="space-y-2">
-                                          {groupMatches.map(renderCard)}
-                                        </div>
-                                      </AccordionContent>
-                                    </AccordionItem>
-                                  ))}
-                              </Accordion>
-                            ) : (
-                              <div className="space-y-2">
-                                {stageMatches.map(renderCard)}
-                              </div>
-                            )}
-                          </AccordionContent>
-                        </AccordionItem>
-                      );
-                    })}
-                  </Accordion>
-                );
-              })()
+              <RoundsAccordion
+                matches={matches}
+                predictions={predictions}
+                savingMatch={savingMatch}
+                onSave={savePrediction}
+                isMatchLocked={isMatchLocked}
+                isBrasileirao={(bolao as any).competition === "brasileirao_2026"}
+              />
             )}
           </TabsContent>
 
@@ -432,6 +328,89 @@ const BolaoDetail = () => {
         </Tabs>
       </main>
     </div>
+  );
+};
+
+const RoundsAccordion = ({
+  matches,
+  predictions,
+  savingMatch,
+  onSave,
+  isMatchLocked,
+  isBrasileirao,
+}: {
+  matches: Match[];
+  predictions: Record<string, Prediction>;
+  savingMatch: string | null;
+  onSave: (matchId: string, home: number, away: number, scorer: string, bonusAnswer?: boolean | null) => void;
+  isMatchLocked: (m: Match) => boolean;
+  isBrasileirao: boolean;
+}) => {
+  const byRound = useMemo(() => groupByRound(matches), [matches]);
+  const rounds = useMemo(() => orderedRounds(byRound), [byRound]);
+  const closestRound = useMemo(() => getClosestRound(matches), [matches]);
+  const [openRounds, setOpenRounds] = useState<string[]>([]);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (!initialized && rounds.length > 0) {
+      setOpenRounds(closestRound ? [closestRound] : []);
+      setInitialized(true);
+    }
+  }, [rounds, closestRound, initialized]);
+
+  const allExpanded = openRounds.length === rounds.length && rounds.length > 0;
+  const toggleAll = () => setOpenRounds(allExpanded ? [] : [...rounds]);
+
+  return (
+    <>
+      <div className="mb-3 flex justify-end">
+        <Button variant="outline" size="sm" onClick={toggleAll}>
+          {allExpanded ? "Recolher tudo" : "Expandir tudo"}
+        </Button>
+      </div>
+      <Accordion
+        type="multiple"
+        value={openRounds}
+        onValueChange={setOpenRounds}
+        className="space-y-2"
+      >
+        {rounds.map((round) => {
+          const roundMatches = byRound[round];
+          return (
+            <AccordionItem
+              key={round}
+              value={round}
+              className="rounded-lg border bg-card px-3"
+            >
+              <AccordionTrigger className="hover:no-underline">
+                <span className="text-left font-semibold">
+                  {round}
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    {roundMatches.length} jogos
+                  </span>
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-2">
+                  {roundMatches.map((match) => (
+                    <MatchPredictionCard
+                      key={match.id}
+                      match={match}
+                      prediction={predictions[match.id]}
+                      locked={isMatchLocked(match)}
+                      saving={savingMatch === match.id}
+                      onSave={onSave}
+                      isBrasileirao={isBrasileirao}
+                    />
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
+    </>
   );
 };
 
