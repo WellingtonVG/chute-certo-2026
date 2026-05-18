@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ type Prediction = Tables<"predictions">;
 const BolaoDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const [bolao, setBolao] = useState<Tables<"boloes"> | null>(null);
@@ -238,7 +239,7 @@ const BolaoDetail = () => {
       </header>
 
       <main className="mx-auto w-full max-w-lg flex-1 p-4">
-        <Tabs defaultValue="palpites">
+        <Tabs defaultValue={searchParams.get("tab") || "palpites"}>
           <TabsList className="w-full">
             <TabsTrigger value="palpites" className="flex-1">Palpites</TabsTrigger>
             <TabsTrigger value="ranking" className="flex-1">Ranking</TabsTrigger>
