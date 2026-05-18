@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,6 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { ArrowLeft, Loader2, Trophy, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
@@ -13,6 +19,14 @@ import { getFlag } from "@/lib/country-flags";
 import SeasonPredictions from "@/components/SeasonPredictions";
 import ScoringRulesModal from "@/components/ScoringRulesModal";
 import BolaoFeed from "@/components/BolaoFeed";
+import {
+  STAGE_LABELS,
+  getClosestGroupName,
+  getClosestStage,
+  groupByName,
+  groupByStage,
+  orderedStages,
+} from "@/lib/match-stages";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
@@ -291,22 +305,84 @@ const BolaoDetail = () => {
                 ));
               })()
             ) : (
-              matches.map((match) => {
-                const pred = predictions[match.id];
-                const locked = isMatchLocked(match);
-                return (
+              (() => {
+                const byStage = groupByStage(matches);
+                const stages = orderedStages(byStage);
+                const closestStage = getClosestStage(matches);
+                const closestGroup = getClosestGroupName(matches);
+                const renderCard = (match: Match) => (
                   <MatchPredictionCard
                     key={match.id}
                     match={match}
-                    prediction={pred}
-                    locked={locked}
+                    prediction={predictions[match.id]}
+                    locked={isMatchLocked(match)}
                     saving={savingMatch === match.id}
                     onSave={savePrediction}
                   />
                 );
-              })
+                return (
+                  <Accordion
+                    type="multiple"
+                    defaultValue={closestStage ? [closestStage] : []}
+                    className="space-y-2"
+                  >
+                    {stages.map((stage) => {
+                      const stageMatches = byStage[stage];
+                      return (
+                        <AccordionItem
+                          key={stage}
+                          value={stage}
+                          className="rounded-lg border bg-card px-3"
+                        >
+                          <AccordionTrigger className="hover:no-underline">
+                            <span className="text-left font-semibold">
+                              {STAGE_LABELS[stage] || stage}
+                              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                {stageMatches.length} jogos
+                              </span>
+                            </span>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            {stage === "group" ? (
+                              <Accordion
+                                type="multiple"
+                                defaultValue={closestGroup ? [closestGroup] : []}
+                                className="space-y-2"
+                              >
+                                {Object.entries(groupByName(stageMatches))
+                                  .sort(([a], [b]) => a.localeCompare(b))
+                                  .map(([groupName, groupMatches]) => (
+                                    <AccordionItem
+                                      key={groupName}
+                                      value={groupName}
+                                      className="rounded-md border bg-background px-3"
+                                    >
+                                      <AccordionTrigger className="hover:no-underline py-2 text-sm">
+                                        Grupo {groupName.replace(/^Grupo\s+/i, "")}
+                                      </AccordionTrigger>
+                                      <AccordionContent>
+                                        <div className="space-y-2">
+                                          {groupMatches.map(renderCard)}
+                                        </div>
+                                      </AccordionContent>
+                                    </AccordionItem>
+                                  ))}
+                              </Accordion>
+                            ) : (
+                              <div className="space-y-2">
+                                {stageMatches.map(renderCard)}
+                              </div>
+                            )}
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
+                );
+              })()
             )}
           </TabsContent>
+
 
           <TabsContent value="ranking" className="pt-4">
             {ranking.length === 0 ? (
