@@ -346,6 +346,12 @@ const BolaoDetail = () => {
               </div>
             )}
           </TabsContent>
+
+          {(bolao as any).competition === "copa_do_mundo_2026" && (
+            <TabsContent value="feed" className="pt-4">
+              <BolaoFeed bolaoId={id!} />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>
