@@ -305,22 +305,84 @@ const BolaoDetail = () => {
                 ));
               })()
             ) : (
-              matches.map((match) => {
-                const pred = predictions[match.id];
-                const locked = isMatchLocked(match);
-                return (
+              (() => {
+                const byStage = groupByStage(matches);
+                const stages = orderedStages(byStage);
+                const closestStage = getClosestStage(matches);
+                const closestGroup = getClosestGroupName(matches);
+                const renderCard = (match: Match) => (
                   <MatchPredictionCard
                     key={match.id}
                     match={match}
-                    prediction={pred}
-                    locked={locked}
+                    prediction={predictions[match.id]}
+                    locked={isMatchLocked(match)}
                     saving={savingMatch === match.id}
                     onSave={savePrediction}
                   />
                 );
-              })
+                return (
+                  <Accordion
+                    type="multiple"
+                    defaultValue={closestStage ? [closestStage] : []}
+                    className="space-y-2"
+                  >
+                    {stages.map((stage) => {
+                      const stageMatches = byStage[stage];
+                      return (
+                        <AccordionItem
+                          key={stage}
+                          value={stage}
+                          className="rounded-lg border bg-card px-3"
+                        >
+                          <AccordionTrigger className="hover:no-underline">
+                            <span className="text-left font-semibold">
+                              {STAGE_LABELS[stage] || stage}
+                              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                {stageMatches.length} jogos
+                              </span>
+                            </span>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            {stage === "group" ? (
+                              <Accordion
+                                type="multiple"
+                                defaultValue={closestGroup ? [closestGroup] : []}
+                                className="space-y-2"
+                              >
+                                {Object.entries(groupByName(stageMatches))
+                                  .sort(([a], [b]) => a.localeCompare(b))
+                                  .map(([groupName, groupMatches]) => (
+                                    <AccordionItem
+                                      key={groupName}
+                                      value={groupName}
+                                      className="rounded-md border bg-background px-3"
+                                    >
+                                      <AccordionTrigger className="hover:no-underline py-2 text-sm">
+                                        Grupo {groupName.replace(/^Grupo\s+/i, "")}
+                                      </AccordionTrigger>
+                                      <AccordionContent>
+                                        <div className="space-y-2">
+                                          {groupMatches.map(renderCard)}
+                                        </div>
+                                      </AccordionContent>
+                                    </AccordionItem>
+                                  ))}
+                              </Accordion>
+                            ) : (
+                              <div className="space-y-2">
+                                {stageMatches.map(renderCard)}
+                              </div>
+                            )}
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
+                );
+              })()
             )}
           </TabsContent>
+
 
           <TabsContent value="ranking" className="pt-4">
             {ranking.length === 0 ? (
