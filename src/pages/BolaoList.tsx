@@ -23,11 +23,16 @@ const BolaoList = () => {
         .from("boloes")
         .select("*")
         .order("created_at", { ascending: false });
-      setBoloes(data || []);
+      const list = data || [];
+      if (list.length === 1) {
+        navigate(`/bolao/${list[0].id}`, { replace: true });
+        return;
+      }
+      setBoloes(list);
       setLoading(false);
     };
     fetchBoloes();
-  }, [user]);
+  }, [user, navigate]);
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
