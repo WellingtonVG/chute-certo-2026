@@ -1,35 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { ArrowLeft, Copy, Loader2, MapPin } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { getFlag } from "@/lib/country-flags";
+import {
+  STAGE_LABELS,
+  STAGE_ORDER,
+  getClosestGroupName,
+  getClosestStage,
+  groupByName,
+  groupByStage,
+  orderedStages,
+} from "@/lib/match-stages";
 
 type Match = Tables<"matches">;
-
-const stageLabels: Record<string, string> = {
-  group: "Fase de Grupos",
-  round_of_32: "Segundas de Final",
-  round_of_16: "Oitavas de Final",
-  quarter_final: "Quartas de Final",
-  semi_final: "Semifinal",
-  third_place: "Decisão do 3º Lugar",
-  final: "Final",
-};
-
-const stageEmoji: Record<string, string> = {
-  group: "🏟️",
-  round_of_32: "⚔️",
-  round_of_16: "⚔️",
-  quarter_final: "🔥",
-  semi_final: "🔥",
-  third_place: "🥉",
-  final: "🏆",
-};
 
 const Calendario = () => {
   const navigate = useNavigate();
@@ -48,60 +43,86 @@ const Calendario = () => {
     fetch();
   }, []);
 
-  // Group by date
-  const grouped: Record<string, Match[]> = {};
-  matches.forEach((m) => {
-    const dateKey = new Date(m.match_date).toLocaleDateString("pt-BR", {
-      weekday: "long",
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-      timeZone: "America/Sao_Paulo",
-    });
-    if (!grouped[dateKey]) grouped[dateKey] = [];
-    grouped[dateKey].push(m);
-  });
+  const byStage = useMemo(() => groupByStage(matches), [matches]);
+  const stages = useMemo(() => orderedStages(byStage), [byStage]);
+  const closestStage = useMemo(() => getClosestStage(matches), [matches]);
+  const closestGroup = useMemo(() => getClosestGroupName(matches), [matches]);
 
   const buildShareText = () => {
     let text = "⚽ *Copa do Mundo 2026 — Calendário*\n\n";
-
-    Object.entries(grouped).forEach(([date, dayMatches]) => {
-      text += `📅 *${date}*\n`;
-      dayMatches.forEach((match) => {
-        const time = new Date(match.match_date).toLocaleTimeString("pt-BR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: "America/Sao_Paulo",
-        });
-        const emoji = stageEmoji[match.stage] || "⚽";
-        const score = match.is_finished
-          ? `  ${match.home_score} × ${match.away_score}`
-          : "";
-        const venue = [match.stadium, match.city].filter(Boolean).join(", ");
-        const stage = stageLabels[match.stage] || match.stage;
-        const group = match.group_name ? ` • ${match.group_name}` : "";
-
-        text += `${emoji} ${time} — ${match.home_team} × ${match.away_team}${score}\n`;
-        if (venue) text += `   📍 ${venue}\n`;
-        text += `   ${stage}${group}\n`;
+    const sorted = [...matches].sort(
+      (a, b) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime()
+    );
+    sorted.forEach((match) => {
+      const d = new Date(match.match_date).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone: "America/Sao_Paulo",
       });
-      text += "\n";
+      const time = new Date(match.match_date).toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "America/Sao_Paulo",
+      });
+      const score = match.is_finished
+        ? `  ${match.home_score} × ${match.away_score}`
+        : "";
+      text += `${d} ${time} — ${match.home_team} × ${match.away_team}${score}\n`;
     });
-
-    text += "─────────────────────\n";
-    text += "📋 Fonte: FIFA / dados oficiais\n";
-    text += "🕐 Horários em BRT (Brasília)";
+    text += "\n🕐 Horários em BRT";
     return text;
   };
 
   const handleCopyText = async () => {
-    const text = buildShareText();
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(buildShareText());
       toast.success("Copiado! Cole no WhatsApp 📲");
     } catch {
       toast.error("Erro ao copiar");
     }
+  };
+
+  const renderMatch = (match: Match) => {
+    const time = new Date(match.match_date).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "America/Sao_Paulo",
+    });
+    const date = new Date(match.match_date).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      timeZone: "America/Sao_Paulo",
+    });
+    return (
+      <Card key={match.id}>
+        <CardContent className="p-4">
+          <div className="flex items-center">
+            <span className="flex-1 font-semibold">
+              <span className="emoji-flag">{getFlag(match.home_team)}</span> {match.home_team}
+            </span>
+            {match.is_finished ? (
+              <span className="mx-3 min-w-[60px] text-center text-lg font-bold text-accent">
+                {match.home_score} × {match.away_score}
+              </span>
+            ) : (
+              <span className="mx-3 min-w-[70px] text-center text-sm font-medium text-muted-foreground">
+                {date} {time}
+              </span>
+            )}
+            <span className="flex-1 text-right font-semibold">
+              {match.away_team} <span className="emoji-flag">{getFlag(match.away_team)}</span>
+            </span>
+          </div>
+          {(match.stadium || match.city) && (
+            <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="h-3 w-3" />
+              {match.stadium && <span>{match.stadium}</span>}
+              {match.city && <span>• {match.city}</span>}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
@@ -140,57 +161,61 @@ const Calendario = () => {
             Nenhum jogo cadastrado ainda
           </p>
         ) : (
-          <div className="space-y-6">
-            {Object.entries(grouped).map(([date, dayMatches]) => (
-              <div key={date}>
-                <h2 className="mb-2 text-sm font-semibold capitalize text-muted-foreground">
-                  {date}
-                </h2>
-                <div className="space-y-2">
-                  {dayMatches.map((match) => {
-                    const time = new Date(match.match_date).toLocaleTimeString("pt-BR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      timeZone: "America/Sao_Paulo",
-                    });
-                    return (
-                      <Card key={match.id}>
-                        <CardContent className="flex items-center justify-between p-4">
-                          <div className="flex-1">
-                            <div className="flex items-center">
-                              <span className="flex-1 font-semibold"><span className="emoji-flag">{getFlag(match.home_team)}</span> {match.home_team}</span>
-                              {match.is_finished ? (
-                                <span className="mx-3 min-w-[60px] text-center text-lg font-bold text-accent">
-                                  {match.home_score} × {match.away_score}
-                                </span>
-                              ) : (
-                                <span className="mx-3 min-w-[60px] text-center text-sm font-medium text-muted-foreground">
-                                  {time}
-                                </span>
-                              )}
-                              <span className="flex-1 text-right font-semibold">{match.away_team} <span className="emoji-flag">{getFlag(match.away_team)}</span></span>
-                            </div>
-                            <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                              <MapPin className="h-3 w-3" />
-                              {match.stadium && <span>{match.stadium}</span>}
-                              {match.city && <span>• {match.city}</span>}
-                              <span className="ml-auto">
-                                {stageLabels[match.stage]}
-                                {match.group_name && ` • ${match.group_name}`}
-                              </span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-            <p className="text-center text-[10px] text-muted-foreground/60 pt-2">
-              Fonte: FIFA / dados oficiais · Horários em BRT (Brasília)
-            </p>
-          </div>
+          <Accordion
+            type="multiple"
+            defaultValue={closestStage ? [closestStage] : []}
+            className="space-y-2"
+          >
+            {stages.map((stage) => {
+              const stageMatches = byStage[stage];
+              return (
+                <AccordionItem
+                  key={stage}
+                  value={stage}
+                  className="rounded-lg border bg-card px-3"
+                >
+                  <AccordionTrigger className="hover:no-underline">
+                    <span className="text-left font-semibold">
+                      {STAGE_LABELS[stage] || stage}
+                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        {stageMatches.length} jogos
+                      </span>
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    {stage === "group" ? (
+                      <Accordion
+                        type="multiple"
+                        defaultValue={closestGroup ? [closestGroup] : []}
+                        className="space-y-2"
+                      >
+                        {Object.entries(groupByName(stageMatches))
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([groupName, groupMatches]) => (
+                            <AccordionItem
+                              key={groupName}
+                              value={groupName}
+                              className="rounded-md border bg-background px-3"
+                            >
+                              <AccordionTrigger className="hover:no-underline py-2 text-sm">
+                                Grupo {groupName.replace(/^Grupo\s+/i, "")}
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="space-y-2">
+                                  {groupMatches.map(renderMatch)}
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          ))}
+                      </Accordion>
+                    ) : (
+                      <div className="space-y-2">{stageMatches.map(renderMatch)}</div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
         )}
       </main>
       <BottomNav />
