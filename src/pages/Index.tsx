@@ -100,6 +100,16 @@ const Index = () => {
           </div>
         ) : (
           <>
+            <button
+              onClick={() => navigate(`/bolao/${bolaoId}?tab=ranking`)}
+              className="mb-4 flex w-full items-center justify-between rounded-lg border bg-card p-4 text-left shadow-sm transition-colors hover:bg-accent/10"
+            >
+              <div className="flex items-center gap-3">
+                <Trophy className="h-5 w-5 text-accent" />
+                <span className="text-base font-semibold">Ver Ranking</span>
+              </div>
+              <span className="text-xl">🏆</span>
+            </button>
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               Feed do bolão
             </h2>
