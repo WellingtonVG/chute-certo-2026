@@ -12,6 +12,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { getFlag } from "@/lib/country-flags";
 import SeasonPredictions from "@/components/SeasonPredictions";
 import ScoringRulesModal from "@/components/ScoringRulesModal";
+import BolaoFeed from "@/components/BolaoFeed";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
@@ -241,6 +242,9 @@ const BolaoDetail = () => {
           <TabsList className="w-full">
             <TabsTrigger value="palpites" className="flex-1">Palpites</TabsTrigger>
             <TabsTrigger value="ranking" className="flex-1">Ranking</TabsTrigger>
+            {(bolao as any).competition === "copa_do_mundo_2026" && (
+              <TabsTrigger value="feed" className="flex-1">Feed</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="palpites" className="space-y-3 pt-4">
@@ -342,6 +346,12 @@ const BolaoDetail = () => {
               </div>
             )}
           </TabsContent>
+
+          {(bolao as any).competition === "copa_do_mundo_2026" && (
+            <TabsContent value="feed" className="pt-4">
+              <BolaoFeed bolaoId={id!} />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>
