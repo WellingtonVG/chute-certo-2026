@@ -19,7 +19,17 @@ import { getFlag } from "@/lib/country-flags";
 import SeasonPredictions from "@/components/SeasonPredictions";
 import ScoringRulesModal from "@/components/ScoringRulesModal";
 import BolaoFeed from "@/components/BolaoFeed";
-import { getClosestRound, groupByRound, orderedRounds } from "@/lib/match-stages";
+import {
+  STAGE_LABELS,
+  getClosestGroupName,
+  getClosestStage,
+  groupByName,
+  groupByStage,
+  orderedStages,
+  getClosestRound,
+  groupByRound,
+  orderedRounds,
+} from "@/lib/match-stages";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
@@ -346,21 +356,68 @@ const RoundsAccordion = ({
   isMatchLocked: (m: Match) => boolean;
   isBrasileirao: boolean;
 }) => {
+  // Brasileirão: group by round_name
   const byRound = useMemo(() => groupByRound(matches), [matches]);
   const rounds = useMemo(() => orderedRounds(byRound), [byRound]);
   const closestRound = useMemo(() => getClosestRound(matches), [matches]);
+
+  // Copa: group by stage (+ subdivision by group_name within "group")
+  const byStage = useMemo(() => groupByStage(matches), [matches]);
+  const stages = useMemo(() => orderedStages(byStage), [byStage]);
+  const closestStage = useMemo(() => getClosestStage(matches), [matches]);
+  const closestGroup = useMemo(() => getClosestGroupName(matches), [matches]);
+  const allGroupNames = useMemo(
+    () => Object.keys(groupByName(byStage["group"] || [])),
+    [byStage]
+  );
+
   const [openRounds, setOpenRounds] = useState<string[]>([]);
+  const [openStages, setOpenStages] = useState<string[]>([]);
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (!initialized && rounds.length > 0) {
+    if (initialized) return;
+    if (isBrasileirao) {
+      if (rounds.length === 0) return;
       setOpenRounds(closestRound ? [closestRound] : []);
-      setInitialized(true);
+    } else {
+      if (stages.length === 0) return;
+      setOpenStages(closestStage ? [closestStage] : []);
+      setOpenGroups(closestGroup ? [closestGroup] : []);
     }
-  }, [rounds, closestRound, initialized]);
+    setInitialized(true);
+  }, [isBrasileirao, rounds, stages, closestRound, closestStage, closestGroup, initialized]);
 
-  const allExpanded = openRounds.length === rounds.length && rounds.length > 0;
-  const toggleAll = () => setOpenRounds(allExpanded ? [] : [...rounds]);
+  const allExpanded = isBrasileirao
+    ? rounds.length > 0 && openRounds.length === rounds.length
+    : stages.length > 0 &&
+      openStages.length === stages.length &&
+      openGroups.length === allGroupNames.length;
+
+  const toggleAll = () => {
+    if (isBrasileirao) {
+      setOpenRounds(allExpanded ? [] : [...rounds]);
+    } else if (allExpanded) {
+      setOpenStages([]);
+      setOpenGroups([]);
+    } else {
+      setOpenStages([...stages]);
+      setOpenGroups([...allGroupNames]);
+    }
+  };
+
+  const renderCard = (match: Match) => (
+    <MatchPredictionCard
+      key={match.id}
+      match={match}
+      prediction={predictions[match.id]}
+      locked={isMatchLocked(match)}
+      saving={savingMatch === match.id}
+      onSave={onSave}
+      isBrasileirao={isBrasileirao}
+    />
+  );
 
   return (
     <>
@@ -369,47 +426,95 @@ const RoundsAccordion = ({
           {allExpanded ? "Recolher tudo" : "Expandir tudo"}
         </Button>
       </div>
-      <Accordion
-        type="multiple"
-        value={openRounds}
-        onValueChange={setOpenRounds}
-        className="space-y-2"
-      >
-        {rounds.map((round) => {
-          const roundMatches = byRound[round];
-          return (
-            <AccordionItem
-              key={round}
-              value={round}
-              className="rounded-lg border bg-card px-3"
-            >
-              <AccordionTrigger className="hover:no-underline">
-                <span className="text-left font-semibold">
-                  {round}
-                  <span className="ml-2 text-xs font-normal text-muted-foreground">
-                    {roundMatches.length} jogos
+      {isBrasileirao ? (
+        <Accordion
+          type="multiple"
+          value={openRounds}
+          onValueChange={setOpenRounds}
+          className="space-y-2"
+        >
+          {rounds.map((round) => {
+            const roundMatches = byRound[round];
+            return (
+              <AccordionItem
+                key={round}
+                value={round}
+                className="rounded-lg border bg-card px-3"
+              >
+                <AccordionTrigger className="hover:no-underline">
+                  <span className="text-left font-semibold">
+                    {round}
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      {roundMatches.length} jogos
+                    </span>
                   </span>
-                </span>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2">
-                  {roundMatches.map((match) => (
-                    <MatchPredictionCard
-                      key={match.id}
-                      match={match}
-                      prediction={predictions[match.id]}
-                      locked={isMatchLocked(match)}
-                      saving={savingMatch === match.id}
-                      onSave={onSave}
-                      isBrasileirao={isBrasileirao}
-                    />
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          );
-        })}
-      </Accordion>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-2">{roundMatches.map(renderCard)}</div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+      ) : (
+        <Accordion
+          type="multiple"
+          value={openStages}
+          onValueChange={setOpenStages}
+          className="space-y-2"
+        >
+          {stages.map((stage) => {
+            const stageMatches = byStage[stage];
+            return (
+              <AccordionItem
+                key={stage}
+                value={stage}
+                className="rounded-lg border bg-card px-3"
+              >
+                <AccordionTrigger className="hover:no-underline">
+                  <span className="text-left font-semibold">
+                    {STAGE_LABELS[stage] || stage}
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      {stageMatches.length} jogos
+                    </span>
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  {stage === "group" ? (
+                    <Accordion
+                      type="multiple"
+                      value={openGroups}
+                      onValueChange={setOpenGroups}
+                      className="space-y-2"
+                    >
+                      {Object.entries(groupByName(stageMatches))
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([groupName, groupMatches]) => (
+                          <AccordionItem
+                            key={groupName}
+                            value={groupName}
+                            className="rounded-md border bg-background px-3"
+                          >
+                            <AccordionTrigger className="hover:no-underline py-2 text-sm">
+                              Grupo {groupName.replace(/^Grupo\s+/i, "")}
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="space-y-2">
+                                {groupMatches.map(renderCard)}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                    </Accordion>
+                  ) : (
+                    <div className="space-y-2">{stageMatches.map(renderCard)}</div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+      )}
     </>
   );
 };

@@ -14,7 +14,14 @@ import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { getFlag } from "@/lib/country-flags";
-import { getClosestRound, groupByRound, orderedRounds } from "@/lib/match-stages";
+import {
+  STAGE_LABELS,
+  getClosestGroupName,
+  getClosestStage,
+  groupByName,
+  groupByStage,
+  orderedStages,
+} from "@/lib/match-stages";
 
 type Match = Tables<"matches">;
 
@@ -22,7 +29,8 @@ const Calendario = () => {
   const navigate = useNavigate();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [openRounds, setOpenRounds] = useState<string[]>([]);
+  const [openStages, setOpenStages] = useState<string[]>([]);
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -37,19 +45,37 @@ const Calendario = () => {
     fetch();
   }, []);
 
-  const byRound = useMemo(() => groupByRound(matches), [matches]);
-  const rounds = useMemo(() => orderedRounds(byRound), [byRound]);
-  const closestRound = useMemo(() => getClosestRound(matches), [matches]);
+  const byStage = useMemo(() => groupByStage(matches), [matches]);
+  const stages = useMemo(() => orderedStages(byStage), [byStage]);
+  const closestStage = useMemo(() => getClosestStage(matches), [matches]);
+  const closestGroup = useMemo(() => getClosestGroupName(matches), [matches]);
+  const allGroupNames = useMemo(
+    () => Object.keys(groupByName(byStage["group"] || [])),
+    [byStage]
+  );
 
   useEffect(() => {
-    if (!initialized && rounds.length > 0) {
-      setOpenRounds(closestRound ? [closestRound] : []);
+    if (!initialized && stages.length > 0) {
+      setOpenStages(closestStage ? [closestStage] : []);
+      setOpenGroups(closestGroup ? [closestGroup] : []);
       setInitialized(true);
     }
-  }, [rounds, closestRound, initialized]);
+  }, [stages, closestStage, closestGroup, initialized]);
 
-  const allExpanded = openRounds.length === rounds.length && rounds.length > 0;
-  const toggleAll = () => setOpenRounds(allExpanded ? [] : [...rounds]);
+  const allExpanded =
+    stages.length > 0 &&
+    openStages.length === stages.length &&
+    openGroups.length === allGroupNames.length;
+
+  const toggleAll = () => {
+    if (allExpanded) {
+      setOpenStages([]);
+      setOpenGroups([]);
+    } else {
+      setOpenStages([...stages]);
+      setOpenGroups([...allGroupNames]);
+    }
+  };
 
   const buildShareText = () => {
     let text = "⚽ *Copa do Mundo 2026 — Calendário*\n\n";
@@ -172,28 +198,56 @@ const Calendario = () => {
             </div>
             <Accordion
               type="multiple"
-              value={openRounds}
-              onValueChange={setOpenRounds}
+              value={openStages}
+              onValueChange={setOpenStages}
               className="space-y-2"
             >
-              {rounds.map((round) => {
-                const roundMatches = byRound[round];
+              {stages.map((stage) => {
+                const stageMatches = byStage[stage];
                 return (
                   <AccordionItem
-                    key={round}
-                    value={round}
+                    key={stage}
+                    value={stage}
                     className="rounded-lg border bg-card px-3"
                   >
                     <AccordionTrigger className="hover:no-underline">
                       <span className="text-left font-semibold">
-                        {round}
+                        {STAGE_LABELS[stage] || stage}
                         <span className="ml-2 text-xs font-normal text-muted-foreground">
-                          {roundMatches.length} jogos
+                          {stageMatches.length} jogos
                         </span>
                       </span>
                     </AccordionTrigger>
                     <AccordionContent>
-                      <div className="space-y-2">{roundMatches.map(renderMatch)}</div>
+                      {stage === "group" ? (
+                        <Accordion
+                          type="multiple"
+                          value={openGroups}
+                          onValueChange={setOpenGroups}
+                          className="space-y-2"
+                        >
+                          {Object.entries(groupByName(stageMatches))
+                            .sort(([a], [b]) => a.localeCompare(b))
+                            .map(([groupName, groupMatches]) => (
+                              <AccordionItem
+                                key={groupName}
+                                value={groupName}
+                                className="rounded-md border bg-background px-3"
+                              >
+                                <AccordionTrigger className="hover:no-underline py-2 text-sm">
+                                  Grupo {groupName.replace(/^Grupo\s+/i, "")}
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-2">
+                                    {groupMatches.map(renderMatch)}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                        </Accordion>
+                      ) : (
+                        <div className="space-y-2">{stageMatches.map(renderMatch)}</div>
+                      )}
                     </AccordionContent>
                   </AccordionItem>
                 );
