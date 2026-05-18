@@ -241,6 +241,15 @@ const Admin = () => {
       }
     }
 
+    // Generate feed events (fire-and-forget, errors don't block)
+    try {
+      await supabase.functions.invoke("generate-feed-events", {
+        body: { match_id: matchId },
+      });
+    } catch (e) {
+      console.warn("generate-feed-events failed", e);
+    }
+
     setMatches((prev) =>
       prev.map((m) =>
         m.id === matchId
