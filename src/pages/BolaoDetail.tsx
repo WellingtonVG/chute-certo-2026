@@ -19,14 +19,7 @@ import { getFlag } from "@/lib/country-flags";
 import SeasonPredictions from "@/components/SeasonPredictions";
 import ScoringRulesModal from "@/components/ScoringRulesModal";
 import BolaoFeed from "@/components/BolaoFeed";
-import {
-  STAGE_LABELS,
-  getClosestGroupName,
-  getClosestStage,
-  groupByName,
-  groupByStage,
-  orderedStages,
-} from "@/lib/match-stages";
+import { getClosestRound, groupByRound, orderedRounds } from "@/lib/match-stages";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
