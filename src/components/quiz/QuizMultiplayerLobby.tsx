@@ -76,38 +76,21 @@ const QuizMultiplayerLobby = ({ config, onStart, onBack }: Props) => {
     if (!user || !profile || !codeToUse) return;
     setLoading(true);
 
-    const { data: room } = await supabase
-      .from("quiz_rooms")
-      .select("*")
-      .eq("code", codeToUse.toLowerCase())
-      .eq("status", "waiting")
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("join_quiz_room", {
+      code_input: codeToUse.toLowerCase(),
+    });
 
-    if (!room) {
+    if (error || !data) {
       toast.error("Sala não encontrada ou já iniciada");
       setLoading(false);
       return;
     }
 
+    const room = data as any;
     setRoomId(room.id);
     setRoomCode(room.code);
-    setQuestions(room.questions as any as QuizQuestion[]);
+    setQuestions(room.questions as QuizQuestion[]);
     setIsCreator(room.created_by === user.id);
-
-    const { data: existing } = await supabase
-      .from("quiz_participants")
-      .select("id")
-      .eq("room_id", room.id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (!existing) {
-      await supabase.from("quiz_participants").insert({
-        room_id: room.id,
-        user_id: user.id,
-        username: profile.username,
-      });
-    }
 
     setLoading(false);
   };
