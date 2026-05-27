@@ -3,6 +3,9 @@
 Bolão da Copa do Mundo 2026 — construído do zero por alguém que não é programador, usando IA como parceiro de desenvolvimento.
 
 > Esse projeto nasceu de uma ideia simples: queria um bolão pra jogar com os amigos durante a Copa. Em vez de usar um app pronto, resolvi construir. Foi um projetinho de fim de semana que virou um sistema completo.
+<img width="734" height="1600" alt="WhatsApp Image 2026-05-27 at 15 32 20" src="https://github.com/user-attachments/assets/eca1adf8-fa4a-4112-8100-54cc1e479de6" />
+<img width="736" height="1600" alt="WhatsApp Image 2026-05-27 at 15 32 20 (2)" src="https://github.com/user-attachments/assets/d48922e6-f30a-4f74-82ff-d8259e6c7cea" />
+<img width="736" height="1600" alt="WhatsApp Image 2026-05-27 at 15 32 20 (1)" src="https://github.com/user-attachments/assets/fc98a9f3-0068-45bc-87da-420f339feb5a" />
 
 ---
 
