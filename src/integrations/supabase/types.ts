@@ -479,6 +479,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      join_quiz_room: { Args: { code_input: string }; Returns: Json }
       lookup_bolao_by_invite: {
         Args: { invite_code_input: string }
         Returns: Json
