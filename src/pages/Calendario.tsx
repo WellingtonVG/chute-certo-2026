@@ -33,6 +33,8 @@ const Calendario = () => {
   const [loading, setLoading] = useState(true);
   const [openStages, setOpenStages] = useState<string[]>([]);
   const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [openGroupRounds, setOpenGroupRounds] = useState<string[]>([]);
+  const [groupViewMode, setGroupViewMode] = useState<"round" | "group">("round");
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -51,33 +53,48 @@ const Calendario = () => {
   const stages = useMemo(() => orderedStages(byStage), [byStage]);
   const closestStage = useMemo(() => getClosestStage(matches), [matches]);
   const closestGroup = useMemo(() => getClosestGroupName(matches), [matches]);
+  const groupStageMatches = useMemo(() => byStage["group"] || [], [byStage]);
   const allGroupNames = useMemo(
-    () => Object.keys(groupByName(byStage["group"] || [])),
-    [byStage]
+    () => Object.keys(groupByName(groupStageMatches)),
+    [groupStageMatches]
+  );
+  const allGroupRoundNames = useMemo(
+    () => Object.keys(groupByRound(groupStageMatches)),
+    [groupStageMatches]
+  );
+  const closestGroupRound = useMemo(
+    () => getClosestRound(groupStageMatches),
+    [groupStageMatches]
   );
 
   useEffect(() => {
     if (!initialized && stages.length > 0) {
       setOpenStages(closestStage ? [closestStage] : []);
       setOpenGroups(closestGroup ? [closestGroup] : []);
+      setOpenGroupRounds(closestGroupRound ? [closestGroupRound] : []);
       setInitialized(true);
     }
-  }, [stages, closestStage, closestGroup, initialized]);
+  }, [stages, closestStage, closestGroup, closestGroupRound, initialized]);
 
   const allExpanded =
     stages.length > 0 &&
     openStages.length === stages.length &&
-    openGroups.length === allGroupNames.length;
+    openGroups.length === allGroupNames.length &&
+    openGroupRounds.length === allGroupRoundNames.length;
 
   const toggleAll = () => {
     if (allExpanded) {
       setOpenStages([]);
       setOpenGroups([]);
+      setOpenGroupRounds([]);
     } else {
       setOpenStages([...stages]);
       setOpenGroups([...allGroupNames]);
+      setOpenGroupRounds([...allGroupRoundNames]);
     }
   };
+
+  const showGroupToggle = groupStageMatches.length > 0;
 
   const buildShareText = () => {
     let text = "⚽ *Copa do Mundo 2026 — Calendário*\n\n";
