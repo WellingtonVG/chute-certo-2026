@@ -28,8 +28,6 @@ import {
   orderedStages,
   getClosestRound,
   groupByRound,
-} from "@/lib/stage-utils";
-import {
   orderedRounds,
 } from "@/lib/match-stages";
 import squads from "@/data/squads.json";
