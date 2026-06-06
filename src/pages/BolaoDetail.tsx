@@ -431,7 +431,7 @@ const RoundsAccordion = ({
     />
   );
 
-  const showGroupToggle = !isBrasileraoComp && (byStage["group"]?.length ?? 0) > 0;
+  const showGroupToggle = !isBrasileirao && (byStage["group"]?.length ?? 0) > 0;
 
   return (
     <>
