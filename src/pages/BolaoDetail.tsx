@@ -544,6 +544,13 @@ const MatchPredictionCard = ({
   );
   const awayScoreRef = useRef<HTMLInputElement>(null);
   const scorerRef = useRef<HTMLInputElement>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  const squadPlayers = useMemo(() => {
+    const s = squads as Record<string, string[]>;
+    return [...(s[match.home_team] ?? []), ...(s[match.away_team] ?? [])]
+      .sort((a, b) => a.localeCompare(b));
+  }, [match.home_team, match.away_team]);
 
   const bonusQuestion = (match as any).bonus_question as string | null;
 
