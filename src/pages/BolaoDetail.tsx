@@ -375,6 +375,8 @@ const RoundsAccordion = ({
   const [openRounds, setOpenRounds] = useState<string[]>([]);
   const [openStages, setOpenStages] = useState<string[]>([]);
   const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [openGroupRounds, setOpenGroupRounds] = useState<string[]>([]);
+  const [groupViewMode, setGroupViewMode] = useState<"round" | "group">("round");
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -386,9 +388,14 @@ const RoundsAccordion = ({
       if (stages.length === 0) return;
       setOpenStages(closestStage ? [closestStage] : []);
       setOpenGroups(closestGroup ? [closestGroup] : []);
+      const groupStageMatches = byStage["group"] || [];
+      if (groupStageMatches.length > 0) {
+        const closestGroupRound = getClosestRound(groupStageMatches);
+        setOpenGroupRounds(closestGroupRound ? [closestGroupRound] : []);
+      }
     }
     setInitialized(true);
-  }, [isBrasileirao, rounds, stages, closestRound, closestStage, closestGroup, initialized]);
+  }, [isBrasileirao, rounds, stages, closestRound, closestStage, closestGroup, initialized, byStage]);
 
   const allExpanded = isBrasileirao
     ? rounds.length > 0 && openRounds.length === rounds.length
@@ -482,31 +489,82 @@ const RoundsAccordion = ({
                 </AccordionTrigger>
                 <AccordionContent>
                   {stage === "group" ? (
-                    <Accordion
-                      type="multiple"
-                      value={openGroups}
-                      onValueChange={setOpenGroups}
-                      className="space-y-2"
-                    >
-                      {Object.entries(groupByName(stageMatches))
-                        .sort(([a], [b]) => a.localeCompare(b))
-                        .map(([groupName, groupMatches]) => (
-                          <AccordionItem
-                            key={groupName}
-                            value={groupName}
-                            className="rounded-md border bg-background px-3"
-                          >
-                            <AccordionTrigger className="hover:no-underline py-2 text-sm">
-                              Grupo {groupName.replace(/^Grupo\s+/i, "")}
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              <div className="space-y-2">
-                                {groupMatches.map(renderCard)}
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        ))}
-                    </Accordion>
+                    <>
+                      <div className="mb-3 flex gap-1">
+                        <Button
+                          type="button"
+                          variant={groupViewMode === "round" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setGroupViewMode("round")}
+                        >
+                          Por Rodada
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={groupViewMode === "group" ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setGroupViewMode("group")}
+                        >
+                          Por Grupo
+                        </Button>
+                      </div>
+                      {groupViewMode === "round" ? (
+                        <Accordion
+                          type="multiple"
+                          value={openGroupRounds}
+                          onValueChange={setOpenGroupRounds}
+                          className="space-y-2"
+                        >
+                          {Object.entries(groupByRound(stageMatches))
+                            .sort(([a], [b]) => a.localeCompare(b))
+                            .map(([roundName, roundMatches]) => (
+                              <AccordionItem
+                                key={roundName}
+                                value={roundName}
+                                className="rounded-md border bg-background px-3"
+                              >
+                                <AccordionTrigger className="hover:no-underline py-2 text-sm">
+                                  {roundName}
+                                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                    {roundMatches.length} jogos
+                                  </span>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-2">
+                                    {roundMatches.map(renderCard)}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                        </Accordion>
+                      ) : (
+                        <Accordion
+                          type="multiple"
+                          value={openGroups}
+                          onValueChange={setOpenGroups}
+                          className="space-y-2"
+                        >
+                          {Object.entries(groupByName(stageMatches))
+                            .sort(([a], [b]) => a.localeCompare(b))
+                            .map(([groupName, groupMatches]) => (
+                              <AccordionItem
+                                key={groupName}
+                                value={groupName}
+                                className="rounded-md border bg-background px-3"
+                              >
+                                <AccordionTrigger className="hover:no-underline py-2 text-sm">
+                                  Grupo {groupName.replace(/^Grupo\s+/i, "")}
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                  <div className="space-y-2">
+                                    {groupMatches.map(renderCard)}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                        </Accordion>
+                      )}
+                    </>
                   ) : (
                     <div className="space-y-2">{stageMatches.map(renderCard)}</div>
                   )}
