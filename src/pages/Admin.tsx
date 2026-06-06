@@ -120,6 +120,20 @@ const Admin = () => {
     setSyncing(false);
   };
 
+  const [syncingResults, setSyncingResults] = useState(false);
+  const syncResults = async () => {
+    setSyncingResults(true);
+    try {
+      const res = await supabase.functions.invoke("sync-results", { method: "POST" });
+      if (res.error) throw res.error;
+      toast({ title: "sync-results", description: JSON.stringify(res.data) });
+      alert("sync-results:\n" + JSON.stringify(res.data, null, 2));
+    } catch (err: any) {
+      toast({ title: "Erro sync-results", description: err.message || String(err), variant: "destructive" });
+    }
+    setSyncingResults(false);
+  };
+
   useEffect(() => {
     if (!isAdmin) {
       navigate("/");
@@ -469,6 +483,10 @@ const Admin = () => {
             <Button onClick={syncFixtures} disabled={syncing} className="w-full" variant="outline">
               {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               Sincronizar jogos (API-Football)
+            </Button>
+            <Button onClick={syncResults} disabled={syncingResults} className="w-full" variant="secondary">
+              {syncingResults ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Sincronizar Resultados (Teste)
             </Button>
             <Card>
               <CardHeader>
