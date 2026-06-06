@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Lock, Trophy, Star, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getFlag, allTeams } from "@/lib/country-flags";
+import squads from "@/data/squads.json";
 
 interface SeasonPredictionsProps {
   bolaoId: string;
@@ -22,8 +23,14 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [existingId, setExistingId] = useState<string | null>(null);
+  const [bestPlayerSuggestions, setBestPlayerSuggestions] = useState<string[]>([]);
+  const [topScorerSuggestions, setTopScorerSuggestions] = useState<string[]>([]);
 
   const locked = firstMatchDate ? new Date(firstMatchDate) <= new Date() : false;
+
+  const allPlayers = useMemo(() =>
+    Object.values(squads as Record<string, string[]>).flat().sort((a, b) => a.localeCompare(b))
+  , []);
 
   useEffect(() => {
     const fetch = async () => {
@@ -149,22 +156,68 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
                 <Star className="h-3.5 w-3.5" /> Melhor Jogador da Copa
                 <span className="ml-auto text-accent">25 pts</span>
               </label>
-              <Input
-                placeholder="Ex: Vinícius Jr"
-                value={bestPlayer}
-                onChange={(e) => setBestPlayer(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  placeholder="Ex: Vinícius Jr"
+                  value={bestPlayer}
+                  onChange={(e) => {
+                    setBestPlayer(e.target.value);
+                    const q = e.target.value.toLowerCase();
+                    setBestPlayerSuggestions(q.length >= 3
+                      ? allPlayers.filter(p => p.toLowerCase().includes(q)).slice(0, 8)
+                      : []);
+                  }}
+                  onBlur={() => setTimeout(() => setBestPlayerSuggestions([]), 150)}
+                  onKeyDown={(e) => { if (e.key === "Escape") setBestPlayerSuggestions([]); }}
+                />
+                {bestPlayerSuggestions.length > 0 && (
+                  <ul className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+                    {bestPlayerSuggestions.map((p) => (
+                      <li
+                        key={p}
+                        className="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                        onMouseDown={(e) => { e.preventDefault(); setBestPlayer(p); setBestPlayerSuggestions([]); }}
+                      >
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
             <div>
               <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <Target className="h-3.5 w-3.5" /> Artilheiro da Copa
                 <span className="ml-auto text-accent">20 pts</span>
               </label>
-              <Input
-                placeholder="Ex: Mbappé"
-                value={topScorer}
-                onChange={(e) => setTopScorer(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  placeholder="Ex: Mbappé"
+                  value={topScorer}
+                  onChange={(e) => {
+                    setTopScorer(e.target.value);
+                    const q = e.target.value.toLowerCase();
+                    setTopScorerSuggestions(q.length >= 3
+                      ? allPlayers.filter(p => p.toLowerCase().includes(q)).slice(0, 8)
+                      : []);
+                  }}
+                  onBlur={() => setTimeout(() => setTopScorerSuggestions([]), 150)}
+                  onKeyDown={(e) => { if (e.key === "Escape") setTopScorerSuggestions([]); }}
+                />
+                {topScorerSuggestions.length > 0 && (
+                  <ul className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+                    {topScorerSuggestions.map((p) => (
+                      <li
+                        key={p}
+                        className="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                        onMouseDown={(e) => { e.preventDefault(); setTopScorer(p); setTopScorerSuggestions([]); }}
+                      >
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
             <Button size="sm" onClick={handleSave} disabled={saving} className="w-full">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Palpites Especiais"}
