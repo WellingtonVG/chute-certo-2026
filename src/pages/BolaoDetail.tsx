@@ -104,13 +104,13 @@ const BolaoDetail = () => {
       setBolao(bolaoRes.data);
       
       // Filter matches by competition type.
-      // Copa: knockouts (stage !== 'group') OR group-stage with group_name set.
-      // Brasileirão: stage === 'group' AND no group_name (has round_name only).
+      // Brasileirão: only matches that have a round_name NOT in Copa group rounds.
+      // Copa: show all matches.
       const isBrasileraoComp = (bolaoRes.data as any)?.competition === "brasileirao_2026";
       const filteredMatches = (matchesRes.data || []).filter((m: any) =>
         isBrasileraoComp
-          ? m.stage === "group" && !m.group_name && !!m.round_name
-          : m.stage !== "group" || !!m.group_name
+          ? !!m.round_name && !['1ª Rodada','2ª Rodada','3ª Rodada'].includes(m.round_name!)
+          : true
       );
       setMatches(filteredMatches);
 
