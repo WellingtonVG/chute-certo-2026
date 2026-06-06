@@ -431,9 +431,31 @@ const RoundsAccordion = ({
     />
   );
 
+  const showGroupToggle = !isBrasileraoComp && (byStage["group"]?.length ?? 0) > 0;
+
   return (
     <>
-      <div className="mb-3 flex justify-end">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        {showGroupToggle ? (
+          <div className="flex gap-1">
+            <Button
+              type="button"
+              variant={groupViewMode === "round" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setGroupViewMode("round")}
+            >
+              Por Rodada
+            </Button>
+            <Button
+              type="button"
+              variant={groupViewMode === "group" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setGroupViewMode("group")}
+            >
+              Por Grupo
+            </Button>
+          </div>
+        ) : <span />}
         <Button variant="outline" size="sm" onClick={toggleAll}>
           {allExpanded ? "Recolher tudo" : "Expandir tudo"}
         </Button>
