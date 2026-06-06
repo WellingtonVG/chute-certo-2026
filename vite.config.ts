@@ -4,7 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL ?? "https://wayngmzajminffglcqak.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6IndheW5nbXpham1pbmZmZ2xjcWFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDA4NTksImV4cCI6MjA5MDcxNjg1OX0.WjSqiAQ7wSz_5HHf_8wynSylG7fXBpm0kmQ8wijeHoo";
+const SUPABASE_PUBLISHABLE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndheW5nbXpham1pbmZmZ2xjcWFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNDA4NTksImV4cCI6MjA5MDcxNjg1OX0.WjSqiAQ7wSz_5HHf_8wynSylG7fXBpm0kmQ8wijeHoo";
 const SUPABASE_PROJECT_ID = process.env.VITE_SUPABASE_PROJECT_ID ?? "wayngmzajminffglcqak";
 
 // https://vitejs.dev/config/
