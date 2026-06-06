@@ -30,6 +30,7 @@ import {
   groupByRound,
   orderedRounds,
 } from "@/lib/match-stages";
+import squads from "@/data/squads.json";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
@@ -543,6 +544,13 @@ const MatchPredictionCard = ({
   );
   const awayScoreRef = useRef<HTMLInputElement>(null);
   const scorerRef = useRef<HTMLInputElement>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  const squadPlayers = useMemo(() => {
+    const s = squads as Record<string, string[]>;
+    return [...(s[match.home_team] ?? []), ...(s[match.away_team] ?? [])]
+      .sort((a, b) => a.localeCompare(b));
+  }, [match.home_team, match.away_team]);
 
   const bonusQuestion = (match as any).bonus_question as string | null;
 
@@ -672,12 +680,37 @@ const MatchPredictionCard = ({
                 </div>
               </div>
             ) : !isBrasileirao ? (
-              <Input
-                ref={scorerRef}
-                placeholder="Jogador que marca (opcional)"
-                value={scorer}
-                onChange={(e) => setScorer(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  ref={scorerRef}
+                  placeholder="Jogador que marca (opcional)"
+                  value={scorer}
+                  onChange={(e) => {
+                    setScorer(e.target.value);
+                    const q = e.target.value.toLowerCase();
+                    setSuggestions(
+                      q.length >= 2
+                        ? squadPlayers.filter((p) => p.toLowerCase().includes(q)).slice(0, 8)
+                        : []
+                    );
+                  }}
+                  onBlur={() => setTimeout(() => setSuggestions([]), 150)}
+                  onKeyDown={(e) => { if (e.key === "Escape") setSuggestions([]); }}
+                />
+                {suggestions.length > 0 && (
+                  <ul className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+                    {suggestions.map((p) => (
+                      <li
+                        key={p}
+                        className="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                        onMouseDown={(e) => { e.preventDefault(); setScorer(p); setSuggestions([]); }}
+                      >
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             ) : null}
             <Button size="sm" onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
