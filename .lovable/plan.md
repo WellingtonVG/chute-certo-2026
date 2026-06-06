@@ -1,28 +1,40 @@
-## Objetivo
-Deixar o repositório seguro para ser publicado como público no GitHub.
+## Plano: Edge Function `sync-results`
 
-## Diagnóstico
-- `.gitignore` **não inclui `.env`**.
-- `.env` contém apenas valores públicos (project ID, URL e anon/publishable key) — todos seguros de expor.
-- Nenhum segredo real (`SUPABASE_SERVICE_ROLE_KEY`, `APIFOOTBALL_KEY`, `LOVABLE_API_KEY`) está hardcoded; são lidos só via `Deno.env.get(...)` nas edge functions.
-- RLS já foi endurecida na rodada anterior de segurança.
+Criar `supabase/functions/sync-results/index.ts` que sincroniza resultados finalizados da Copa do Mundo 2026 com a API football-data.org.
 
-## Ações
-1. **Adicionar `.env` ao `.gitignore`** como boa prática (mesmo que o conteúdo atual seja seguro, evita que futuras chaves sensíveis sejam commitadas por engano). Acrescentar também `.env.local`, `.env.*.local`.
-2. **(Recomendado, feito por você localmente)** Auditar o histórico do git antes de publicar:
-   ```
-   git log --all --full-history -- .env
-   git log -p --all -S 'SERVICE_ROLE_KEY'
-   git log -p --all -S 'APIFOOTBALL_KEY'
-   git log -p --all -S 'LOVABLE_API_KEY'
-   ```
-   Se aparecer apenas a anon key, pode publicar.
-3. **Opcional mas recomendado**: rotacionar `APIFOOTBALL_KEY` no dashboard da API-Football após tornar público, só por precaução. O `LOVABLE_API_KEY` e `SUPABASE_SERVICE_ROLE_KEY` podem ser rotacionados por aqui se desejar (`rotate_lovable_api_key`, `rotate_api_keys`).
-4. **Após publicar**, rodar mais um security scan para confirmar que nada novo apareceu.
+### Estrutura
+- `verify_jwt = false` (pública, sem autenticação)
+- CORS habilitado
+- Usa `FOOTBALL_DATA_API_KEY` e `SUPABASE_SERVICE_ROLE_KEY` do env
+- Cliente Supabase com service role (bypass RLS)
 
-## O que NÃO precisa ser feito
-- Remover a anon key do código — ela é projetada para ser pública.
-- Esconder o project ID do Supabase — também é público (aparece na URL do app publicado).
+### Fluxo
+1. **Mapear `api_football_id`**: GET `/competitions/WC/matches?season=2026`. Para cada jogo da API, faz match no banco por nome PT→EN (via `NAME_MAP`) + janela de ±2h em `match_date`. UPDATE quando `api_football_id IS NULL`.
+2. **Snapshot artilharia (antes)**: GET `/competitions/WC/scorers?season=2026&limit=100` → `Map<playerName, goals>`.
+3. **Sincronizar resultados**: GET `/competitions/WC/matches?season=2026&status=FINISHED`. Para cada jogo:
+   - Skip se `is_manual_override = true` ou placar já bate
+   - UPDATE `home_score`, `away_score`, `is_finished = true`
+   - RPC `calculate_match_points(match_id)`
+   - Coleta `match_id` em lista de atualizados
+4. **Snapshot artilharia (depois)** + atribuir pontos de goleador:
+   - Para cada match atualizado, busca predictions com `scorer_name`
+   - Se gols do jogador aumentaram entre snapshots → `scorer_points = +2`, senão `-1`
+   - UPDATE em `predictions`
+   - Se ≥1 acerto, insere `feed_events` (`event_type='scorer_hit'`) por bolão envolvido
+5. **Feed events finais**: para cada match atualizado, chama `generate-feed-events` via `fetch` ao endpoint da edge function.
 
-## Próximo passo
-Confirme se quer que eu aplique a atualização do `.gitignore` (item 1). Os itens 2–4 são ações suas no terminal local / dashboard.
+### Resposta
+```json
+{ "mapped": N, "updated": N, "scorers_resolved": N }
+```
+
+### Detalhes técnicos
+- `NAME_MAP` PT→EN (conforme spec); usar mapa invertido para casamento
+- Comparação de nomes case-insensitive + trim
+- Janela de tempo: `Math.abs(dbDate - apiDate) <= 2h`
+- Tratamento de erro: try/catch global, retorna 500 com mensagem
+- Logs de progresso via `console.log` para debugging em `edge_function_logs`
+
+### Arquivos
+- `supabase/functions/sync-results/index.ts` (novo)
+- `supabase/config.toml` (adicionar bloco `[functions.sync-results] verify_jwt = false`)
