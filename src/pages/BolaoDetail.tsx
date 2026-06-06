@@ -208,7 +208,9 @@ const BolaoDetail = () => {
 
   const shareInvite = () => {
     if (!bolao) return;
-    const url = `${window.location.origin}/convite/${bolao.invite_code}`;
+    const isLovableHost = /lovable(project)?\.app$/.test(window.location.hostname);
+    const origin = isLovableHost ? "https://chute-certo-2026.lovable.app" : window.location.origin;
+    const url = `${origin}/convite/${bolao.invite_code}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Link copiado!", description: "Compartilhe com seus amigos" });
   };
