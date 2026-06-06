@@ -29,12 +29,10 @@ import {
   getClosestRound,
   groupByRound,
 } from "@/lib/stage-utils";
-import squads from "@/data/squads.json";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const __squads_import_marker = true;
 import {
   orderedRounds,
 } from "@/lib/match-stages";
+import squads from "@/data/squads.json";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
