@@ -685,14 +685,13 @@ const MatchPredictionCard = ({
                   ref={scorerRef}
                   placeholder="Jogador que marca (opcional)"
                   value={scorer}
+                  onFocus={() => setSuggestions(squadPlayers)}
                   onChange={(e) => {
                     setScorer(e.target.value);
                     const q = e.target.value.toLowerCase();
-                    setSuggestions(
-                      q.length >= 2
-                        ? squadPlayers.filter((p) => p.toLowerCase().includes(q)).slice(0, 8)
-                        : []
-                    );
+                    setSuggestions(q.length === 0
+                      ? squadPlayers
+                      : squadPlayers.filter(p => p.toLowerCase().includes(q)).slice(0, 8));
                   }}
                   onBlur={() => setTimeout(() => setSuggestions([]), 150)}
                   onKeyDown={(e) => { if (e.key === "Escape") setSuggestions([]); }}
