@@ -375,6 +375,8 @@ const RoundsAccordion = ({
   const [openRounds, setOpenRounds] = useState<string[]>([]);
   const [openStages, setOpenStages] = useState<string[]>([]);
   const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [openGroupRounds, setOpenGroupRounds] = useState<string[]>([]);
+  const [groupViewMode, setGroupViewMode] = useState<"round" | "group">("round");
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -386,9 +388,14 @@ const RoundsAccordion = ({
       if (stages.length === 0) return;
       setOpenStages(closestStage ? [closestStage] : []);
       setOpenGroups(closestGroup ? [closestGroup] : []);
+      const groupStageMatches = byStage["group"] || [];
+      if (groupStageMatches.length > 0) {
+        const closestGroupRound = getClosestRound(groupStageMatches);
+        setOpenGroupRounds(closestGroupRound ? [closestGroupRound] : []);
+      }
     }
     setInitialized(true);
-  }, [isBrasileirao, rounds, stages, closestRound, closestStage, closestGroup, initialized]);
+  }, [isBrasileirao, rounds, stages, closestRound, closestStage, closestGroup, initialized, byStage]);
 
   const allExpanded = isBrasileirao
     ? rounds.length > 0 && openRounds.length === rounds.length
