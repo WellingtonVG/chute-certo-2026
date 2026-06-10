@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.lookup_bolao_by_invite(text) TO anon;
