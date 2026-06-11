@@ -15,6 +15,8 @@ import { Constants } from "@/integrations/supabase/types";
 import { format, addDays, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SEASON_PREDICTION_POINTS } from "@/lib/season-predictions";
+import { CountryLabel } from "@/components/CountryFlag";
+import { TeamSelect } from "@/components/TeamSelect";
 
 type Match = Tables<"matches">;
 type Bolao = Tables<"boloes"> & { invite_created_at?: string };
@@ -497,18 +499,18 @@ const Admin = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs">Mandante</Label>
-                    <Input
-                      placeholder="Brasil"
+                    <TeamSelect
                       value={matchForm.home_team}
-                      onChange={(e) => setMatchForm({ ...matchForm, home_team: e.target.value })}
+                      onValueChange={(v) => setMatchForm({ ...matchForm, home_team: v })}
+                      placeholder="Mandante"
                     />
                   </div>
                   <div>
                     <Label className="text-xs">Visitante</Label>
-                    <Input
-                      placeholder="Argentina"
+                    <TeamSelect
                       value={matchForm.away_team}
-                      onChange={(e) => setMatchForm({ ...matchForm, away_team: e.target.value })}
+                      onValueChange={(v) => setMatchForm({ ...matchForm, away_team: v })}
+                      placeholder="Visitante"
                     />
                   </div>
                 </div>
@@ -728,7 +730,7 @@ const SeasonResultsEditor = () => {
       <CardContent className="space-y-3">
         <div>
           <Label className="text-xs">Campeão</Label>
-          <Input value={champion} onChange={(e) => setChampion(e.target.value)} placeholder="Ex: Brasil" />
+          <TeamSelect value={champion} onValueChange={setChampion} placeholder="Selecione o campeão" />
         </div>
         <div>
           <Label className="text-xs">Artilheiro</Label>
@@ -849,8 +851,10 @@ const MatchResultEditor = ({
   return (
     <Card>
       <CardContent className="space-y-2 p-4">
-        <p className="text-sm font-medium">
-          {match.home_team} vs {match.away_team}
+        <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+          <CountryLabel teamName={match.home_team} size={20} />
+          <span className="text-muted-foreground">vs</span>
+          <CountryLabel teamName={match.away_team} size={20} />
         </p>
         <p className="text-xs text-muted-foreground">
           {new Date(match.match_date).toLocaleDateString("pt-BR")}

@@ -3,17 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Lock, Trophy, Star, Target, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getFlag, allTeams } from "@/lib/country-flags";
+import { CountryLabel } from "@/components/CountryFlag";
+import { TeamSelect } from "@/components/TeamSelect";
 import { SEASON_PREDICTION_POINTS } from "@/lib/season-predictions";
+import {
+  getSeasonPredictionsDeadlineLabel,
+  isSeasonPredictionOpen,
+} from "@/lib/prediction-deadlines";
 import squads from "@/data/squads.json";
 
 interface SeasonPredictionsProps {
   bolaoId: string;
   userId: string;
-  firstMatchDate: string | null;
 }
 
 const PlayerInput = ({
@@ -79,7 +82,7 @@ const PlayerInput = ({
   );
 };
 
-const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPredictionsProps) => {
+const SeasonPredictions = ({ bolaoId, userId }: SeasonPredictionsProps) => {
   const { toast } = useToast();
   const [champion, setChampion] = useState("");
   const [bestPlayer, setBestPlayer] = useState("");
@@ -89,7 +92,8 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
   const [loading, setLoading] = useState(true);
   const [existingId, setExistingId] = useState<string | null>(null);
 
-  const locked = firstMatchDate ? new Date(firstMatchDate) <= new Date() : false;
+  const locked = !isSeasonPredictionOpen();
+  const deadlineLabel = getSeasonPredictionsDeadlineLabel();
 
   const allPlayers = useMemo(
     () => Object.values(squads as Record<string, string[]>).flat().sort((a, b) => a.localeCompare(b)),
@@ -119,6 +123,14 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
 
   const handleSave = async () => {
     if (!champion && !bestPlayer && !topScorer && !revelationPlayer) return;
+    if (locked) {
+      toast({
+        title: "Prazo encerrado",
+        description: `Palpites especiais travaram em ${deadlineLabel}.`,
+        variant: "destructive",
+      });
+      return;
+    }
     setSaving(true);
 
     const payload = {
@@ -175,6 +187,11 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
           Palpites Especiais
           {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground ml-auto" />}
         </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          {locked
+            ? `Prazo encerrado em ${deadlineLabel}`
+            : `Prazo: até ${deadlineLabel}`}
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {locked ? (
@@ -183,13 +200,7 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
               <Trophy className="h-4 w-4 text-accent" />
               <span>Campeão:</span>
               <span className="font-bold">
-                {champion ? (
-                  <>
-                    <span className="emoji-flag">{getFlag(champion)}</span> {champion}
-                  </>
-                ) : (
-                  "—"
-                )}
+                {champion ? <CountryLabel teamName={champion} /> : "—"}
               </span>
               <span className="ml-auto text-xs text-muted-foreground">{SEASON_PREDICTION_POINTS} pts</span>
             </div>
@@ -219,18 +230,7 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
                 <Trophy className="h-3.5 w-3.5" /> Campeão da Copa
                 <span className="ml-auto text-accent">{SEASON_PREDICTION_POINTS} pts</span>
               </label>
-              <Select value={champion} onValueChange={setChampion}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a seleção" />
-                </SelectTrigger>
-                <SelectContent>
-                  {allTeams.map((team) => (
-                    <SelectItem key={team} value={team}>
-                      <span className="emoji-flag">{getFlag(team)}</span> {team}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <TeamSelect value={champion} onValueChange={setChampion} />
             </div>
             <PlayerInput
               label="Melhor Jogador da Copa"

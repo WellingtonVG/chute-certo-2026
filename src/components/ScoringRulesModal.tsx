@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Info } from "lucide-react";
 import { SEASON_PREDICTION_POINTS } from "@/lib/season-predictions";
+import { getSeasonPredictionsDeadlineLabel } from "@/lib/prediction-deadlines";
 
 const ScoringRulesModal = () => {
   return (
@@ -102,7 +103,10 @@ const ScoringRulesModal = () => {
                 <span className="font-bold text-foreground">{SEASON_PREDICTION_POINTS} pts</span>
               </li>
               <li className="text-xs italic">
-                Bloqueados após o primeiro jogo da Copa
+                Prazo até {getSeasonPredictionsDeadlineLabel()}
+              </li>
+              <li className="text-xs italic">
+                Palpites por jogo: até o início de cada partida
               </li>
             </ul>
           </div>

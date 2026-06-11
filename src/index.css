@@ -101,11 +101,6 @@
   }
 }
 
-.emoji-flag {
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
-  font-style: normal;
-}
-
 .tap-highlight-none {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;

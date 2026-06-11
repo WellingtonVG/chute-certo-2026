@@ -16,7 +16,8 @@ import { ArrowLeft, Loader2, Trophy, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 import { getSeasonPointsTotal } from "@/lib/season-predictions";
-import { getFlag } from "@/lib/country-flags";
+import { MatchTeamsDisplay } from "@/components/CountryFlag";
+import { formatDeadline, isMatchPredictionOpen } from "@/lib/prediction-deadlines";
 import SeasonPredictions from "@/components/SeasonPredictions";
 import ScoringRulesModal from "@/components/ScoringRulesModal";
 import BolaoFeed from "@/components/BolaoFeed";
@@ -153,9 +154,18 @@ const BolaoDetail = () => {
     homeScore: number,
     awayScore: number,
     scorerName: string,
-    bonusAnswer?: boolean | null
+    bonusAnswer?: boolean | null,
+    matchDate?: string
   ) => {
     if (!user || !id) return;
+    if (matchDate && !isMatchPredictionOpen(matchDate)) {
+      toast({
+        title: "Prazo encerrado",
+        description: "O palpite só pode ser feito até o início do jogo.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSavingMatch(matchId);
 
     const predData: any = {
@@ -232,7 +242,7 @@ const BolaoDetail = () => {
     );
   }
 
-  const isMatchLocked = (match: Match) => new Date(match.match_date) <= new Date();
+  const isMatchLocked = (match: Match) => !isMatchPredictionOpen(match.match_date);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -275,11 +285,7 @@ const BolaoDetail = () => {
 
           <TabsContent value="palpites" className="space-y-3 pt-4">
             {(bolao as any).competition !== "brasileirao_2026" && (
-              <SeasonPredictions
-                bolaoId={id!}
-                userId={user!.id}
-                firstMatchDate={matches.length > 0 ? matches[0].match_date : null}
-              />
+              <SeasonPredictions bolaoId={id!} userId={user!.id} />
             )}
             {matches.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">
@@ -360,7 +366,7 @@ const RoundsAccordion = ({
   matches: Match[];
   predictions: Record<string, Prediction>;
   savingMatch: string | null;
-  onSave: (matchId: string, home: number, away: number, scorer: string, bonusAnswer?: boolean | null) => void;
+  onSave: (matchId: string, home: number, away: number, scorer: string, bonusAnswer?: boolean | null, matchDate?: string) => void;
   isMatchLocked: (m: Match) => boolean;
   isBrasileirao: boolean;
 }) => {
@@ -600,7 +606,7 @@ const MatchPredictionCard = ({
   prediction?: Tables<"predictions">;
   locked: boolean;
   saving: boolean;
-  onSave: (matchId: string, home: number, away: number, scorer: string, bonusAnswer?: boolean | null) => void;
+  onSave: (matchId: string, home: number, away: number, scorer: string, bonusAnswer?: boolean | null, matchDate?: string) => void;
   isBrasileirao?: boolean;
 }) => {
   const [homeScore, setHomeScore] = useState(prediction?.home_score?.toString() || "");
@@ -626,7 +632,7 @@ const MatchPredictionCard = ({
     const a = parseInt(awayScore);
     if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
     const ba = bonusAnswer === "sim" ? true : bonusAnswer === "nao" ? false : null;
-    onSave(match.id, h, a, scorer, ba);
+    onSave(match.id, h, a, scorer, ba, match.match_date);
   };
 
   const stageLabels: Record<string, string> = {
@@ -657,11 +663,16 @@ const MatchPredictionCard = ({
           </span>
         </div>
         <CardTitle className="text-base">
-          <span className="emoji-flag">{getFlag(match.home_team)}</span> {match.home_team} vs {match.away_team} <span className="emoji-flag">{getFlag(match.away_team)}</span>
+          <MatchTeamsDisplay homeTeam={match.home_team} awayTeam={match.away_team} size={64} style="shiny" />
         </CardTitle>
         {match.is_finished && (
           <p className="text-sm font-bold text-accent">
             Resultado: {match.home_score} × {match.away_score}
+          </p>
+        )}
+        {!locked && (
+          <p className="text-center text-xs text-muted-foreground">
+            Prazo: até {formatDeadline(matchDate)} (início do jogo)
           </p>
         )}
       </CardHeader>

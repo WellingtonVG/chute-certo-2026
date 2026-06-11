@@ -13,7 +13,7 @@ import { ArrowLeft, Copy, Loader2, MapPin } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
-import { getFlag } from "@/lib/country-flags";
+import { CountryLabel } from "@/components/CountryFlag";
 import {
   STAGE_LABELS,
   getClosestGroupName,
@@ -146,7 +146,7 @@ const Calendario = () => {
         <CardContent className="p-4">
           <div className="flex items-center">
             <span className="flex-1 font-semibold">
-              <span className="emoji-flag">{getFlag(match.home_team)}</span> {match.home_team}
+              <CountryLabel teamName={match.home_team} />
             </span>
             {match.is_finished ? (
               <span className="mx-3 min-w-[60px] text-center text-lg font-bold text-accent">
@@ -157,8 +157,8 @@ const Calendario = () => {
                 {date} {time}
               </span>
             )}
-            <span className="flex-1 text-right font-semibold">
-              {match.away_team} <span className="emoji-flag">{getFlag(match.away_team)}</span>
+            <span className="flex flex-1 justify-end font-semibold">
+              <CountryLabel teamName={match.away_team} flagPosition="end" />
             </span>
           </div>
           {(match.stadium || match.city) && (
