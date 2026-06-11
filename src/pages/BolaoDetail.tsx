@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import AdminPalpiteControl, { type BolaoMember } from "@/components/AdminPalpiteControl";
+import AdminSetupBanner from "@/components/AdminSetupBanner";
+import { adminUpsertPredictions, adminPredictionErrorMessage, buildRoundPredictionRows } from "@/lib/admin-predictions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,16 +26,21 @@ import ScoringRulesModal from "@/components/ScoringRulesModal";
 import BolaoFeed from "@/components/BolaoFeed";
 import {
   STAGE_LABELS,
-  getClosestGroupName,
   getClosestStage,
-  groupByName,
   groupByStage,
   orderedStages,
   getClosestRound,
   groupByRound,
   orderedRounds,
+  groupByDay,
+  orderedDays,
+  getClosestDay,
+  formatDayLabel,
+  getScorerMatchForRound,
+  isRoundOpen,
 } from "@/lib/match-stages";
 import squads from "@/data/squads.json";
+import RoundPredictionPanel from "@/components/RoundPredictionPanel";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
@@ -41,14 +49,22 @@ const BolaoDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [bolao, setBolao] = useState<Tables<"boloes"> | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
   const [predictions, setPredictions] = useState<Record<string, Prediction>>({});
+  const [adminPredictions, setAdminPredictions] = useState<Record<string, Prediction>>({});
+  const [bolaoMembers, setBolaoMembers] = useState<BolaoMember[]>([]);
+  const [adminTargetUserId, setAdminTargetUserId] = useState<string | null>(null);
+  const [adminTargetUsername, setAdminTargetUsername] = useState<string | null>(null);
   const [ranking, setRanking] = useState<{ username: string; total: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingMatch, setSavingMatch] = useState<string | null>(null);
+  const [savingRound, setSavingRound] = useState<string | null>(null);
+
+  const isAdminPalpiteMode = !!adminTargetUserId;
+  const activePredictions = isAdminPalpiteMode ? adminPredictions : predictions;
 
   const fetchRanking = async (bolaoId: string, competition: string) => {
     const { data: allPreds } = await supabase
@@ -130,6 +146,68 @@ const BolaoDetail = () => {
     fetchData();
   }, [id, user]);
 
+  useEffect(() => {
+    if (!id || !isAdmin) return;
+    const fetchMembers = async () => {
+      const { data: memberRows } = await supabase
+        .from("bolao_members")
+        .select("user_id")
+        .eq("bolao_id", id);
+      const userIds = (memberRows || []).map((m) => m.user_id);
+      if (userIds.length === 0) {
+        setBolaoMembers([]);
+        return;
+      }
+      const { data: profileRows } = await supabase
+        .from("profiles")
+        .select("user_id, username")
+        .in("user_id", userIds);
+      const usernameById = Object.fromEntries(
+        (profileRows || []).map((p) => [p.user_id, p.username])
+      );
+      const members: BolaoMember[] = userIds
+        .map((uid) => ({ user_id: uid, username: usernameById[uid] || "?" }))
+        .sort((a, b) => a.username.localeCompare(b.username));
+      setBolaoMembers(members);
+    };
+    fetchMembers();
+  }, [id, isAdmin]);
+
+  const loadPredictionsForUser = async (userId: string): Promise<Record<string, Prediction>> => {
+    if (!id) return {};
+    const { data } = await supabase
+      .from("predictions")
+      .select("*")
+      .eq("bolao_id", id)
+      .eq("user_id", userId);
+    const predsMap: Record<string, Prediction> = {};
+    (data || []).forEach((p) => {
+      predsMap[p.match_id] = p;
+    });
+    return predsMap;
+  };
+
+  const handleAdminSelectUser = async (userId: string) => {
+    const member = bolaoMembers.find((m) => m.user_id === userId);
+    setAdminTargetUserId(userId);
+    setAdminTargetUsername(member?.username ?? null);
+    setAdminPredictions(await loadPredictionsForUser(userId));
+  };
+
+  const handleAdminClear = () => {
+    setAdminTargetUserId(null);
+    setAdminTargetUsername(null);
+    setAdminPredictions({});
+  };
+
+  const refreshActivePredictions = async () => {
+    if (!id || !user) return;
+    const userId = isAdminPalpiteMode ? adminTargetUserId! : user.id;
+    const predsMap = await loadPredictionsForUser(userId);
+    if (isAdminPalpiteMode) setAdminPredictions(predsMap);
+    else setPredictions(predsMap);
+  };
+
   // Realtime subscription to refresh ranking when predictions change
   useEffect(() => {
     if (!id || !bolao) return;
@@ -158,7 +236,7 @@ const BolaoDetail = () => {
     matchDate?: string
   ) => {
     if (!user || !id) return;
-    if (matchDate && !isMatchPredictionOpen(matchDate)) {
+    if (!isAdminPalpiteMode && matchDate && !isMatchPredictionOpen(matchDate)) {
       toast({
         title: "Prazo encerrado",
         description: "O palpite só pode ser feito até o início do jogo.",
@@ -167,6 +245,27 @@ const BolaoDetail = () => {
       return;
     }
     setSavingMatch(matchId);
+
+    if (isAdminPalpiteMode && adminTargetUserId) {
+      const { error } = await adminUpsertPredictions(id, adminTargetUserId, [
+        {
+          match_id: matchId,
+          home_score: homeScore,
+          away_score: awayScore,
+          scorer_name: scorerName || null,
+          ...(bonusAnswer !== undefined ? { bonus_answer: bonusAnswer } : {}),
+        },
+      ]);
+      setSavingMatch(null);
+      if (error) {
+        toast({ title: "Erro ao salvar", description: adminPredictionErrorMessage(error), variant: "destructive" });
+        return;
+      }
+      await refreshActivePredictions();
+      if (bolao) await fetchRanking(id, (bolao as any).competition || "copa_do_mundo_2026");
+      toast({ title: `Palpite de @${adminTargetUsername} salvo!` });
+      return;
+    }
 
     const predData: any = {
       home_score: homeScore,
@@ -190,19 +289,75 @@ const BolaoDetail = () => {
       } as any);
     }
 
-    // Refresh predictions
-    const { data } = await supabase
-      .from("predictions")
-      .select("*")
-      .eq("bolao_id", id)
-      .eq("user_id", user.id);
-    const predsMap: Record<string, Prediction> = {};
-    (data || []).forEach((p) => {
-      predsMap[p.match_id] = p;
-    });
-    setPredictions(predsMap);
+    await refreshActivePredictions();
     setSavingMatch(null);
     toast({ title: "Palpite salvo!" });
+  };
+
+  const saveRoundPrediction = async (
+    roundMatches: Match[],
+    scores: Record<string, { home: number; away: number }>,
+    scorerName: string
+  ) => {
+    if (!user || !id) return;
+    if (!isAdminPalpiteMode && !isRoundOpen(roundMatches)) {
+      toast({
+        title: "Prazo encerrado",
+        description: "A rodada fecha no início do primeiro jogo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const dayKey = roundMatches.map((m) => m.id).join(",");
+    setSavingRound(dayKey);
+
+    if (isAdminPalpiteMode && adminTargetUserId) {
+      const rows = buildRoundPredictionRows(roundMatches, scores, scorerName);
+      const { error } = await adminUpsertPredictions(id, adminTargetUserId, rows);
+      setSavingRound(null);
+      if (error) {
+        toast({ title: "Erro ao salvar", description: adminPredictionErrorMessage(error), variant: "destructive" });
+        return;
+      }
+      await refreshActivePredictions();
+      if (bolao) await fetchRanking(id, (bolao as any).competition || "copa_do_mundo_2026");
+      toast({ title: `Palpites de @${adminTargetUsername} salvos!` });
+      return;
+    }
+
+    const scorerMatchId = getScorerMatchForRound(roundMatches).id;
+    const rows = roundMatches.map((match) => {
+      const existing = predictions[match.id];
+      const { home, away } = scores[match.id];
+      return {
+        ...(existing ? { id: existing.id } : {}),
+        bolao_id: id,
+        user_id: user.id,
+        match_id: match.id,
+        home_score: home,
+        away_score: away,
+        scorer_name: match.id === scorerMatchId ? scorerName : null,
+      };
+    });
+
+    const { error } = await supabase.from("predictions").upsert(rows, {
+      onConflict: "bolao_id,user_id,match_id",
+    });
+
+    setSavingRound(null);
+
+    if (error) {
+      toast({
+        title: "Erro ao salvar",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await refreshActivePredictions();
+    toast({ title: "Palpites da rodada salvos!" });
   };
 
   const shareRanking = () => {
@@ -242,7 +397,8 @@ const BolaoDetail = () => {
     );
   }
 
-  const isMatchLocked = (match: Match) => !isMatchPredictionOpen(match.match_date);
+  const isMatchLocked = (match: Match) =>
+    !isAdminPalpiteMode && !isMatchPredictionOpen(match.match_date);
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -283,8 +439,18 @@ const BolaoDetail = () => {
             )}
           </TabsList>
 
-          <TabsContent value="palpites" className="space-y-3 pt-4">
-            {(bolao as any).competition !== "brasileirao_2026" && (
+          <TabsContent value="palpites" className="relative space-y-3 pt-4">
+            {isAdmin && <AdminSetupBanner />}
+            {isAdmin && (
+              <AdminPalpiteControl
+                members={bolaoMembers}
+                targetUserId={adminTargetUserId}
+                targetUsername={adminTargetUsername}
+                onSelectUser={handleAdminSelectUser}
+                onClear={handleAdminClear}
+              />
+            )}
+            {(bolao as any).competition !== "brasileirao_2026" && !isAdminPalpiteMode && (
               <SeasonPredictions bolaoId={id!} userId={user!.id} />
             )}
             {matches.length === 0 ? (
@@ -294,10 +460,13 @@ const BolaoDetail = () => {
             ) : (
               <RoundsAccordion
                 matches={matches}
-                predictions={predictions}
+                predictions={activePredictions}
                 savingMatch={savingMatch}
+                savingRound={savingRound}
                 onSave={savePrediction}
+                onSaveRound={saveRoundPrediction}
                 isMatchLocked={isMatchLocked}
+                forceEditable={isAdminPalpiteMode}
                 isBrasileirao={(bolao as any).competition === "brasileirao_2026"}
               />
             )}
@@ -359,15 +528,25 @@ const RoundsAccordion = ({
   matches,
   predictions,
   savingMatch,
+  savingRound,
   onSave,
+  onSaveRound,
   isMatchLocked,
+  forceEditable = false,
   isBrasileirao,
 }: {
   matches: Match[];
   predictions: Record<string, Prediction>;
   savingMatch: string | null;
+  savingRound: string | null;
   onSave: (matchId: string, home: number, away: number, scorer: string, bonusAnswer?: boolean | null, matchDate?: string) => void;
+  onSaveRound: (
+    roundMatches: Match[],
+    scores: Record<string, { home: number; away: number }>,
+    scorerName: string
+  ) => Promise<void>;
   isMatchLocked: (m: Match) => boolean;
+  forceEditable?: boolean;
   isBrasileirao: boolean;
 }) => {
   // Brasileirão: group by round_name
@@ -379,17 +558,14 @@ const RoundsAccordion = ({
   const byStage = useMemo(() => groupByStage(matches), [matches]);
   const stages = useMemo(() => orderedStages(byStage), [byStage]);
   const closestStage = useMemo(() => getClosestStage(matches), [matches]);
-  const closestGroup = useMemo(() => getClosestGroupName(matches), [matches]);
-  const allGroupNames = useMemo(
-    () => Object.keys(groupByName(byStage["group"] || [])),
-    [byStage]
-  );
+  const groupStageMatches = byStage["group"] || [];
+  const byDay = useMemo(() => groupByDay(groupStageMatches), [groupStageMatches]);
+  const days = useMemo(() => orderedDays(byDay), [byDay]);
+  const closestDay = useMemo(() => getClosestDay(groupStageMatches), [groupStageMatches]);
 
   const [openRounds, setOpenRounds] = useState<string[]>([]);
   const [openStages, setOpenStages] = useState<string[]>([]);
-  const [openGroups, setOpenGroups] = useState<string[]>([]);
-  const [openGroupRounds, setOpenGroupRounds] = useState<string[]>([]);
-  const [groupViewMode, setGroupViewMode] = useState<"round" | "group">("round");
+  const [openGroupDays, setOpenGroupDays] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -400,31 +576,26 @@ const RoundsAccordion = ({
     } else {
       if (stages.length === 0) return;
       setOpenStages(closestStage ? [closestStage] : []);
-      setOpenGroups(closestGroup ? [closestGroup] : []);
-      const groupStageMatches = byStage["group"] || [];
-      if (groupStageMatches.length > 0) {
-        const closestGroupRound = getClosestRound(groupStageMatches);
-        setOpenGroupRounds(closestGroupRound ? [closestGroupRound] : []);
-      }
+      setOpenGroupDays(closestDay ? [closestDay] : []);
     }
     setInitialized(true);
-  }, [isBrasileirao, rounds, stages, closestRound, closestStage, closestGroup, initialized, byStage]);
+  }, [isBrasileirao, rounds, stages, closestRound, closestStage, closestDay, initialized]);
 
   const allExpanded = isBrasileirao
     ? rounds.length > 0 && openRounds.length === rounds.length
     : stages.length > 0 &&
       openStages.length === stages.length &&
-      openGroups.length === allGroupNames.length;
+      (days.length === 0 || openGroupDays.length === days.length);
 
   const toggleAll = () => {
     if (isBrasileirao) {
       setOpenRounds(allExpanded ? [] : [...rounds]);
     } else if (allExpanded) {
       setOpenStages([]);
-      setOpenGroups([]);
+      setOpenGroupDays([]);
     } else {
       setOpenStages([...stages]);
-      setOpenGroups([...allGroupNames]);
+      setOpenGroupDays([...days]);
     }
   };
 
@@ -434,37 +605,16 @@ const RoundsAccordion = ({
       match={match}
       prediction={predictions[match.id]}
       locked={isMatchLocked(match)}
+      forceEditable={forceEditable}
       saving={savingMatch === match.id}
       onSave={onSave}
       isBrasileirao={isBrasileirao}
     />
   );
 
-  const showGroupToggle = !isBrasileirao && (byStage["group"]?.length ?? 0) > 0;
-
   return (
     <>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        {showGroupToggle ? (
-          <div className="flex gap-1">
-            <Button
-              type="button"
-              variant={groupViewMode === "round" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setGroupViewMode("round")}
-            >
-              Por Rodada
-            </Button>
-            <Button
-              type="button"
-              variant={groupViewMode === "group" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setGroupViewMode("group")}
-            >
-              Por Grupo
-            </Button>
-          </div>
-        ) : <span />}
+      <div className="mb-3 flex items-center justify-end gap-2">
         <Button variant="outline" size="sm" onClick={toggleAll}>
           {allExpanded ? "Recolher tudo" : "Expandir tudo"}
         </Button>
@@ -524,62 +674,41 @@ const RoundsAccordion = ({
                 </AccordionTrigger>
                 <AccordionContent>
                   {stage === "group" ? (
-                    groupViewMode === "round" ? (
-                      <Accordion
-                        type="multiple"
-                        value={openGroupRounds}
-                        onValueChange={setOpenGroupRounds}
-                        className="space-y-2"
-                      >
-                        {Object.entries(groupByRound(stageMatches))
-                          .sort(([a], [b]) => a.localeCompare(b))
-                          .map(([roundName, roundMatches]) => (
-                            <AccordionItem
-                              key={roundName}
-                              value={roundName}
-                              className="rounded-md border bg-background px-3"
-                            >
-                              <AccordionTrigger className="hover:no-underline py-2 text-sm">
-                                {roundName}
-                                <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                  {roundMatches.length} jogos
-                                </span>
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                <div className="space-y-2">
-                                  {roundMatches.map(renderCard)}
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          ))}
-                      </Accordion>
-                    ) : (
-                      <Accordion
-                        type="multiple"
-                        value={openGroups}
-                        onValueChange={setOpenGroups}
-                        className="space-y-2"
-                      >
-                        {Object.entries(groupByName(stageMatches))
-                          .sort(([a], [b]) => a.localeCompare(b))
-                          .map(([groupName, groupMatches]) => (
-                            <AccordionItem
-                              key={groupName}
-                              value={groupName}
-                              className="rounded-md border bg-background px-3"
-                            >
-                              <AccordionTrigger className="hover:no-underline py-2 text-sm">
-                                Grupo {groupName.replace(/^Grupo\s+/i, "")}
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                <div className="space-y-2">
-                                  {groupMatches.map(renderCard)}
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          ))}
-                      </Accordion>
-                    )
+                    <Accordion
+                      type="multiple"
+                      value={openGroupDays}
+                      onValueChange={setOpenGroupDays}
+                      className="space-y-2"
+                    >
+                      {days.map((day) => {
+                        const dayMatches = byDay[day];
+                        const roundSavingKey = dayMatches.map((m) => m.id).join(",");
+                        return (
+                          <AccordionItem
+                            key={day}
+                            value={day}
+                            className="rounded-md border bg-background px-3"
+                          >
+                            <AccordionTrigger className="hover:no-underline py-2 text-sm">
+                              {formatDayLabel(day, dayMatches)}
+                              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                {dayMatches.length} jogos
+                              </span>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <RoundPredictionPanel
+                                dayKey={day}
+                                matches={dayMatches}
+                                predictions={predictions}
+                                saving={savingRound === roundSavingKey}
+                                forceEditable={forceEditable}
+                                onSaveRound={onSaveRound}
+                              />
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                    </Accordion>
                   ) : (
                     <div className="space-y-2">{stageMatches.map(renderCard)}</div>
                   )}
@@ -598,6 +727,7 @@ const MatchPredictionCard = ({
   match,
   prediction,
   locked,
+  forceEditable = false,
   saving,
   onSave,
   isBrasileirao = false,
@@ -605,10 +735,12 @@ const MatchPredictionCard = ({
   match: Tables<"matches">;
   prediction?: Tables<"predictions">;
   locked: boolean;
+  forceEditable?: boolean;
   saving: boolean;
   onSave: (matchId: string, home: number, away: number, scorer: string, bonusAnswer?: boolean | null, matchDate?: string) => void;
   isBrasileirao?: boolean;
 }) => {
+  const isEditable = forceEditable || !locked;
   const [homeScore, setHomeScore] = useState(prediction?.home_score?.toString() || "");
   const [awayScore, setAwayScore] = useState(prediction?.away_score?.toString() || "");
   const [scorer, setScorer] = useState(prediction?.scorer_name || "");
@@ -648,7 +780,7 @@ const MatchPredictionCard = ({
   const matchDate = new Date(match.match_date);
 
   return (
-    <Card className={locked ? "opacity-70" : ""}>
+    <Card className={!isEditable ? "opacity-70" : ""}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground">
@@ -670,14 +802,18 @@ const MatchPredictionCard = ({
             Resultado: {match.home_score} × {match.away_score}
           </p>
         )}
-        {!locked && (
+        {forceEditable ? (
+          <p className="text-center text-xs font-medium text-amber-700 dark:text-amber-300">
+            Modo admin — prazo ignorado
+          </p>
+        ) : !locked ? (
           <p className="text-center text-xs text-muted-foreground">
             Prazo: até {formatDeadline(matchDate)} (início do jogo)
           </p>
-        )}
+        ) : null}
       </CardHeader>
       <CardContent>
-        {locked ? (
+        {!isEditable ? (
           prediction ? (
             <div className="space-y-1 text-sm">
               <p>
@@ -790,7 +926,13 @@ const MatchPredictionCard = ({
               </div>
             ) : null}
             <Button size="sm" onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : forceEditable ? (
+                "Salvar palpite do participante"
+              ) : (
+                "Salvar"
+              )}
             </Button>
           </div>
         )}

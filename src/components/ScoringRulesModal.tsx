@@ -62,7 +62,10 @@ const ScoringRulesModal = () => {
           </div>
 
           <div>
-            <h3 className="mb-2 font-semibold text-primary">🎯 Goleador do Jogo</h3>
+            <h3 className="mb-2 font-semibold text-primary">🎯 Goleador</h3>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Fase de grupos: 1 goleador por rodada (dia). Eliminatórias: 1 por jogo.
+            </p>
             <ul className="space-y-1.5 text-muted-foreground">
               <li className="flex justify-between">
                 <span>Acertou o goleador</span>

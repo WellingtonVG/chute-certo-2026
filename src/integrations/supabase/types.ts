@@ -500,6 +500,14 @@ export type Database = {
         Args: { bonus_result_input: boolean; match_id_input: string }
         Returns: undefined
       }
+      admin_upsert_predictions: {
+        Args: {
+          bolao_id_input: string
+          target_user_id: string
+          predictions_input: Json
+        }
+        Returns: undefined
+      }
       calculate_match_points: {
         Args: { match_id_input: string }
         Returns: undefined
