@@ -14,6 +14,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
 import { format, addDays, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { SEASON_PREDICTION_POINTS } from "@/lib/season-predictions";
 
 type Match = Tables<"matches">;
 type Bolao = Tables<"boloes"> & { invite_created_at?: string };
@@ -642,6 +643,120 @@ const Admin = () => {
   );
 };
 
+const SeasonResultsEditor = () => {
+  const { toast } = useToast();
+  const competition = "copa_do_mundo_2026";
+  const [champion, setChampion] = useState("");
+  const [topScorer, setTopScorer] = useState("");
+  const [bestPlayer, setBestPlayer] = useState("");
+  const [revelationPlayer, setRevelationPlayer] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [calculating, setCalculating] = useState(false);
+
+  useEffect(() => {
+    const fetch = async () => {
+      const { data } = await supabase
+        .from("competition_season_results")
+        .select("*")
+        .eq("competition", competition)
+        .maybeSingle();
+
+      if (data) {
+        setChampion(data.champion || "");
+        setTopScorer(data.top_scorer || "");
+        setBestPlayer(data.best_player || "");
+        setRevelationPlayer(data.revelation_player || "");
+      }
+      setLoading(false);
+    };
+    fetch();
+  }, []);
+
+  const saveResults = async () => {
+    setSaving(true);
+    const { error } = await supabase.from("competition_season_results").upsert({
+      competition,
+      champion: champion || null,
+      top_scorer: topScorer || null,
+      best_player: bestPlayer || null,
+      revelation_player: revelationPlayer || null,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Resultados oficiais salvos!" });
+    }
+    setSaving(false);
+  };
+
+  const calculatePoints = async () => {
+    setCalculating(true);
+    const { data, error } = await supabase.rpc("calculate_season_prediction_points", {
+      competition_input: competition,
+    });
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({
+        title: "Pontos calculados!",
+        description: `${data} palpite(s) especial(is) atualizado(s).`,
+      });
+    }
+    setCalculating(false);
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-6">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Palpites Especiais — Resultados Oficiais</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Cada acerto vale {SEASON_PREDICTION_POINTS} pontos
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div>
+          <Label className="text-xs">Campeão</Label>
+          <Input value={champion} onChange={(e) => setChampion(e.target.value)} placeholder="Ex: Brasil" />
+        </div>
+        <div>
+          <Label className="text-xs">Artilheiro</Label>
+          <Input value={topScorer} onChange={(e) => setTopScorer(e.target.value)} placeholder="Ex: Mbappé" />
+        </div>
+        <div>
+          <Label className="text-xs">Melhor Jogador</Label>
+          <Input value={bestPlayer} onChange={(e) => setBestPlayer(e.target.value)} placeholder="Ex: Vinícius Jr" />
+        </div>
+        <div>
+          <Label className="text-xs">Jogador Revelação</Label>
+          <Input value={revelationPlayer} onChange={(e) => setRevelationPlayer(e.target.value)} placeholder="Ex: Endrick" />
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={saveResults} disabled={saving} className="flex-1">
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Salvar
+          </Button>
+          <Button onClick={calculatePoints} disabled={calculating} variant="secondary" className="flex-1">
+            {calculating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Calcular pontos
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const ResultsTab = ({
   matches,
   onSave,
@@ -676,6 +791,8 @@ const ResultsTab = ({
           <SelectItem value="brasileirao_2026">Brasileirão</SelectItem>
         </SelectContent>
       </Select>
+
+      {competition === "copa_do_mundo_2026" && <SeasonResultsEditor />}
 
       {competition === "brasileirao_2026" ? (
         Object.entries(byRound).map(([round, roundMatches]) => (

@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Info } from "lucide-react";
+import { SEASON_PREDICTION_POINTS } from "@/lib/season-predictions";
 
 const ScoringRulesModal = () => {
   return (
@@ -86,15 +87,19 @@ const ScoringRulesModal = () => {
             <ul className="space-y-1.5 text-muted-foreground">
               <li className="flex justify-between">
                 <span>Campeão da Copa</span>
-                <span className="font-bold text-foreground">30 pts</span>
+                <span className="font-bold text-foreground">{SEASON_PREDICTION_POINTS} pts</span>
               </li>
               <li className="flex justify-between">
                 <span>Melhor Jogador da Copa</span>
-                <span className="font-bold text-foreground">25 pts</span>
+                <span className="font-bold text-foreground">{SEASON_PREDICTION_POINTS} pts</span>
               </li>
               <li className="flex justify-between">
                 <span>Artilheiro da Copa</span>
-                <span className="font-bold text-foreground">20 pts</span>
+                <span className="font-bold text-foreground">{SEASON_PREDICTION_POINTS} pts</span>
+              </li>
+              <li className="flex justify-between">
+                <span>Jogador Revelação</span>
+                <span className="font-bold text-foreground">{SEASON_PREDICTION_POINTS} pts</span>
               </li>
               <li className="text-xs italic">
                 Bloqueados após o primeiro jogo da Copa

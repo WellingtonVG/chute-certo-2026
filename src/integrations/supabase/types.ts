@@ -76,6 +76,33 @@ export type Database = {
         }
         Relationships: []
       }
+      competition_season_results: {
+        Row: {
+          best_player: string | null
+          champion: string | null
+          competition: string
+          revelation_player: string | null
+          top_scorer: string | null
+          updated_at: string
+        }
+        Insert: {
+          best_player?: string | null
+          champion?: string | null
+          competition: string
+          revelation_player?: string | null
+          top_scorer?: string | null
+          updated_at?: string
+        }
+        Update: {
+          best_player?: string | null
+          champion?: string | null
+          competition?: string
+          revelation_player?: string | null
+          top_scorer?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       feed_events: {
         Row: {
           bolao_id: string
@@ -399,6 +426,8 @@ export type Database = {
           champion_points: number | null
           created_at: string
           id: string
+          revelation_player: string | null
+          revelation_player_points: number | null
           top_scorer: string | null
           top_scorer_points: number | null
           updated_at: string
@@ -412,6 +441,8 @@ export type Database = {
           champion_points?: number | null
           created_at?: string
           id?: string
+          revelation_player?: string | null
+          revelation_player_points?: number | null
           top_scorer?: string | null
           top_scorer_points?: number | null
           updated_at?: string
@@ -425,6 +456,8 @@ export type Database = {
           champion_points?: number | null
           created_at?: string
           id?: string
+          revelation_player?: string | null
+          revelation_player_points?: number | null
           top_scorer?: string | null
           top_scorer_points?: number | null
           updated_at?: string
@@ -470,6 +503,10 @@ export type Database = {
       calculate_match_points: {
         Args: { match_id_input: string }
         Returns: undefined
+      }
+      calculate_season_prediction_points: {
+        Args: { competition_input: string }
+        Returns: number
       }
       get_user_bolao_ids: { Args: never; Returns: string[] }
       has_role: {

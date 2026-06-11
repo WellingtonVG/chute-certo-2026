@@ -109,13 +109,13 @@ Deno.serve(async (req) => {
       // Season predictions
       const { data: season } = await admin
         .from("season_predictions")
-        .select("user_id, champion_points, top_scorer_points, best_player_points")
+        .select("user_id, champion_points, top_scorer_points, best_player_points, revelation_player_points")
         .eq("bolao_id", bolaoId);
 
       const seasonMap: Record<string, number> = {};
       (season || []).forEach((s: any) => {
         seasonMap[s.user_id] =
-          (s.champion_points || 0) + (s.top_scorer_points || 0) + (s.best_player_points || 0);
+          (s.champion_points || 0) + (s.top_scorer_points || 0) + (s.best_player_points || 0) + (s.revelation_player_points || 0);
       });
 
       // Build current ranking

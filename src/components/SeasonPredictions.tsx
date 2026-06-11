@@ -4,33 +4,97 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Lock, Trophy, Star, Target } from "lucide-react";
+import { Loader2, Lock, Trophy, Star, Target, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getFlag, allTeams } from "@/lib/country-flags";
+import { SEASON_PREDICTION_POINTS } from "@/lib/season-predictions";
 import squads from "@/data/squads.json";
 
 interface SeasonPredictionsProps {
   bolaoId: string;
   userId: string;
-  firstMatchDate: string | null; // ISO string of earliest match
+  firstMatchDate: string | null;
 }
+
+const PlayerInput = ({
+  label,
+  icon: Icon,
+  placeholder,
+  value,
+  onChange,
+  allPlayers,
+}: {
+  label: string;
+  icon: typeof Star;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+  allPlayers: string[];
+}) => {
+  const [filtered, setFiltered] = useState<string[]>([]);
+
+  return (
+    <div>
+      <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" /> {label}
+        <span className="ml-auto text-accent">{SEASON_PREDICTION_POINTS} pts</span>
+      </label>
+      <div className="relative">
+        <Input
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            const q = e.target.value.toLowerCase();
+            setFiltered(
+              q.length >= 3
+                ? allPlayers.filter((p) => p.toLowerCase().includes(q)).slice(0, 8)
+                : []
+            );
+          }}
+          onBlur={() => setTimeout(() => setFiltered([]), 150)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setFiltered([]);
+          }}
+        />
+        {filtered.length > 0 && (
+          <ul className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+            {filtered.map((p) => (
+              <li
+                key={p}
+                className="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(p);
+                  setFiltered([]);
+                }}
+              >
+                {p}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPredictionsProps) => {
   const { toast } = useToast();
   const [champion, setChampion] = useState("");
   const [bestPlayer, setBestPlayer] = useState("");
   const [topScorer, setTopScorer] = useState("");
+  const [revelationPlayer, setRevelationPlayer] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [existingId, setExistingId] = useState<string | null>(null);
-  const [bestPlayerSuggestions, setBestPlayerSuggestions] = useState<string[]>([]);
-  const [topScorerSuggestions, setTopScorerSuggestions] = useState<string[]>([]);
 
   const locked = firstMatchDate ? new Date(firstMatchDate) <= new Date() : false;
 
-  const allPlayers = useMemo(() =>
-    Object.values(squads as Record<string, string[]>).flat().sort((a, b) => a.localeCompare(b))
-  , []);
+  const allPlayers = useMemo(
+    () => Object.values(squads as Record<string, string[]>).flat().sort((a, b) => a.localeCompare(b)),
+    []
+  );
 
   useEffect(() => {
     const fetch = async () => {
@@ -44,7 +108,8 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
       if (data) {
         setChampion(data.champion || "");
         setTopScorer(data.top_scorer || "");
-        setBestPlayer((data as any).best_player || "");
+        setBestPlayer(data.best_player || "");
+        setRevelationPlayer(data.revelation_player || "");
         setExistingId(data.id);
       }
       setLoading(false);
@@ -53,13 +118,14 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
   }, [bolaoId, userId]);
 
   const handleSave = async () => {
-    if (!champion && !bestPlayer && !topScorer) return;
+    if (!champion && !bestPlayer && !topScorer && !revelationPlayer) return;
     setSaving(true);
 
-    const payload: any = {
+    const payload = {
       champion: champion || null,
       top_scorer: topScorer || null,
       best_player: bestPlayer || null,
+      revelation_player: revelationPlayer || null,
     };
 
     if (existingId) {
@@ -72,18 +138,19 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
       });
     }
 
-    // Refresh
     const { data } = await supabase
       .from("season_predictions")
       .select("*")
       .eq("bolao_id", bolaoId)
       .eq("user_id", userId)
       .maybeSingle();
+
     if (data) {
       setExistingId(data.id);
       setChampion(data.champion || "");
       setTopScorer(data.top_scorer || "");
-      setBestPlayer((data as any).best_player || "");
+      setBestPlayer(data.best_player || "");
+      setRevelationPlayer(data.revelation_player || "");
     }
 
     setSaving(false);
@@ -115,20 +182,34 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
             <div className="flex items-center gap-2">
               <Trophy className="h-4 w-4 text-accent" />
               <span>Campeão:</span>
-              <span className="font-bold">{champion ? <><span className="emoji-flag">{getFlag(champion)}</span> {champion}</> : "—"}</span>
-              <span className="ml-auto text-xs text-muted-foreground">30 pts</span>
+              <span className="font-bold">
+                {champion ? (
+                  <>
+                    <span className="emoji-flag">{getFlag(champion)}</span> {champion}
+                  </>
+                ) : (
+                  "—"
+                )}
+              </span>
+              <span className="ml-auto text-xs text-muted-foreground">{SEASON_PREDICTION_POINTS} pts</span>
             </div>
             <div className="flex items-center gap-2">
               <Star className="h-4 w-4 text-accent" />
               <span>Melhor Jogador:</span>
               <span className="font-bold">{bestPlayer || "—"}</span>
-              <span className="ml-auto text-xs text-muted-foreground">25 pts</span>
+              <span className="ml-auto text-xs text-muted-foreground">{SEASON_PREDICTION_POINTS} pts</span>
             </div>
             <div className="flex items-center gap-2">
               <Target className="h-4 w-4 text-accent" />
               <span>Artilheiro:</span>
               <span className="font-bold">{topScorer || "—"}</span>
-              <span className="ml-auto text-xs text-muted-foreground">20 pts</span>
+              <span className="ml-auto text-xs text-muted-foreground">{SEASON_PREDICTION_POINTS} pts</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-accent" />
+              <span>Jogador Revelação:</span>
+              <span className="font-bold">{revelationPlayer || "—"}</span>
+              <span className="ml-auto text-xs text-muted-foreground">{SEASON_PREDICTION_POINTS} pts</span>
             </div>
           </div>
         ) : (
@@ -136,7 +217,7 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
             <div>
               <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <Trophy className="h-3.5 w-3.5" /> Campeão da Copa
-                <span className="ml-auto text-accent">30 pts</span>
+                <span className="ml-auto text-accent">{SEASON_PREDICTION_POINTS} pts</span>
               </label>
               <Select value={champion} onValueChange={setChampion}>
                 <SelectTrigger>
@@ -151,74 +232,30 @@ const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPrediction
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <Star className="h-3.5 w-3.5" /> Melhor Jogador da Copa
-                <span className="ml-auto text-accent">25 pts</span>
-              </label>
-              <div className="relative">
-                <Input
-                  placeholder="Ex: Vinícius Jr"
-                  value={bestPlayer}
-                  onChange={(e) => {
-                    setBestPlayer(e.target.value);
-                    const q = e.target.value.toLowerCase();
-                    setBestPlayerSuggestions(q.length >= 3
-                      ? allPlayers.filter(p => p.toLowerCase().includes(q)).slice(0, 8)
-                      : []);
-                  }}
-                  onBlur={() => setTimeout(() => setBestPlayerSuggestions([]), 150)}
-                  onKeyDown={(e) => { if (e.key === "Escape") setBestPlayerSuggestions([]); }}
-                />
-                {bestPlayerSuggestions.length > 0 && (
-                  <ul className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
-                    {bestPlayerSuggestions.map((p) => (
-                      <li
-                        key={p}
-                        className="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                        onMouseDown={(e) => { e.preventDefault(); setBestPlayer(p); setBestPlayerSuggestions([]); }}
-                      >
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-            <div>
-              <label className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <Target className="h-3.5 w-3.5" /> Artilheiro da Copa
-                <span className="ml-auto text-accent">20 pts</span>
-              </label>
-              <div className="relative">
-                <Input
-                  placeholder="Ex: Mbappé"
-                  value={topScorer}
-                  onChange={(e) => {
-                    setTopScorer(e.target.value);
-                    const q = e.target.value.toLowerCase();
-                    setTopScorerSuggestions(q.length >= 3
-                      ? allPlayers.filter(p => p.toLowerCase().includes(q)).slice(0, 8)
-                      : []);
-                  }}
-                  onBlur={() => setTimeout(() => setTopScorerSuggestions([]), 150)}
-                  onKeyDown={(e) => { if (e.key === "Escape") setTopScorerSuggestions([]); }}
-                />
-                {topScorerSuggestions.length > 0 && (
-                  <ul className="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
-                    {topScorerSuggestions.map((p) => (
-                      <li
-                        key={p}
-                        className="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                        onMouseDown={(e) => { e.preventDefault(); setTopScorer(p); setTopScorerSuggestions([]); }}
-                      >
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
+            <PlayerInput
+              label="Melhor Jogador da Copa"
+              icon={Star}
+              placeholder="Ex: Vinícius Jr"
+              value={bestPlayer}
+              onChange={setBestPlayer}
+              allPlayers={allPlayers}
+            />
+            <PlayerInput
+              label="Artilheiro da Copa"
+              icon={Target}
+              placeholder="Ex: Mbappé"
+              value={topScorer}
+              onChange={setTopScorer}
+              allPlayers={allPlayers}
+            />
+            <PlayerInput
+              label="Jogador Revelação"
+              icon={Sparkles}
+              placeholder="Ex: Endrick"
+              value={revelationPlayer}
+              onChange={setRevelationPlayer}
+              allPlayers={allPlayers}
+            />
             <Button size="sm" onClick={handleSave} disabled={saving} className="w-full">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar Palpites Especiais"}
             </Button>
