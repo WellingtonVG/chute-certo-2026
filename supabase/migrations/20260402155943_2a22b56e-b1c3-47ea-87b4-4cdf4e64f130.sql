@@ -1,3 +1,5 @@
+-- Required for invite_code defaults (gen_random_bytes)
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 -- Enums
 CREATE TYPE public.app_role AS ENUM ('admin', 'moderator', 'user');
@@ -85,7 +87,7 @@ ALTER TABLE public.bolao_members ENABLE ROW LEVEL SECURITY;
 CREATE TABLE public.boloes (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
-  invite_code TEXT NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(6), 'hex'),
+  invite_code TEXT NOT NULL UNIQUE DEFAULT encode(extensions.gen_random_bytes(6), 'hex'),
   created_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
