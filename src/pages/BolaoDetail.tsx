@@ -407,14 +407,22 @@ const BolaoDetail = () => {
       return;
     }
 
-    const savingKey = roundKey;
-    setSavingRound(savingKey);
+    const matchIds = Object.keys(scores);
+    const isSingleMatchSave = matchIds.length === 1 && !scorerName.trim();
+    const isScorerOnlySave = matchIds.length === 0 && scorerName.trim();
+
+    if (isSingleMatchSave) {
+      setSavingMatch(matchIds[0]);
+    } else {
+      setSavingRound(roundKey);
+    }
 
     const targetUserId = isAdminPalpiteMode ? adminTargetUserId! : user.id;
     const rows = buildRoundPredictionRows(roundMatches, scores);
 
     if (isAdminPalpiteMode && adminTargetUserId) {
       if (rows.length === 0 && !scorerName.trim()) {
+        setSavingMatch(null);
         setSavingRound(null);
         toast({
           title: "Nada para salvar",
@@ -427,6 +435,7 @@ const BolaoDetail = () => {
       if (rows.length > 0) {
         const { error } = await adminUpsertPredictions(id, adminTargetUserId, rows);
         if (error) {
+          setSavingMatch(null);
           setSavingRound(null);
           toast({ title: "Erro ao salvar", description: adminPredictionErrorMessage(error), variant: "destructive" });
           return;
@@ -440,15 +449,23 @@ const BolaoDetail = () => {
           scorerName
         );
         if (rpError) {
+          setSavingMatch(null);
           setSavingRound(null);
           toast({ title: "Erro ao salvar artilheiro", description: rpError.message, variant: "destructive" });
           return;
         }
       }
+      setSavingMatch(null);
       setSavingRound(null);
       await refreshActivePredictions();
       if (bolao) await fetchRanking(id, (bolao as any).competition || "copa_do_mundo_2026");
-      toast({ title: `Palpites de @${adminTargetUsername} salvos!` });
+      const adminToast =
+        rows.length === 1 && !scorerName.trim()
+          ? `Palpite de @${adminTargetUsername} salvo!`
+          : isScorerOnlySave
+          ? `Artilheiro de @${adminTargetUsername} salvo!`
+          : `Palpites de @${adminTargetUsername} salvos!`;
+      toast({ title: adminToast });
       return;
     }
 
@@ -459,6 +476,7 @@ const BolaoDetail = () => {
     });
 
     if (scoreRows.length === 0 && !scorerName.trim()) {
+      setSavingMatch(null);
       setSavingRound(null);
       toast({
         title: "Nada para salvar",
@@ -487,6 +505,7 @@ const BolaoDetail = () => {
       });
 
       if (error) {
+        setSavingMatch(null);
         setSavingRound(null);
         toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
         return;
@@ -496,15 +515,23 @@ const BolaoDetail = () => {
     if (scorerName.trim()) {
       const { error: rpError } = await upsertRoundPrediction(id, targetUserId, roundKey, scorerName);
       if (rpError) {
+        setSavingMatch(null);
         setSavingRound(null);
         toast({ title: "Erro ao salvar artilheiro", description: rpError.message, variant: "destructive" });
         return;
       }
     }
 
+    setSavingMatch(null);
     setSavingRound(null);
     await refreshActivePredictions();
-    toast({ title: "Palpites da rodada salvos!" });
+    const toastTitle =
+      scoreRows.length === 1 && !scorerName.trim()
+        ? "Palpite salvo!"
+        : isScorerOnlySave
+        ? "Artilheiro salvo!"
+        : "Palpites salvos!";
+    toast({ title: toastTitle });
   };
 
   const shareRanking = () => {
@@ -831,7 +858,8 @@ const RoundsAccordion = ({
                     predictions={predictions}
                     roundPredictions={roundPredictions}
                     usedScorerNames={getUsedScorerNames(roundPredictions, roundKey)}
-                    saving={savingRound === roundKey}
+                    savingMatchId={savingMatch}
+                    savingScorer={savingRound === roundKey}
                     forceEditable={forceEditable}
                     readOnly={readOnly}
                     onSaveRound={onSaveRound}

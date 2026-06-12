@@ -34,7 +34,8 @@ interface RoundPredictionPanelProps {
   predictions: Record<string, Prediction>;
   roundPredictions: Record<string, RoundPrediction>;
   usedScorerNames: Set<string>;
-  saving: boolean;
+  savingMatchId: string | null;
+  savingScorer: boolean;
   forceEditable?: boolean;
   readOnly?: boolean;
   onSaveRound: (
@@ -51,7 +52,8 @@ const RoundPredictionPanel = ({
   predictions,
   roundPredictions,
   usedScorerNames,
-  saving,
+  savingMatchId,
+  savingScorer,
   forceEditable = false,
   readOnly = false,
   onSaveRound,
@@ -118,36 +120,40 @@ const RoundPredictionPanel = ({
     return !isNaN(h) && !isNaN(a) && h >= 0 && a >= 0;
   };
 
-  const filledCount = matches.filter((m) => isScoreFilled(m.id)).length;
-  const filledOpenCount = openMatches.filter((m) => isScoreFilled(m.id)).length;
-  const allOpenMatchesFilled =
-    openMatches.length > 0 && filledOpenCount === openMatches.length;
+  const roundScorer = getRoundScorerName(roundKey, roundPredictions);
+  const roundScorerPoints = roundPredictions[roundKey]?.scorer_points;
 
-  const scorerRequired = !forceEditable;
+  const isMatchDirty = (matchId: string) => {
+    const s = scores[matchId];
+    const pred = predictions[matchId];
+    const home = s?.home ?? "";
+    const away = s?.away ?? "";
+    const savedHome = pred?.home_score?.toString() ?? "";
+    const savedAway = pred?.away_score?.toString() ?? "";
+    return home !== savedHome || away !== savedAway;
+  };
+
+  const scorerDirty = scorer.trim() !== (roundScorer || "");
   const scorerDuplicate =
     scorer.trim().length > 0 && usedScorerNames.has(scorer.trim().toLowerCase());
-  const hasPartialContent = filledCount > 0 || (forceEditable && scorer.trim().length > 0);
-  const scorerDeadlineOk =
-    forceEditable || !roundScorerOpen || !scorerRequired || scorer.trim().length > 0;
+  const canSaveScorer =
+    (forceEditable || roundScorerOpen) &&
+    scorer.trim().length > 0 &&
+    !scorerDuplicate &&
+    (forceEditable || scorerDirty);
 
-  const canSubmit = forceEditable
-    ? hasPartialContent && !scorerDuplicate
-    : !scorerDuplicate &&
-      scorerDeadlineOk &&
-      (allOpenMatchesFilled || (roundScorerOpen && scorer.trim().length > 0)) &&
-      (hasOpenMatches || roundScorerOpen);
+  const handleSaveMatch = async (matchId: string) => {
+    if (!isScoreFilled(matchId)) return;
+    const s = scores[matchId];
+    const h = parseInt(s.home, 10);
+    const a = parseInt(s.away, 10);
+    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
+    await onSaveRound(roundKey, matches, { [matchId]: { home: h, away: a } }, "");
+  };
 
-  const handleSave = async () => {
-    if (!canSubmit) return;
-    const parsed: Record<string, { home: number; away: number }> = {};
-    for (const m of matches) {
-      const s = scores[m.id];
-      const h = parseInt(s.home, 10);
-      const a = parseInt(s.away, 10);
-      if (isNaN(h) || isNaN(a) || h < 0 || a < 0) continue;
-      parsed[m.id] = { home: h, away: a };
-    }
-    await onSaveRound(roundKey, matches, parsed, scorer.trim());
+  const handleSaveScorer = async () => {
+    if (!canSaveScorer) return;
+    await onSaveRound(roundKey, matches, {}, scorer.trim());
   };
 
   const updateScore = (matchId: string, side: "home" | "away", value: string) => {
@@ -157,16 +163,12 @@ const RoundPredictionPanel = ({
     }));
   };
 
-  const roundScorer = getRoundScorerName(roundKey, roundPredictions);
-  const roundScorerPoints = roundPredictions[roundKey]?.scorer_points;
-  const hasAnyPrediction = matches.some((m) => predictions[m.id]);
-
   return (
     <Card className={!canEdit ? "opacity-80" : ""}>
       <CardHeader className="pb-2">
         <CardTitle className="text-base">{roundLabel}</CardTitle>
         <p className="text-xs text-muted-foreground">
-          {matches.length} jogos · Palpite da rodada inteira · Artilheiro +{scorerPoints} pts
+          {matches.length} jogos · Salve cada jogo separadamente · Artilheiro +{scorerPoints} pts
         </p>
         {readOnly && !forceEditable ? (
           <p className="text-xs font-medium text-muted-foreground">Palpites de outro participante</p>
@@ -242,29 +244,47 @@ const RoundPredictionPanel = ({
                   <p className="text-sm text-muted-foreground">Sem palpite</p>
                 )
               ) : (
-                <div className="flex items-center justify-center gap-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    max="20"
-                    placeholder="0"
-                    inputMode="numeric"
-                    value={entry?.home ?? ""}
-                    onChange={(e) => updateScore(match.id, "home", e.target.value)}
-                    className="w-16 text-center"
-                  />
-                  <span className="text-sm font-bold">×</span>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="20"
-                    placeholder="0"
-                    inputMode="numeric"
-                    value={entry?.away ?? ""}
-                    onChange={(e) => updateScore(match.id, "away", e.target.value)}
-                    className="w-16 text-center"
-                  />
-                </div>
+                <>
+                  <div className="flex items-center justify-center gap-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="20"
+                      placeholder="0"
+                      inputMode="numeric"
+                      value={entry?.home ?? ""}
+                      onChange={(e) => updateScore(match.id, "home", e.target.value)}
+                      className="w-16 text-center"
+                    />
+                    <span className="text-sm font-bold">×</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="20"
+                      placeholder="0"
+                      inputMode="numeric"
+                      value={entry?.away ?? ""}
+                      onChange={(e) => updateScore(match.id, "away", e.target.value)}
+                      className="w-16 text-center"
+                    />
+                  </div>
+                  {isMatchDirty(match.id) && (
+                    <Button
+                      className="mt-2 w-full"
+                      size="sm"
+                      onClick={() => handleSaveMatch(match.id)}
+                      disabled={!isScoreFilled(match.id) || savingMatchId === match.id}
+                    >
+                      {savingMatchId === match.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : pred ? (
+                        "Atualizar palpite"
+                      ) : (
+                        "Salvar palpite"
+                      )}
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           );
@@ -357,35 +377,23 @@ const RoundPredictionPanel = ({
             </div>
             )}
 
-            <p className="text-center text-xs text-muted-foreground">
-              {forceEditable
-                ? `${filledCount}/${matches.length} jogos preenchidos${
-                    filledCount === 0 && !scorer.trim()
-                      ? " · Preencha ao menos um jogo ou o artilheiro"
-                      : " · Salva só o que estiver preenchido"
-                  }`
-                : hasOpenMatches
-                ? `${filledOpenCount}/${openMatches.length} jogos em aberto preenchidos${
-                    roundScorerOpen && scorerRequired && !scorer.trim() && allOpenMatchesFilled
-                      ? " · Informe o artilheiro"
-                      : ""
-                  }`
-                : roundScorerOpen
-                ? "Informe o artilheiro da rodada"
-                : "Nenhum palpite em aberto nesta rodada"}
-            </p>
-
-            <Button className="w-full" onClick={handleSave} disabled={!canSubmit || saving}>
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : forceEditable ? (
-                "Salvar palpite do participante"
-              ) : hasAnyPrediction ? (
-                "Atualizar palpites da rodada"
-              ) : (
-                "Salvar palpites da rodada"
-              )}
-            </Button>
+            {(roundScorerOpen || forceEditable) &&
+              (scorerDirty || (forceEditable && scorer.trim().length > 0)) && (
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={handleSaveScorer}
+                disabled={!canSaveScorer || savingScorer}
+              >
+                {savingScorer ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : roundScorer ? (
+                  "Atualizar artilheiro"
+                ) : (
+                  "Salvar artilheiro"
+                )}
+              </Button>
+            )}
           </>
         )}
       </CardContent>
