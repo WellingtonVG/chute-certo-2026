@@ -12,11 +12,13 @@ import {
   getSeasonPredictionsDeadlineLabel,
   isSeasonPredictionOpen,
 } from "@/lib/prediction-deadlines";
+import { toastPredictionSaved } from "@/lib/vinto-easter-egg";
 import squads from "@/data/squads.json";
 
 interface SeasonPredictionsProps {
   bolaoId: string;
   userId: string;
+  username?: string | null;
   readOnly?: boolean;
 }
 
@@ -83,7 +85,7 @@ const PlayerInput = ({
   );
 };
 
-const SeasonPredictions = ({ bolaoId, userId, readOnly = false }: SeasonPredictionsProps) => {
+const SeasonPredictions = ({ bolaoId, userId, username, readOnly = false }: SeasonPredictionsProps) => {
   const { toast } = useToast();
   const [champion, setChampion] = useState("");
   const [bestPlayer, setBestPlayer] = useState("");
@@ -177,7 +179,7 @@ const SeasonPredictions = ({ bolaoId, userId, readOnly = false }: SeasonPredicti
     }
 
     setSaving(false);
-    toast({ title: "Palpites especiais salvos!" });
+    toastPredictionSaved(toast, "Palpites especiais salvos!", username);
   };
 
   if (loading) {

@@ -1,15 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Trophy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeCornerButton } from "@/components/ThemeToggle";
+import {
+  clearRememberedLogin,
+  loadRememberedLogin,
+  saveRememberedLogin,
+} from "@/lib/remember-credentials";
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
@@ -17,11 +23,20 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [rememberPassword, setRememberPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectPath = searchParams.get("redirect");
+
+  useEffect(() => {
+    const saved = loadRememberedLogin();
+    if (!saved) return;
+    setEmail(saved.email);
+    setPassword(saved.password);
+    setRememberPassword(true);
+  }, []);
 
   // Redirect already-authenticated users away from auth page
   if (!isLoading && user) {
@@ -41,6 +56,11 @@ const Auth = () => {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        if (rememberPassword) {
+          saveRememberedLogin(email, password);
+        } else {
+          clearRememberedLogin();
+        }
         const savedRedirect = redirectPath || localStorage.getItem("invite_redirect");
         if (savedRedirect) {
           localStorage.removeItem("invite_redirect");
@@ -136,7 +156,7 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleAuth} className="space-y-4">
+          <form onSubmit={handleAuth} className="space-y-4" autoComplete="on">
             {!isLogin && (
               <div className="space-y-2">
                 <Label htmlFor="username">Nome de usuário</Label>
@@ -145,6 +165,7 @@ const Auth = () => {
                   placeholder="seu_username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
                   required={!isLogin}
                 />
               </div>
@@ -153,10 +174,12 @@ const Auth = () => {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="username email"
                 required
               />
             </div>
@@ -164,14 +187,28 @@ const Auth = () => {
               <Label htmlFor="password">Senha</Label>
               <Input
                 id="password"
+                name="password"
                 type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoComplete={isLogin ? "current-password" : "new-password"}
                 required
                 minLength={6}
               />
             </div>
+            {isLogin && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="remember-password"
+                  checked={rememberPassword}
+                  onCheckedChange={(checked) => setRememberPassword(checked === true)}
+                />
+                <Label htmlFor="remember-password" className="cursor-pointer text-sm font-normal">
+                  Lembrar senha
+                </Label>
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Carregando..." : isLogin ? "Entrar" : "Criar conta"}
             </Button>

@@ -56,6 +56,7 @@ import MemberPredictionsSelector from "@/components/MemberPredictionsSelector";
 import { PageHeader } from "@/components/PageHeader";
 import { ThemeCornerButton } from "@/components/ThemeToggle";
 import { APP_PUBLIC_URL, DEFAULT_BOLAO_ID, DEFAULT_BOLAO_PATH } from "@/lib/bolao-config";
+import { toastPredictionSaved } from "@/lib/vinto-easter-egg";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
@@ -65,7 +66,7 @@ const BolaoDetail = () => {
   const bolaoId = DEFAULT_BOLAO_ID;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, isAdmin } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const { toast } = useToast();
   const [bolao, setBolao] = useState<Tables<"boloes"> | null>(null);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -88,6 +89,21 @@ const BolaoDetail = () => {
   const activePredictions = isAdminPalpiteMode ? adminPredictions : predictions;
   const activeRoundPredictions = isAdminPalpiteMode ? adminRoundPredictions : roundPredictions;
   const displayUserId = isAdminPalpiteMode ? adminTargetUserId! : selectedUserId ?? user!.id;
+
+  const predictionOwnerUsername = useMemo(() => {
+    if (isAdminPalpiteMode) return adminTargetUsername;
+    if (selectedUserId && selectedUserId !== user?.id) {
+      return bolaoMembers.find((m) => m.user_id === selectedUserId)?.username ?? null;
+    }
+    return profile?.username ?? null;
+  }, [
+    isAdminPalpiteMode,
+    adminTargetUsername,
+    selectedUserId,
+    user?.id,
+    bolaoMembers,
+    profile?.username,
+  ]);
 
   useEffect(() => {
     if (routeId && routeId !== DEFAULT_BOLAO_ID) {
@@ -339,7 +355,7 @@ const BolaoDetail = () => {
       }
       await refreshActivePredictions();
       if (bolao) await fetchRanking(bolaoId, (bolao as any).competition || "copa_do_mundo_2026");
-      toast({ title: `Palpite de @${adminTargetUsername} salvo!` });
+      toastPredictionSaved(toast, `Palpite de @${adminTargetUsername} salvo!`, adminTargetUsername);
       return;
     }
 
@@ -367,7 +383,7 @@ const BolaoDetail = () => {
 
     await refreshActivePredictions();
     setSavingMatch(null);
-    toast({ title: "Palpite salvo!" });
+    toastPredictionSaved(toast, "Palpite salvo!", predictionOwnerUsername);
   };
 
   const saveRoundPrediction = async (
@@ -450,7 +466,7 @@ const BolaoDetail = () => {
       }
       if (scorerName.trim()) {
         const { error: rpError } = await upsertRoundPrediction(
-          id,
+          bolaoId,
           adminTargetUserId,
           roundKey,
           scorerName
@@ -472,7 +488,7 @@ const BolaoDetail = () => {
           : isScorerOnlySave
           ? `Artilheiro de @${adminTargetUsername} salvo!`
           : `Palpites de @${adminTargetUsername} salvos!`;
-      toast({ title: adminToast });
+      toastPredictionSaved(toast, adminToast, adminTargetUsername);
       return;
     }
 
@@ -538,7 +554,7 @@ const BolaoDetail = () => {
         : isScorerOnlySave
         ? "Artilheiro salvo!"
         : "Palpites salvos!";
-    toast({ title: toastTitle });
+    toastPredictionSaved(toast, toastTitle, predictionOwnerUsername);
   };
 
   const shareRanking = () => {
@@ -635,6 +651,7 @@ const BolaoDetail = () => {
               <SeasonPredictions
                 bolaoId={bolaoId}
                 userId={displayUserId}
+                username={predictionOwnerUsername}
                 readOnly={readOnlyView}
               />
             )}

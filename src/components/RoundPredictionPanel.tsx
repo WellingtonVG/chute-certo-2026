@@ -136,10 +136,11 @@ const RoundPredictionPanel = ({
   const scorerDirty = scorer.trim() !== (roundScorer || "");
   const scorerDuplicate =
     scorer.trim().length > 0 && usedScorerNames.has(scorer.trim().toLowerCase());
+  const showScorerEditor = roundScorerOpen || forceEditable;
   const canSaveScorer =
-    (forceEditable || roundScorerOpen) &&
+    showScorerEditor &&
     scorer.trim().length > 0 &&
-    !scorerDuplicate &&
+    (forceEditable || !scorerDuplicate) &&
     (forceEditable || scorerDirty);
 
   const handleSaveMatch = async (matchId: string) => {
@@ -290,7 +291,7 @@ const RoundPredictionPanel = ({
           );
         })}
 
-        {!roundScorerOpen && roundScorer && (
+        {!showScorerEditor && roundScorer && (
           <p className="text-sm">
             Jogador da rodada: <span className="font-medium">{roundScorer}</span>
             {roundScorerPoints !== null && roundScorerPoints !== undefined && (
@@ -304,7 +305,7 @@ const RoundPredictionPanel = ({
 
         {canEdit && (
           <>
-            {roundScorerOpen && (
+            {showScorerEditor && (
             <div className="relative border-t pt-3">
               <p className="mb-2 text-sm font-medium">
                 Jogador da rodada (+{scorerPoints} pts)
@@ -312,6 +313,7 @@ const RoundPredictionPanel = ({
               <p className="mb-2 text-xs text-muted-foreground">
                 Escolha 1 jogador por rodada. Se ele marcar pelo menos um gol naquela rodada, você
                 pontua. Não vale gol contra nem gol em disputa de pênaltis.
+                {forceEditable && " No modo admin, o prazo é ignorado."}
               </p>
               <Input
                 ref={scorerRef}
@@ -332,7 +334,7 @@ const RoundPredictionPanel = ({
                       ? squadPlayers
                       : squadPlayers.filter((p) => p.toLowerCase().includes(q)).slice(0, 8)
                   );
-                  if (value.trim() && usedScorerNames.has(value.trim().toLowerCase())) {
+                  if (value.trim() && !forceEditable && usedScorerNames.has(value.trim().toLowerCase())) {
                     setScorerError("Este jogador já foi usado em outra rodada.");
                   }
                 }}
@@ -341,9 +343,20 @@ const RoundPredictionPanel = ({
               {scorerError && (
                 <p className="mt-1 text-xs text-destructive">{scorerError}</p>
               )}
-              {usedScorerNames.size > 0 && (
+              {usedScorerNames.size > 0 && !forceEditable && (
                 <p className="mt-1 text-xs text-muted-foreground">
                   Cada jogador só pode ser escolhido uma vez no bolão.
+                </p>
+              )}
+              {forceEditable && roundScorer && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Palpite atual: <span className="font-medium">{roundScorer}</span>
+                  {roundScorerPoints !== null && roundScorerPoints !== undefined && (
+                    <span className="ml-1 text-accent">
+                      ({roundScorerPoints > 0 ? "+" : ""}
+                      {roundScorerPoints} pts)
+                    </span>
+                  )}
                 </p>
               )}
               {suggestions.length > 0 && (
@@ -358,7 +371,7 @@ const RoundPredictionPanel = ({
                         }`}
                         onMouseDown={(e) => {
                           e.preventDefault();
-                          if (used) {
+                          if (!forceEditable && used) {
                             setScorerError("Este jogador já foi usado em outra rodada.");
                             return;
                           }
@@ -377,7 +390,7 @@ const RoundPredictionPanel = ({
             </div>
             )}
 
-            {(roundScorerOpen || forceEditable) &&
+            {showScorerEditor &&
               (scorerDirty || (forceEditable && scorer.trim().length > 0)) && (
               <Button
                 className="w-full"
