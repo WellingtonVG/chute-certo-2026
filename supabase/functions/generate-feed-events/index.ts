@@ -106,16 +106,26 @@ Deno.serve(async (req) => {
         .select("user_id, match_id, points, scorer_points, bonus_points")
         .eq("bolao_id", bolaoId);
 
-      // Season predictions
-      const { data: season } = await admin
-        .from("season_predictions")
-        .select("user_id, champion_points, top_scorer_points, best_player_points, revelation_player_points")
-        .eq("bolao_id", bolaoId);
+      const [{ data: roundPreds }, { data: season }] = await Promise.all([
+        admin
+          .from("round_predictions")
+          .select("user_id, scorer_points")
+          .eq("bolao_id", bolaoId),
+        admin
+          .from("season_predictions")
+          .select("user_id, champion_points, top_scorer_points, best_player_points, revelation_player_points")
+          .eq("bolao_id", bolaoId),
+      ]);
 
       const seasonMap: Record<string, number> = {};
       (season || []).forEach((s: any) => {
         seasonMap[s.user_id] =
           (s.champion_points || 0) + (s.top_scorer_points || 0) + (s.best_player_points || 0) + (s.revelation_player_points || 0);
+      });
+
+      const roundScorerMap: Record<string, number> = {};
+      (roundPreds || []).forEach((rp: any) => {
+        roundScorerMap[rp.user_id] = (roundScorerMap[rp.user_id] || 0) + (rp.scorer_points || 0);
       });
 
       // Build current ranking
@@ -127,6 +137,10 @@ Deno.serve(async (req) => {
         if (p.match_id !== match_id) {
           totalsBefore[p.user_id] = (totalsBefore[p.user_id] || 0) + pts;
         }
+      });
+      Object.keys(roundScorerMap).forEach((u) => {
+        totals[u] = (totals[u] || 0) + roundScorerMap[u];
+        totalsBefore[u] = (totalsBefore[u] || 0) + roundScorerMap[u];
       });
       Object.keys(seasonMap).forEach((u) => {
         totals[u] = (totals[u] || 0) + seasonMap[u];
