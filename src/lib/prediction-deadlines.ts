@@ -1,4 +1,4 @@
-/** Prazos de palpite — especiais travam no 1º jogo da Copa (calculado dinamicamente no backend). */
+/** Prazos de palpite da Copa 2026 */
 
 const deadlineFormat: Intl.DateTimeFormatOptions = {
   day: "2-digit",
@@ -9,6 +9,9 @@ const deadlineFormat: Intl.DateTimeFormatOptions = {
   timeZone: "America/Sao_Paulo",
 };
 
+/** Palpites especiais: até 13/06/2026 20h (horário de Brasília) */
+export const SEASON_PREDICTIONS_DEADLINE = new Date("2026-06-13T23:00:00.000Z");
+
 export function formatDeadline(date: Date) {
   return date.toLocaleString("pt-BR", deadlineFormat);
 }
@@ -17,17 +20,10 @@ export function isMatchPredictionOpen(matchDate: string, now = new Date()) {
   return new Date(matchDate) > now;
 }
 
-/** Fallback local; o backend usa is_season_predictions_open() com o 1º jogo da Copa */
-export function isSeasonPredictionOpen(now = new Date(), firstMatchDate?: string | null) {
-  if (firstMatchDate) {
-    return new Date(firstMatchDate) > now;
-  }
-  return now < new Date("2026-06-11T19:00:00Z");
+export function isSeasonPredictionOpen(now = new Date()) {
+  return now < SEASON_PREDICTIONS_DEADLINE;
 }
 
-export function getSeasonPredictionsDeadlineLabel(firstMatchDate?: string | null) {
-  if (firstMatchDate) {
-    return formatDeadline(new Date(firstMatchDate));
-  }
-  return formatDeadline(new Date("2026-06-11T19:00:00Z"));
+export function getSeasonPredictionsDeadlineLabel() {
+  return formatDeadline(SEASON_PREDICTIONS_DEADLINE);
 }

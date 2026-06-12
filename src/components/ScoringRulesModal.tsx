@@ -10,11 +10,7 @@ import { Info } from "lucide-react";
 import { SEASON_PREDICTION_POINTS } from "@/lib/season-predictions";
 import { getSeasonPredictionsDeadlineLabel } from "@/lib/prediction-deadlines";
 
-interface ScoringRulesModalProps {
-  firstMatchDate?: string | null;
-}
-
-const ScoringRulesModal = ({ firstMatchDate }: ScoringRulesModalProps) => {
+const ScoringRulesModal = () => {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -113,7 +109,7 @@ const ScoringRulesModal = ({ firstMatchDate }: ScoringRulesModalProps) => {
                 <span className="font-bold text-foreground">{SEASON_PREDICTION_POINTS} pts</span>
               </li>
               <li className="text-xs italic">
-                Prazo até o 1º jogo da Copa ({getSeasonPredictionsDeadlineLabel(firstMatchDate)})
+                Prazo até {getSeasonPredictionsDeadlineLabel()} (horário de Brasília)
               </li>
               <li className="text-xs italic">
                 Palpites por jogo: até o início de cada partida
