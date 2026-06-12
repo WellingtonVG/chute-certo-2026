@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/accordion";
 import { Copy, Loader2, MapPin } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import { MobilePage } from "@/components/MobilePage";
 import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
@@ -145,20 +146,20 @@ const Calendario = () => {
     return (
       <Card key={match.id}>
         <CardContent className="p-4">
-          <div className="flex items-center">
-            <span className="flex-1 font-semibold">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="min-w-0 flex-1 font-semibold">
               <CountryLabel teamName={match.home_team} />
             </span>
             {match.is_finished ? (
-              <span className="mx-3 min-w-[60px] text-center text-lg font-bold text-accent">
+              <span className="shrink-0 px-1 text-center text-base font-bold text-accent sm:text-lg">
                 {match.home_score} × {match.away_score}
               </span>
             ) : (
-              <span className="mx-3 min-w-[70px] text-center text-sm font-medium text-muted-foreground">
+              <span className="shrink-0 px-1 text-center text-xs font-medium text-muted-foreground sm:text-sm">
                 {date} {time}
               </span>
             )}
-            <span className="flex flex-1 justify-end font-semibold">
+            <span className="flex min-w-0 flex-1 justify-end font-semibold">
               <CountryLabel teamName={match.away_team} flagPosition="end" />
             </span>
           </div>
@@ -175,7 +176,7 @@ const Calendario = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-20">
+    <MobilePage withBottomNav>
       <PageHeader
         title="Calendário"
         onBack={() => navigate("/")}
@@ -204,9 +205,9 @@ const Calendario = () => {
           </p>
         ) : (
           <>
-            <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               {showGroupToggle ? (
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1">
                   <Button
                     type="button"
                     variant={groupViewMode === "round" ? "default" : "outline"}
@@ -329,7 +330,7 @@ const Calendario = () => {
         )}
       </main>
       <BottomNav />
-    </div>
+    </MobilePage>
   );
 };
 

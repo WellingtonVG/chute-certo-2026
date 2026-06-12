@@ -56,9 +56,9 @@ export const CountryLabel = ({
   style = "flat",
   className,
 }: CountryLabelProps) => (
-  <span className={cn("inline-flex items-center gap-1.5", className)}>
-    {flagPosition === "start" && <CountryFlag teamName={teamName} size={size} style={style} />}
-    <span>{teamName}</span>
+  <span className={cn("inline-flex min-w-0 max-w-full items-center gap-1.5", className)}>
+    {flagPosition === "start" && <CountryFlag teamName={teamName} size={size} style={style} className="shrink-0" />}
+    <span className="truncate">{teamName}</span>
     {flagPosition === "end" && <CountryFlag teamName={teamName} size={size} style={style} />}
   </span>
 );
@@ -78,10 +78,10 @@ export const MatchTeamsDisplay = ({
   dateTime?: string;
   dateTimeClassName?: string;
 }) => (
-  <div className="grid grid-cols-3 items-start gap-2 py-1">
-    <div className="flex flex-col items-center gap-2 text-center">
-      <CountryFlag teamName={homeTeam} size={size} style={style} className="h-auto w-14 sm:w-16" />
-      <span className="flex min-h-[2.5rem] items-start justify-center text-sm font-semibold leading-tight sm:text-base">
+  <div className="grid grid-cols-3 items-start gap-1 py-1 sm:gap-2">
+    <div className="flex min-w-0 flex-col items-center gap-2 text-center">
+      <CountryFlag teamName={homeTeam} size={size} style={style} className="h-auto w-12 shrink-0 sm:w-16" />
+      <span className="line-clamp-2 min-h-[2.5rem] w-full text-xs font-semibold leading-tight sm:text-sm">
         {homeTeam}
       </span>
     </div>
@@ -93,9 +93,9 @@ export const MatchTeamsDisplay = ({
         </span>
       )}
     </div>
-    <div className="flex flex-col items-center gap-2 text-center">
-      <CountryFlag teamName={awayTeam} size={size} style={style} className="h-auto w-14 sm:w-16" />
-      <span className="flex min-h-[2.5rem] items-start justify-center text-sm font-semibold leading-tight sm:text-base">
+    <div className="flex min-w-0 flex-col items-center gap-2 text-center">
+      <CountryFlag teamName={awayTeam} size={size} style={style} className="h-auto w-12 shrink-0 sm:w-16" />
+      <span className="line-clamp-2 min-h-[2.5rem] w-full text-xs font-semibold leading-tight sm:text-sm">
         {awayTeam}
       </span>
     </div>

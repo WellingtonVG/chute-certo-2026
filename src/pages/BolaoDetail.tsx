@@ -55,12 +55,14 @@ import RoundPredictionPanel from "@/components/RoundPredictionPanel";
 import MemberPredictionsSelector from "@/components/MemberPredictionsSelector";
 import { PageHeader } from "@/components/PageHeader";
 import { ThemeCornerButton } from "@/components/ThemeToggle";
+import { APP_PUBLIC_URL, DEFAULT_BOLAO_ID, DEFAULT_BOLAO_PATH } from "@/lib/bolao-config";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
 
 const BolaoDetail = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id: routeId } = useParams<{ id: string }>();
+  const bolaoId = DEFAULT_BOLAO_ID;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, isAdmin } = useAuth();
@@ -87,17 +89,23 @@ const BolaoDetail = () => {
   const activeRoundPredictions = isAdminPalpiteMode ? adminRoundPredictions : roundPredictions;
   const displayUserId = isAdminPalpiteMode ? adminTargetUserId! : selectedUserId ?? user!.id;
 
-  const fetchRanking = async (bolaoId: string, competition: string) => {
+  useEffect(() => {
+    if (routeId && routeId !== DEFAULT_BOLAO_ID) {
+      navigate(`${DEFAULT_BOLAO_PATH}${window.location.search}`, { replace: true });
+    }
+  }, [routeId, navigate]);
+
+  const fetchRanking = async (rankingBolaoId: string, competition: string) => {
     const [{ data: allPreds }, { data: roundPreds }] = await Promise.all([
       supabase
         .from("predictions")
         .select("user_id, points, bonus_points")
-        .eq("bolao_id", bolaoId),
+        .eq("bolao_id", rankingBolaoId),
       competition !== "brasileirao_2026"
         ? supabase
             .from("round_predictions")
             .select("user_id, scorer_points")
-            .eq("bolao_id", bolaoId)
+            .eq("bolao_id", rankingBolaoId)
         : Promise.resolve({ data: [] as { user_id: string; scorer_points: number | null }[] }),
     ]);
 
@@ -114,7 +122,7 @@ const BolaoDetail = () => {
       const { data: seasonPreds } = await supabase
         .from("season_predictions")
         .select("*")
-        .eq("bolao_id", bolaoId);
+        .eq("bolao_id", rankingBolaoId);
 
       (seasonPreds || []).forEach((sp) => {
         totals[sp.user_id] = (totals[sp.user_id] || 0) + getSeasonPointsTotal(sp);
@@ -148,12 +156,12 @@ const BolaoDetail = () => {
   };
 
   useEffect(() => {
-    if (!id || !user) return;
+    if (!user) return;
     const fetchData = async () => {
       const isBrasileraoComp = (bolaoRes: { data: Tables<"boloes"> | null }) =>
         (bolaoRes.data as { competition?: string } | null)?.competition === "brasileirao_2026";
 
-      const bolaoRes = await supabase.from("boloes").select("*").eq("id", id).single();
+      const bolaoRes = await supabase.from("boloes").select("*").eq("id", bolaoId).single();
 
       const copaBolao = !isBrasileraoComp(bolaoRes);
 
@@ -169,20 +177,20 @@ const BolaoDetail = () => {
 
       setSelectedUserId((prev) => prev ?? user.id);
 
-      await fetchRanking(id, (bolaoRes.data as any)?.competition || "copa_do_mundo_2026");
+      await fetchRanking(bolaoId, (bolaoRes.data as any)?.competition || "copa_do_mundo_2026");
 
       setLoading(false);
     };
     fetchData();
-  }, [id, user]);
+  }, [bolaoId, user]);
 
   useEffect(() => {
-    if (!id || !user) return;
+    if (!user) return;
     const fetchMembers = async () => {
       const { data: memberRows } = await supabase
         .from("bolao_members")
         .select("user_id")
-        .eq("bolao_id", id);
+        .eq("bolao_id", bolaoId);
       const userIds = (memberRows || []).map((m) => m.user_id);
       if (userIds.length === 0) {
         setBolaoMembers([]);
@@ -205,27 +213,26 @@ const BolaoDetail = () => {
       setBolaoMembers(members);
     };
     fetchMembers();
-  }, [id, user]);
+  }, [bolaoId, user]);
 
   useEffect(() => {
-    if (!id || !selectedUserId || isAdminPalpiteMode) return;
+    if (!selectedUserId || isAdminPalpiteMode) return;
 
     const loadViewedPredictions = async () => {
       setPredictions(await loadPredictionsForUser(selectedUserId));
       if ((bolao as any)?.competition !== "brasileirao_2026") {
-        setRoundPredictions(await fetchRoundPredictions(id, selectedUserId));
+        setRoundPredictions(await fetchRoundPredictions(bolaoId, selectedUserId));
       }
     };
 
     loadViewedPredictions();
-  }, [id, selectedUserId, isAdminPalpiteMode, bolao]);
+  }, [bolaoId, selectedUserId, isAdminPalpiteMode, bolao]);
 
   const loadPredictionsForUser = async (userId: string): Promise<Record<string, Prediction>> => {
-    if (!id) return {};
     const { data } = await supabase
       .from("predictions")
       .select("*")
-      .eq("bolao_id", id)
+      .eq("bolao_id", bolaoId)
       .eq("user_id", userId);
     const predsMap: Record<string, Prediction> = {};
     (data || []).forEach((p) => {
@@ -240,8 +247,8 @@ const BolaoDetail = () => {
     setAdminTargetUserId(userId);
     setAdminTargetUsername(member?.username ?? null);
     setAdminPredictions(await loadPredictionsForUser(userId));
-    if (id && (bolao as any)?.competition !== "brasileirao_2026") {
-      setAdminRoundPredictions(await fetchRoundPredictions(id, userId));
+    if ((bolao as any)?.competition !== "brasileirao_2026") {
+      setAdminRoundPredictions(await fetchRoundPredictions(bolaoId, userId));
     }
   };
 
@@ -254,38 +261,38 @@ const BolaoDetail = () => {
   };
 
   const refreshActivePredictions = async () => {
-    if (!id || !user) return;
+    if (!user) return;
     const userId = isAdminPalpiteMode ? adminTargetUserId! : selectedUserId ?? user.id;
     const predsMap = await loadPredictionsForUser(userId);
     if (isAdminPalpiteMode) {
       setAdminPredictions(predsMap);
       if ((bolao as any)?.competition !== "brasileirao_2026") {
-        setAdminRoundPredictions(await fetchRoundPredictions(id, userId));
+        setAdminRoundPredictions(await fetchRoundPredictions(bolaoId, userId));
       }
     } else {
       setPredictions(predsMap);
       if ((bolao as any)?.competition !== "brasileirao_2026") {
-        setRoundPredictions(await fetchRoundPredictions(id, userId));
+        setRoundPredictions(await fetchRoundPredictions(bolaoId, userId));
       }
     }
   };
 
   // Realtime subscription to refresh ranking when predictions change
   useEffect(() => {
-    if (!id || !bolao) return;
+    if (!bolao) return;
     const competition = (bolao as any)?.competition || "copa_do_mundo_2026";
-    const refresh = () => fetchRanking(id, competition);
+    const refresh = () => fetchRanking(bolaoId, competition);
 
     const channel = supabase
-      .channel(`predictions-${id}`)
+      .channel(`predictions-${bolaoId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "predictions", filter: `bolao_id=eq.${id}` },
+        { event: "*", schema: "public", table: "predictions", filter: `bolao_id=eq.${bolaoId}` },
         refresh
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "round_predictions", filter: `bolao_id=eq.${id}` },
+        { event: "*", schema: "public", table: "round_predictions", filter: `bolao_id=eq.${bolaoId}` },
         refresh
       )
       .subscribe();
@@ -293,7 +300,7 @@ const BolaoDetail = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [id, bolao]);
+  }, [bolaoId, bolao]);
 
   const savePrediction = async (
     matchId: string,
@@ -303,7 +310,7 @@ const BolaoDetail = () => {
     bonusAnswer?: boolean | null,
     matchDate?: string
   ) => {
-    if (!user || !id) return;
+    if (!user) return;
     if (readOnlyView) return;
     if (!isAdminPalpiteMode && matchDate && !isMatchPredictionOpen(matchDate)) {
       toast({
@@ -316,7 +323,7 @@ const BolaoDetail = () => {
     setSavingMatch(matchId);
 
     if (isAdminPalpiteMode && adminTargetUserId) {
-      const { error } = await adminUpsertPredictions(id, adminTargetUserId, [
+      const { error } = await adminUpsertPredictions(bolaoId, adminTargetUserId, [
         {
           match_id: matchId,
           home_score: homeScore,
@@ -331,7 +338,7 @@ const BolaoDetail = () => {
         return;
       }
       await refreshActivePredictions();
-      if (bolao) await fetchRanking(id, (bolao as any).competition || "copa_do_mundo_2026");
+      if (bolao) await fetchRanking(bolaoId, (bolao as any).competition || "copa_do_mundo_2026");
       toast({ title: `Palpite de @${adminTargetUsername} salvo!` });
       return;
     }
@@ -351,7 +358,7 @@ const BolaoDetail = () => {
         .eq("id", existing.id);
     } else {
       await supabase.from("predictions").insert({
-        bolao_id: id,
+        bolao_id: bolaoId,
         user_id: user.id,
         match_id: matchId,
         ...predData,
@@ -369,7 +376,7 @@ const BolaoDetail = () => {
     scores: Record<string, { home: number; away: number }>,
     scorerName: string
   ) => {
-    if (!user || !id) return;
+    if (!user) return;
     if (readOnlyView) return;
     if (!isAdminPalpiteMode) {
       for (const match of roundMatches) {
@@ -433,7 +440,7 @@ const BolaoDetail = () => {
       }
 
       if (rows.length > 0) {
-        const { error } = await adminUpsertPredictions(id, adminTargetUserId, rows);
+        const { error } = await adminUpsertPredictions(bolaoId, adminTargetUserId, rows);
         if (error) {
           setSavingMatch(null);
           setSavingRound(null);
@@ -458,7 +465,7 @@ const BolaoDetail = () => {
       setSavingMatch(null);
       setSavingRound(null);
       await refreshActivePredictions();
-      if (bolao) await fetchRanking(id, (bolao as any).competition || "copa_do_mundo_2026");
+      if (bolao) await fetchRanking(bolaoId, (bolao as any).competition || "copa_do_mundo_2026");
       const adminToast =
         rows.length === 1 && !scorerName.trim()
           ? `Palpite de @${adminTargetUsername} salvo!`
@@ -491,7 +498,7 @@ const BolaoDetail = () => {
         const existing = predictions[row.match_id];
         return {
           ...(existing ? { id: existing.id } : {}),
-          bolao_id: id,
+          bolao_id: bolaoId,
           user_id: targetUserId,
           match_id: row.match_id,
           home_score: row.home_score,
@@ -513,7 +520,7 @@ const BolaoDetail = () => {
     }
 
     if (scorerName.trim()) {
-      const { error: rpError } = await upsertRoundPrediction(id, targetUserId, roundKey, scorerName);
+      const { error: rpError } = await upsertRoundPrediction(bolaoId, targetUserId, roundKey, scorerName);
       if (rpError) {
         setSavingMatch(null);
         setSavingRound(null);
@@ -541,19 +548,17 @@ const BolaoDetail = () => {
       const tie = r.tied ? " (empate)" : "";
       lines.push(`${r.rank}. ${r.username} - ${r.total}pts${tie}`);
     });
-    lines.push(`\nParticipe também: https://chute-certo-2026.lovable.app`);
+    lines.push(`\nParticipe também: ${APP_PUBLIC_URL}`);
     const text = lines.join("\n");
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(whatsappUrl, "_blank");
   };
 
-  const shareInvite = () => {
-    if (!bolao) return;
+  const shareApp = () => {
     const isLovableHost = /lovable(project)?\.app$/.test(window.location.hostname);
-    const origin = isLovableHost ? "https://chute-certo-2026.lovable.app" : window.location.origin;
-    const url = `${origin}/convite/${bolao.invite_code}`;
+    const url = isLovableHost ? APP_PUBLIC_URL : window.location.origin;
     navigator.clipboard.writeText(url);
-    toast({ title: "Link copiado!", description: "Compartilhe com seus amigos" });
+    toast({ title: "Link copiado!", description: "Compartilhe o app com seus amigos" });
   };
 
   if (loading) {
@@ -578,7 +583,7 @@ const BolaoDetail = () => {
     !isAdminPalpiteMode && !isMatchPredictionOpen(match.match_date);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-[100dvh] flex-col bg-background">
       <PageHeader
         title={bolao.name}
         onBack={() => navigate("/")}
@@ -588,9 +593,9 @@ const BolaoDetail = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={shareInvite}
+              onClick={shareApp}
               className="text-primary-foreground hover:bg-primary-foreground/10"
-              aria-label="Compartilhar convite"
+              aria-label="Compartilhar app"
             >
               <Share2 className="h-5 w-5" />
             </Button>
@@ -598,13 +603,13 @@ const BolaoDetail = () => {
         }
       />
 
-      <main className="mx-auto w-full max-w-lg flex-1 p-4">
+      <main className="mx-auto w-full max-w-lg flex-1 p-4 pb-safe">
         <Tabs defaultValue={searchParams.get("tab") || "palpites"}>
-          <TabsList className="w-full">
-            <TabsTrigger value="palpites" className="flex-1">Palpites</TabsTrigger>
-            <TabsTrigger value="ranking" className="flex-1">Ranking</TabsTrigger>
+          <TabsList className="tabs-list-scroll">
+            <TabsTrigger value="palpites" className="flex-1 sm:flex-initial">Palpites</TabsTrigger>
+            <TabsTrigger value="ranking" className="flex-1 sm:flex-initial">Ranking</TabsTrigger>
             {(bolao as any).competition === "copa_do_mundo_2026" && (
-              <TabsTrigger value="feed" className="flex-1">Feed</TabsTrigger>
+              <TabsTrigger value="feed" className="flex-1 sm:flex-initial">Feed</TabsTrigger>
             )}
           </TabsList>
 
@@ -628,7 +633,7 @@ const BolaoDetail = () => {
             )}
             {(bolao as any).competition !== "brasileirao_2026" && (
               <SeasonPredictions
-                bolaoId={id!}
+                bolaoId={bolaoId}
                 userId={displayUserId}
                 readOnly={readOnlyView}
               />
@@ -666,10 +671,9 @@ const BolaoDetail = () => {
                   {ranking.map((r) => (
                     <div
                       key={`${r.rank}-${r.username}`}
-                      className="flex items-center justify-between rounded-lg border bg-card p-4"
+                      className="flex items-center justify-between gap-2 rounded-lg border bg-card p-3 sm:gap-3 sm:p-4"
                     >
-                      <div className="flex items-center gap-4">
-                        <UserAvatar username={r.username} avatarUrl={r.avatarUrl} size="xl" />
+                      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
                         <span
                           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
                             r.rank === 1
@@ -683,14 +687,15 @@ const BolaoDetail = () => {
                         >
                           {r.rank}
                         </span>
-                        <span className="font-medium">
+                        <UserAvatar username={r.username} avatarUrl={r.avatarUrl} size="md" className="shrink-0" />
+                        <span className="min-w-0 truncate font-medium">
                           {r.username}
                           {r.tied && (
                             <span className="ml-1 text-xs text-muted-foreground">(empate)</span>
                           )}
                         </span>
                       </div>
-                      <span className="text-lg font-bold text-accent">{r.total} pts</span>
+                      <span className="shrink-0 text-base font-bold text-accent sm:text-lg">{r.total} pts</span>
                     </div>
                   ))}
                 </div>
@@ -703,7 +708,7 @@ const BolaoDetail = () => {
 
           {(bolao as any).competition === "copa_do_mundo_2026" && (
             <TabsContent value="feed" className="pt-4">
-              <BolaoFeed bolaoId={id!} />
+              <BolaoFeed bolaoId={bolaoId} />
             </TabsContent>
           )}
         </Tabs>
@@ -1021,7 +1026,7 @@ const MatchPredictionCard = ({
                     awayScoreRef.current?.select();
                   }
                 }}
-                className="w-16 text-center"
+                className="score-input"
               />
               <span className="text-sm font-bold">×</span>
               <Input
@@ -1039,7 +1044,7 @@ const MatchPredictionCard = ({
                     scorerRef.current?.focus();
                   }
                 }}
-                className="w-16 text-center"
+                className="score-input"
               />
             </div>
             {isBrasileirao && bonusQuestion ? (

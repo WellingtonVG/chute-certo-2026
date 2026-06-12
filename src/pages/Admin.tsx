@@ -8,15 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2, Copy, Save, RefreshCw, AlertTriangle, Trash2, Users } from "lucide-react";
+import { Plus, Loader2, Save, RefreshCw, Trash2, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
-import { format, addDays, isPast } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SEASON_PREDICTION_POINTS } from "@/lib/season-predictions";
 import { MatchTeamsDisplay } from "@/components/CountryFlag";
 import { TeamSelect } from "@/components/TeamSelect";
+import { DEFAULT_BOLAO_ID, DEFAULT_BOLAO_PATH } from "@/lib/bolao-config";
 import RoundScorersEditor from "@/components/admin/RoundScorersEditor";
 import UserAvatarEditor from "@/components/admin/UserAvatarEditor";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -44,11 +45,6 @@ const stageLabels: Record<string, string> = {
   final: "Final",
 };
 
-const isInviteExpired = (inviteCreatedAt: string | undefined) => {
-  if (!inviteCreatedAt) return false;
-  return isPast(addDays(new Date(inviteCreatedAt), 7));
-};
-
 const Admin = () => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
@@ -69,11 +65,6 @@ const Admin = () => {
     { user_id: string; username: string; avatar_url: string | null }[]
   >([]);
   const [removingMember, setRemovingMember] = useState<string | null>(null);
-
-  // New bolao form
-  const [newBolaoName, setNewBolaoName] = useState("");
-  const [newBolaoCompetition, setNewBolaoCompetition] = useState("copa_do_mundo_2026");
-  const [creatingBolao, setCreatingBolao] = useState(false);
 
   const bonusQuestionOptions = [
     "Nenhuma",
@@ -99,8 +90,6 @@ const Admin = () => {
   });
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [regenerating, setRegenerating] = useState<string | null>(null);
-
   // Round bonus
   const [bonusRound, setBonusRound] = useState("");
   const [bonusRoundQuestion, setBonusRoundQuestion] = useState("Nenhuma");
@@ -167,12 +156,12 @@ const Admin = () => {
     }
     const fetchData = async () => {
       const [boloesRes, matchesRes, membersRes, profilesRes] = await Promise.all([
-        supabase.from("boloes").select("*").order("created_at", { ascending: false }),
+        supabase.from("boloes").select("*").eq("id", DEFAULT_BOLAO_ID).maybeSingle(),
         supabase.from("matches").select("*").order("match_date", { ascending: true }),
-        supabase.from("bolao_members").select("*"),
+        supabase.from("bolao_members").select("*").eq("bolao_id", DEFAULT_BOLAO_ID),
         supabase.from("profiles").select("user_id, username, avatar_url").order("username"),
       ]);
-      const boloesData = (boloesRes.data || []) as Bolao[];
+      const boloesData = boloesRes.data ? [boloesRes.data as Bolao] : [];
       setBoloes(boloesData);
       setMatches(matchesRes.data || []);
 
@@ -201,27 +190,6 @@ const Admin = () => {
     };
     fetchData();
   }, [isAdmin, navigate]);
-
-  const createBolao = async () => {
-    if (!user || !newBolaoName.trim()) return;
-    setCreatingBolao(true);
-    const { data, error } = await supabase
-      .from("boloes")
-      .insert({ name: newBolaoName.trim(), created_by: user.id, competition: newBolaoCompetition } as any)
-      .select()
-      .single();
-
-    if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else if (data) {
-      await supabase.from("bolao_members").insert({ bolao_id: data.id, user_id: user.id });
-      setBoloes((prev) => [data as Bolao, ...prev]);
-      setNewBolaoName("");
-      setNewBolaoCompetition("copa_do_mundo_2026");
-      toast({ title: "Bolão criado!" });
-    }
-    setCreatingBolao(false);
-  };
 
   const createMatch = async () => {
     if (!matchForm.home_team || !matchForm.away_team || !matchForm.match_date) return;
@@ -302,11 +270,6 @@ const Admin = () => {
     toast({ title: "Resultado salvo e pontos recalculados!" });
   };
 
-  const copyInviteLink = (code: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/convite/${code}`);
-    toast({ title: "Link copiado!" });
-  };
-
   const removeMember = async (memberId: string) => {
     setRemovingMember(memberId);
     const { error } = await supabase.from("bolao_members").delete().eq("id", memberId);
@@ -319,30 +282,6 @@ const Admin = () => {
     setRemovingMember(null);
   };
 
-  const handleRegenerateInvite = async (bolaoId: string) => {
-    setRegenerating(bolaoId);
-    try {
-      const { data, error } = await supabase.rpc("regenerate_invite_code", {
-        bolao_id_input: bolaoId,
-      });
-
-      if (error) throw error;
-
-      const result = data as unknown as { invite_code: string; invite_created_at: string };
-      setBoloes((prev) =>
-        prev.map((b) =>
-          b.id === bolaoId
-            ? { ...b, invite_code: result.invite_code, invite_created_at: result.invite_created_at }
-            : b
-        )
-      );
-      toast({ title: "Novo link de convite gerado!" });
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
-    setRegenerating(null);
-  };
-
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -352,104 +291,38 @@ const Admin = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-[100dvh] flex-col bg-background">
       <PageHeader title="Painel Admin" onBack={() => navigate("/")} />
 
-      <main className="mx-auto w-full max-w-lg flex-1 p-4">
+      <main className="mx-auto w-full max-w-lg flex-1 p-4 pb-safe">
         <Tabs defaultValue="boloes">
-          <TabsList className="w-full">
-            <TabsTrigger value="boloes" className="flex-1">Bolões</TabsTrigger>
-            <TabsTrigger value="usuarios" className="flex-1">Usuários</TabsTrigger>
-            <TabsTrigger value="jogos" className="flex-1">Jogos</TabsTrigger>
-            <TabsTrigger value="resultados" className="flex-1">Resultados</TabsTrigger>
+          <TabsList className="tabs-list-scroll">
+            <TabsTrigger value="boloes">Bolões</TabsTrigger>
+            <TabsTrigger value="usuarios">Usuários</TabsTrigger>
+            <TabsTrigger value="jogos">Jogos</TabsTrigger>
+            <TabsTrigger value="resultados">Resultados</TabsTrigger>
           </TabsList>
 
-          {/* Bolões Tab */}
+          {/* Bolão único */}
           <TabsContent value="boloes" className="space-y-4 pt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Criar Bolão</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Input
-                  placeholder="Nome do bolão"
-                  value={newBolaoName}
-                  onChange={(e) => setNewBolaoName(e.target.value)}
-                />
-                <div>
-                  <Label className="text-xs">Competição</Label>
-                  <Select value={newBolaoCompetition} onValueChange={setNewBolaoCompetition}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="copa_do_mundo_2026">Copa do Mundo 2026</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button onClick={createBolao} disabled={creatingBolao || !newBolaoName.trim()}>
-                  {creatingBolao ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                  Criar
-                </Button>
-              </CardContent>
-            </Card>
-
-            {boloes.map((bolao) => {
-              const inviteExpired = isInviteExpired(bolao.invite_created_at);
-              const expiresAt = bolao.invite_created_at
-                ? addDays(new Date(bolao.invite_created_at), 7)
-                : null;
-
-              return (
-                <Card key={bolao.id}>
-                  <CardContent className="space-y-3 p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{bolao.name}</p>
-                        <p className="text-xs text-muted-foreground">Código: {bolao.invite_code}</p>
-                      </div>
-                      {!inviteExpired && (
-                        <Button variant="outline" size="sm" onClick={() => copyInviteLink(bolao.invite_code)}>
-                          <Copy className="mr-1 h-3 w-3" /> Link
-                        </Button>
-                      )}
-                    </div>
-
-                    {expiresAt && (
-                      <div className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs ${
-                        inviteExpired
-                          ? "bg-destructive/10 text-destructive"
-                          : "bg-muted text-muted-foreground"
-                      }`}>
-                        {inviteExpired && <AlertTriangle className="h-3.5 w-3.5" />}
-                        <span>
-                          {inviteExpired
-                            ? `Convite expirou em ${format(expiresAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`
-                            : `Convite expira em ${format(expiresAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`}
-                        </span>
-                      </div>
-                    )}
-
-                    {inviteExpired && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => handleRegenerateInvite(bolao.id)}
-                        disabled={regenerating === bolao.id}
-                      >
-                        {regenerating === bolao.id ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="mr-2 h-4 w-4" />
-                        )}
-                        Gerar novo link de convite
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {boloes.map((bolao) => (
+              <Card key={bolao.id}>
+                <CardHeader>
+                  <CardTitle className="text-base">{bolao.name}</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Bolão único da aplicação — novos usuários entram automaticamente ao criar conta.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    {members.length} participante(s) vinculado(s)
+                  </p>
+                  <Button variant="outline" className="w-full" onClick={() => navigate(DEFAULT_BOLAO_PATH)}>
+                    Abrir palpites e ranking
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </TabsContent>
 
           {/* Usuários Tab */}
@@ -502,48 +375,46 @@ const Admin = () => {
               </CardContent>
             </Card>
 
-            {boloes.map((bolao) => {
-              const bolaoMembers = members.filter((m) => m.bolao_id === bolao.id);
-              if (bolaoMembers.length === 0) return null;
-              return (
-                <Card key={bolao.id}>
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Users className="h-4 w-4" /> {bolao.name}
-                      <span className="text-xs font-normal text-muted-foreground">({bolaoMembers.length} membros)</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {bolaoMembers.map((m) => (
-                      <div key={m.member_id} className="flex items-center justify-between rounded-lg border p-3">
-                        <div className="flex items-center gap-3">
-                          <UserAvatar username={m.username} avatarUrl={m.avatar_url} size="sm" />
-                          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="h-4 w-4" /> Participantes
+                  <span className="text-xs font-normal text-muted-foreground">({members.length})</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {members.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum participante ainda.</p>
+                ) : (
+                  members.map((m) => (
+                    <div key={m.member_id} className="flex items-center justify-between rounded-lg border p-3">
+                      <div className="flex items-center gap-3">
+                        <UserAvatar username={m.username} avatarUrl={m.avatar_url} size="sm" />
+                        <div>
                           <p className="text-sm font-medium">{m.username}</p>
                           <p className="text-xs text-muted-foreground">
                             Entrou em {format(new Date(m.joined_at), "dd/MM/yyyy", { locale: ptBR })}
                           </p>
-                          </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:bg-destructive/10"
-                          onClick={() => removeMember(m.member_id)}
-                          disabled={removingMember === m.member_id}
-                        >
-                          {removingMember === m.member_id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
                       </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:bg-destructive/10"
+                        onClick={() => removeMember(m.member_id)}
+                        disabled={removingMember === m.member_id}
+                      >
+                        {removingMember === m.member_id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="jogos" className="space-y-4 pt-4">
@@ -560,7 +431,7 @@ const Admin = () => {
                 <CardTitle className="text-base">Adicionar Jogo</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
                     <Label className="text-xs">Mandante</Label>
                     <TeamSelect
@@ -586,7 +457,7 @@ const Admin = () => {
                     onChange={(e) => setMatchForm({ ...matchForm, match_date: e.target.value })}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
                     <Label className="text-xs">Estádio</Label>
                     <Input
@@ -604,7 +475,7 @@ const Admin = () => {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div>
                     <Label className="text-xs">Fase</Label>
                     <Select
@@ -656,7 +527,7 @@ const Admin = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <p className="text-xs text-muted-foreground font-medium">Definir pergunta</p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       <div>
                         <Label className="text-xs">Rodada</Label>
                         <Select value={bonusRound} onValueChange={(v) => {
@@ -964,7 +835,7 @@ const MatchResultEditor = ({
             placeholder="0"
             value={homeScore}
             onChange={(e) => setHomeScore(e.target.value)}
-            className="w-16 text-center"
+            className="score-input"
           />
           <span className="text-sm font-bold">×</span>
           <Input
@@ -973,11 +844,12 @@ const MatchResultEditor = ({
             placeholder="0"
             value={awayScore}
             onChange={(e) => setAwayScore(e.target.value)}
-            className="w-16 text-center"
+            className="score-input"
           />
           <Button
-            size="sm"
+            size="icon"
             variant="outline"
+            className="h-12 w-12 shrink-0"
             disabled={saving}
             onClick={handleSave}
           >

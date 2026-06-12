@@ -24,7 +24,12 @@ export function PageHeader({
   containerClassName,
 }: PageHeaderProps) {
   return (
-    <header className={cn("border-b bg-primary px-4 py-4 text-primary-foreground", className)}>
+    <header
+      className={cn(
+        "border-b bg-primary px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top,0px))] text-primary-foreground",
+        className
+      )}
+    >
       <div className={cn("mx-auto flex max-w-lg items-center justify-between gap-3", containerClassName)}>
         <div className="flex min-w-0 flex-1 items-center gap-3">
           {leading ?? (

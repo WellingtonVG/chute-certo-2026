@@ -20,9 +20,9 @@ export function ThemeToggle({ className }: { className?: string }) {
 
   if (!mounted) {
     return (
-      <div className={cn("grid grid-cols-3 gap-2", className)}>
+      <div className={cn("grid grid-cols-1 gap-2 min-[400px]:grid-cols-3", className)}>
         {options.map(({ value, label }) => (
-          <Button key={value} variant="outline" size="sm" disabled className="h-10">
+          <Button key={value} variant="outline" size="sm" disabled className="h-11 sm:h-10">
             {label}
           </Button>
         ))}
@@ -33,17 +33,17 @@ export function ThemeToggle({ className }: { className?: string }) {
   const current = (theme ?? "system") as ThemeValue;
 
   return (
-    <div className={cn("grid grid-cols-3 gap-2", className)}>
+    <div className={cn("grid grid-cols-1 gap-2 min-[400px]:grid-cols-3", className)}>
       {options.map(({ value, label, icon: Icon }) => (
         <Button
           key={value}
           type="button"
           variant={current === value ? "default" : "outline"}
           size="sm"
-          className="h-10 gap-2"
+          className="h-11 gap-2 min-[400px]:h-10"
           onClick={() => setTheme(value)}
         >
-          <Icon className="h-4 w-4" />
+          <Icon className="h-4 w-4 shrink-0" />
           {label}
         </Button>
       ))}
@@ -53,7 +53,12 @@ export function ThemeToggle({ className }: { className?: string }) {
 
 export function ThemeCornerButton({ className }: { className?: string }) {
   return (
-    <div className={cn("fixed top-4 right-4 z-50", className)}>
+    <div
+      className={cn(
+        "fixed right-4 z-50 top-[calc(1rem+env(safe-area-inset-top,0px))]",
+        className
+      )}
+    >
       <ThemeModeButton variant="outline" className="bg-background/90 shadow-sm backdrop-blur" />
     </div>
   );

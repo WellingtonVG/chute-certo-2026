@@ -254,7 +254,7 @@ const RoundPredictionPanel = ({
                       inputMode="numeric"
                       value={entry?.home ?? ""}
                       onChange={(e) => updateScore(match.id, "home", e.target.value)}
-                      className="w-16 text-center"
+                      className="score-input"
                     />
                     <span className="text-sm font-bold">×</span>
                     <Input
@@ -265,7 +265,7 @@ const RoundPredictionPanel = ({
                       inputMode="numeric"
                       value={entry?.away ?? ""}
                       onChange={(e) => updateScore(match.id, "away", e.target.value)}
-                      className="w-16 text-center"
+                      className="score-input"
                     />
                   </div>
                   {isMatchDirty(match.id) && (

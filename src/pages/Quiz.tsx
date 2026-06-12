@@ -6,6 +6,7 @@ import QuizResult from "@/components/quiz/QuizResult";
 import QuizMultiplayerLobby from "@/components/quiz/QuizMultiplayerLobby";
 import QuizMultiplayerGame from "@/components/quiz/QuizMultiplayerGame";
 import BottomNav from "@/components/BottomNav";
+import { MobilePage } from "@/components/MobilePage";
 import { PageHeader } from "@/components/PageHeader";
 import type { QuizQuestion, QuizLevel } from "@/lib/quiz-data";
 
@@ -63,7 +64,7 @@ const Quiz = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-20">
+    <MobilePage withBottomNav>
       <PageHeader
         title="Quiz Copa do Mundo"
         onBack={() => (screen === "menu" ? navigate("/") : handleBackToMenu())}
@@ -93,7 +94,7 @@ const Quiz = () => {
         )}
       </main>
       <BottomNav />
-    </div>
+    </MobilePage>
   );
 };
 

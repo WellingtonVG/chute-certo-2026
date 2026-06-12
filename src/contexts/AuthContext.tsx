@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { ensureDefaultBolaoMembership } from "@/lib/bolao-membership";
 
 type Profile = Tables<"profiles">;
 
@@ -73,6 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const [p, admin] = await Promise.all([
           fetchProfile(s.user.id),
           fetchIsAdmin(s.user.id),
+          ensureDefaultBolaoMembership(s.user.id),
         ]);
         setProfile(p);
         setIsAdmin(admin);

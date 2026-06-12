@@ -1,8 +1,7 @@
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeCornerButton } from "@/components/ThemeToggle";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,23 +18,13 @@ import Settings from "./pages/Settings";
 import Invite from "./pages/Invite";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
+import { DEFAULT_BOLAO_PATH } from "@/lib/bolao-config";
 
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children, allowDefaultUsername = false }: { children: React.ReactNode; allowDefaultUsername?: boolean }) => {
   const { user, profile, isLoading } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    if (!isLoading && user) {
-      const savedRedirect = localStorage.getItem("invite_redirect");
-      if (savedRedirect) {
-        localStorage.removeItem("invite_redirect");
-        navigate(savedRedirect, { replace: true });
-      }
-    }
-  }, [isLoading, user, navigate]);
 
   if (isLoading) {
     return (
