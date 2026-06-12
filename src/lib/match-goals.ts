@@ -95,6 +95,8 @@ export async function saveRoundRegularScorers(
     if (insertError) return { error: insertError };
   }
 
+  await supabase.rpc("sync_competition_rounds_from_matches");
+
   const { error: pointsError } = await supabase.rpc("calculate_round_scorer_points", {
     round_key_input: roundKey,
   });

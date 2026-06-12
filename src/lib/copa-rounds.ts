@@ -1,4 +1,8 @@
-/** Rodadas eliminatórias fixas do bolão Copa 2026 */
+/** Rodadas oficiais do bolão Copa 2026 — 9 no total */
+
+export const GROUP_ROUND_ORDER = ["group_1", "group_2", "group_3"] as const;
+
+export type GroupRoundKey = (typeof GROUP_ROUND_ORDER)[number];
 
 export const KNOCKOUT_ROUND_ORDER = [
   "r32",
@@ -11,10 +15,15 @@ export const KNOCKOUT_ROUND_ORDER = [
 
 export type KnockoutRoundKey = (typeof KNOCKOUT_ROUND_ORDER)[number];
 
-/** Fase de grupos: uma rodada por dia (ex.: group_2026-06-11) */
-export type GroupDayRoundKey = `group_${string}`;
+export type CopaRoundKey = GroupRoundKey | KnockoutRoundKey;
 
-export type CopaRoundKey = KnockoutRoundKey | GroupDayRoundKey | string;
+export const COPA_ROUND_ORDER = [...GROUP_ROUND_ORDER, ...KNOCKOUT_ROUND_ORDER] as const;
+
+export const GROUP_ROUND_LABELS: Record<GroupRoundKey, string> = {
+  group_1: "Fase de Grupos — 1ª rodada",
+  group_2: "Fase de Grupos — 2ª rodada",
+  group_3: "Fase de Grupos — 3ª rodada",
+};
 
 export const KNOCKOUT_ROUND_LABELS: Record<KnockoutRoundKey, string> = {
   r32: "Rodada de 32 (R32)",
@@ -25,14 +34,10 @@ export const KNOCKOUT_ROUND_LABELS: Record<KnockoutRoundKey, string> = {
   final: "Final",
 };
 
-/** @deprecated use orderedRoundKeys — mantido para compat */
-export const COPA_ROUND_ORDER = KNOCKOUT_ROUND_ORDER;
-
-export const COPA_ROUND_LABELS = KNOCKOUT_ROUND_LABELS;
-
-export const GROUP_ROUND_PREFIX = "group_";
-
-export const ROUND_TIMEZONE = "America/Sao_Paulo";
+export const COPA_ROUND_LABELS: Record<CopaRoundKey, string> = {
+  ...GROUP_ROUND_LABELS,
+  ...KNOCKOUT_ROUND_LABELS,
+};
 
 /** Estágios com multiplicador ×2 nos palpites por jogo */
 export const DOUBLED_STAGES = new Set([
@@ -45,21 +50,51 @@ export const DOUBLED_STAGES = new Set([
 
 const DOUBLED_SCORER_ROUNDS = new Set<KnockoutRoundKey>(["r16", "qf", "sf", "third", "final"]);
 
-export function isGroupDayRoundKey(roundKey: string): boolean {
-  return roundKey.startsWith(GROUP_ROUND_PREFIX) && roundKey.length > GROUP_ROUND_PREFIX.length;
+export function isGroupRoundKey(roundKey: string): roundKey is GroupRoundKey {
+  return (GROUP_ROUND_ORDER as readonly string[]).includes(roundKey);
 }
 
 export function isKnockoutRoundKey(roundKey: string): roundKey is KnockoutRoundKey {
   return (KNOCKOUT_ROUND_ORDER as readonly string[]).includes(roundKey);
 }
 
-/** Dia do jogo no fuso da Copa (Brasil) — YYYY-MM-DD */
-export function formatMatchDayKey(isoDate: string): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: ROUND_TIMEZONE }).format(new Date(isoDate));
+export function isCopaRoundKey(roundKey: string): roundKey is CopaRoundKey {
+  return isGroupRoundKey(roundKey) || isKnockoutRoundKey(roundKey);
 }
 
-export function groupDayRoundKey(isoDate: string): GroupDayRoundKey {
-  return `${GROUP_ROUND_PREFIX}${formatMatchDayKey(isoDate)}`;
+export function groupRoundKeyFromMatchday(matchday: 1 | 2 | 3): GroupRoundKey {
+  return `group_${matchday}`;
+}
+
+type GroupMatchLike = {
+  id: string;
+  stage: string;
+  group_name: string | null;
+  match_date: string;
+};
+
+/** Cada grupo joga 2 partidas por rodada (1ª, 2ª e 3ª da fase de grupos). */
+export function buildGroupRoundKeyMap(matches: GroupMatchLike[]): Map<string, GroupRoundKey> {
+  const groupMatches = matches.filter((m) => m.stage === "group" && m.group_name);
+  const byGroup: Record<string, GroupMatchLike[]> = {};
+
+  for (const m of groupMatches) {
+    const g = m.group_name!;
+    if (!byGroup[g]) byGroup[g] = [];
+    byGroup[g].push(m);
+  }
+
+  const map = new Map<string, GroupRoundKey>();
+  for (const group of Object.values(byGroup)) {
+    const sorted = [...group].sort(
+      (a, b) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime()
+    );
+    sorted.forEach((m, i) => {
+      const matchday = Math.min(3, Math.ceil((i + 1) / 2)) as 1 | 2 | 3;
+      map.set(m.id, groupRoundKeyFromMatchday(matchday));
+    });
+  }
+  return map;
 }
 
 export function getScorerPointsForRound(roundKey: string): number {
@@ -70,21 +105,8 @@ export function isDoubledRound(roundKey: string): boolean {
   return getScorerPointsForRound(roundKey) === 40;
 }
 
-export function formatGroupDayLabel(dayKey: string): string {
-  const datePart = dayKey.replace(GROUP_ROUND_PREFIX, "");
-  const date = new Date(`${datePart}T15:00:00`);
-  return date.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    timeZone: ROUND_TIMEZONE,
-  });
-}
-
 export function getRoundLabelFromKey(roundKey: string): string {
+  if (isGroupRoundKey(roundKey)) return GROUP_ROUND_LABELS[roundKey];
   if (isKnockoutRoundKey(roundKey)) return KNOCKOUT_ROUND_LABELS[roundKey];
-  if (isGroupDayRoundKey(roundKey)) {
-    return `Fase de Grupos — ${formatGroupDayLabel(roundKey)}`;
-  }
   return roundKey;
 }

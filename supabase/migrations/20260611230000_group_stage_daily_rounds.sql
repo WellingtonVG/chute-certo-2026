@@ -1,8 +1,5 @@
 -- Fase de grupos: cada dia (America/Sao_Paulo) = uma rodada para palpite e artilheiro
 
-DELETE FROM public.round_predictions WHERE round_key IN ('group_1', 'group_2', 'group_3');
-DELETE FROM public.competition_rounds WHERE round_key IN ('group_1', 'group_2', 'group_3');
-
 INSERT INTO public.competition_rounds (round_key, label, sort_order, stage, base_scorer_points, points_multiplier)
 SELECT
   day_key,
@@ -25,6 +22,22 @@ ON CONFLICT (round_key) DO UPDATE SET
   base_scorer_points = EXCLUDED.base_scorer_points,
   points_multiplier = EXCLUDED.points_multiplier;
 
+UPDATE public.matches SET round_key = CASE
+  WHEN stage = 'group' THEN
+    'group_' || to_char(match_date AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD')
+  WHEN stage = 'round_of_32' THEN 'r32'
+  WHEN stage = 'round_of_16' THEN 'r16'
+  WHEN stage = 'quarter_final' THEN 'qf'
+  WHEN stage = 'semi_final' THEN 'sf'
+  WHEN stage = 'third_place' THEN 'third'
+  WHEN stage = 'final' THEN 'final'
+  ELSE round_key
+END
+WHERE stage IN ('group', 'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final');
+
+DELETE FROM public.round_predictions WHERE round_key IN ('group_1', 'group_2', 'group_3');
+DELETE FROM public.competition_rounds WHERE round_key IN ('group_1', 'group_2', 'group_3');
+
 WITH max_group AS (
   SELECT COALESCE(MAX(sort_order), 0) AS mx
   FROM public.competition_rounds
@@ -42,16 +55,3 @@ FROM max_group,
   ('final', 6)
 ) AS v(key, ord)
 WHERE cr.round_key = v.key;
-
-UPDATE public.matches SET round_key = CASE
-  WHEN stage = 'group' THEN
-    'group_' || to_char(match_date AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD')
-  WHEN stage = 'round_of_32' THEN 'r32'
-  WHEN stage = 'round_of_16' THEN 'r16'
-  WHEN stage = 'quarter_final' THEN 'qf'
-  WHEN stage = 'semi_final' THEN 'sf'
-  WHEN stage = 'third_place' THEN 'third'
-  WHEN stage = 'final' THEN 'final'
-  ELSE round_key
-END
-WHERE stage IN ('group', 'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final');

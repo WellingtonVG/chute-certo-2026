@@ -1,7 +1,8 @@
 import type { Tables } from "@/integrations/supabase/types";
 import {
-  groupDayRoundKey,
-  isGroupDayRoundKey,
+  buildGroupRoundKeyMap,
+  GROUP_ROUND_ORDER,
+  isGroupRoundKey,
   isKnockoutRoundKey,
   KNOCKOUT_ROUND_ORDER,
   getRoundLabelFromKey,
@@ -121,17 +122,19 @@ export function getClosestRound(matches: Match[]): string | null {
   return best;
 }
 
-/** Deriva round_key: grupos = 1 dia; eliminatórias = fase */
-export function deriveRoundKey(match: Match): string | null {
+/** Deriva round_key: grupos = 1ª/2ª/3ª rodada; eliminatórias = fase */
+export function deriveRoundKey(
+  match: Match,
+  groupRoundMap?: Map<string, string>
+): string | null {
   const rk = (match as Match & { round_key?: string | null }).round_key;
   const stage = match.stage as string;
 
-  if (rk === "group_1" || rk === "group_2" || rk === "group_3") {
-    if (stage === "group") return groupDayRoundKey(match.match_date);
-  }
-  if (rk && (isGroupDayRoundKey(rk) || isKnockoutRoundKey(rk))) return rk;
+  if (rk && (isGroupRoundKey(rk) || isKnockoutRoundKey(rk))) return rk;
 
-  if (stage === "group") return groupDayRoundKey(match.match_date);
+  if (stage === "group") {
+    return groupRoundMap?.get(match.id) ?? null;
+  }
 
   const byStage: Record<string, KnockoutRoundKey> = {
     round_of_32: "r32",
@@ -144,15 +147,18 @@ export function deriveRoundKey(match: Match): string | null {
   return byStage[stage] ?? null;
 }
 
-/** Copa: grupos por dia + eliminatórias por fase */
+/** Copa: 3 rodadas de grupos + eliminatórias por fase */
 export function groupByRoundKey(matches: Match[]): Record<string, Match[]> {
+  const groupRoundMap = buildGroupRoundKeyMap(matches);
   const grouped: Record<string, Match[]> = {};
+
   for (const m of matches) {
-    const key = deriveRoundKey(m);
+    const key = deriveRoundKey(m, groupRoundMap);
     if (!key) continue;
     if (!grouped[key]) grouped[key] = [];
     grouped[key].push(m);
   }
+
   for (const key of Object.keys(grouped)) {
     grouped[key].sort(
       (a, b) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime()
@@ -169,11 +175,9 @@ export function getScorerMatchForRound(roundMatches: Match[]): Match {
 }
 
 export function orderedRoundKeys(grouped: Record<string, Match[]>): string[] {
-  const groupDays = Object.keys(grouped)
-    .filter(isGroupDayRoundKey)
-    .sort();
+  const groups = GROUP_ROUND_ORDER.filter((k) => grouped[k]?.length);
   const knockout = KNOCKOUT_ROUND_ORDER.filter((k) => grouped[k]?.length);
-  return [...groupDays, ...knockout];
+  return [...groups, ...knockout];
 }
 
 export function getRoundLabel(roundKey: string, _matches?: Match[]): string {

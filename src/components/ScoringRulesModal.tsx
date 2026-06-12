@@ -77,9 +77,9 @@ const ScoringRulesModal = ({ firstMatchDate }: ScoringRulesModalProps) => {
               repetido entre rodadas.
             </p>
             <p className="mb-2 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Fase de grupos:</span> cada dia de jogos
-              é uma rodada. <span className="font-medium text-foreground">Eliminatórias:</span> R32,
-              oitavas, quartas, semi, 3º lugar e final — uma rodada por fase.
+              São <span className="font-medium text-foreground">9 rodadas</span>: 3 na fase de
+              grupos, R32, oitavas, quartas, semi, disputa de 3º lugar e final. Não é permitido
+              repetir o mesmo jogador em rodadas diferentes.
             </p>
             <ul className="space-y-1.5 text-muted-foreground">
               <li className="flex justify-between">

@@ -287,6 +287,11 @@ Deno.serve(async (req) => {
       }
     }
 
+    const { error: roundsError } = await supabaseAdmin.rpc("sync_competition_rounds_from_matches");
+    if (roundsError) {
+      console.error("[sync-fixtures] sync_competition_rounds error:", roundsError);
+    }
+
     console.log("[sync-fixtures] Done:", synced, "synced,", skipped, "skipped");
 
     return new Response(
