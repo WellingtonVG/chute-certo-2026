@@ -106,11 +106,13 @@ const RoundPredictionPanel = ({
   const scorerRequired = !forceEditable;
   const scorerDuplicate =
     scorer.trim().length > 0 && usedScorerNames.has(scorer.trim().toLowerCase());
-  const canSubmit =
-    roundOpen &&
-    allScoresFilled &&
-    (!scorerRequired || scorer.trim().length > 0) &&
-    !scorerDuplicate;
+  const hasPartialContent = filledCount > 0 || (forceEditable && scorer.trim().length > 0);
+  const canSubmit = forceEditable
+    ? hasPartialContent && !scorerDuplicate
+    : roundOpen &&
+      allScoresFilled &&
+      (!scorerRequired || scorer.trim().length > 0) &&
+      !scorerDuplicate;
 
   const handleSave = async () => {
     if (!canSubmit) return;
@@ -119,6 +121,7 @@ const RoundPredictionPanel = ({
       const s = scores[m.id];
       const h = parseInt(s.home, 10);
       const a = parseInt(s.away, 10);
+      if (isNaN(h) || isNaN(a) || h < 0 || a < 0) continue;
       parsed[m.id] = { home: h, away: a };
     }
     await onSaveRound(roundKey, matches, parsed, scorer.trim());
@@ -316,10 +319,14 @@ const RoundPredictionPanel = ({
 
             <p className="text-center text-xs text-muted-foreground">
               {filledCount}/{matches.length} jogos preenchidos
-              {scorerRequired &&
-                !scorer.trim() &&
-                filledCount === matches.length &&
-                " · Informe o artilheiro"}
+              {forceEditable
+                ? filledCount === 0 && !scorer.trim()
+                  ? " · Preencha ao menos um jogo ou o artilheiro"
+                  : " · Salva só o que estiver preenchido"
+                : scorerRequired &&
+                  !scorer.trim() &&
+                  filledCount === matches.length &&
+                  " · Informe o artilheiro"}
             </p>
 
             <Button className="w-full" onClick={handleSave} disabled={!canSubmit || saving}>

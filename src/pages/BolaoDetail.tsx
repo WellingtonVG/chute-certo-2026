@@ -391,11 +391,23 @@ const BolaoDetail = () => {
     const rows = buildRoundPredictionRows(roundMatches, scores);
 
     if (isAdminPalpiteMode && adminTargetUserId) {
-      const { error } = await adminUpsertPredictions(id, adminTargetUserId, rows);
-      if (error) {
+      if (rows.length === 0 && !scorerName.trim()) {
         setSavingRound(null);
-        toast({ title: "Erro ao salvar", description: adminPredictionErrorMessage(error), variant: "destructive" });
+        toast({
+          title: "Nada para salvar",
+          description: "Preencha ao menos um jogo ou o artilheiro da rodada.",
+          variant: "destructive",
+        });
         return;
+      }
+
+      if (rows.length > 0) {
+        const { error } = await adminUpsertPredictions(id, adminTargetUserId, rows);
+        if (error) {
+          setSavingRound(null);
+          toast({ title: "Erro ao salvar", description: adminPredictionErrorMessage(error), variant: "destructive" });
+          return;
+        }
       }
       if (scorerName.trim()) {
         const { error: rpError } = await upsertRoundPrediction(

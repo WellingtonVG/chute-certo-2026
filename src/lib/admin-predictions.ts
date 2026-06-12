@@ -117,11 +117,25 @@ export function buildRoundPredictionRows(
   scores: Record<string, { home: number; away: number }>,
   bonusAnswer?: boolean | null
 ): AdminPredictionRow[] {
-  return roundMatches.map((match) => ({
-    match_id: match.id,
-    home_score: scores[match.id].home,
-    away_score: scores[match.id].away,
-    scorer_name: null,
-    ...(bonusAnswer !== undefined ? { bonus_answer: bonusAnswer } : {}),
-  }));
+  return roundMatches
+    .filter((match) => {
+      const s = scores[match.id];
+      if (!s) return false;
+      const { home, away } = s;
+      return (
+        typeof home === "number" &&
+        typeof away === "number" &&
+        !Number.isNaN(home) &&
+        !Number.isNaN(away) &&
+        home >= 0 &&
+        away >= 0
+      );
+    })
+    .map((match) => ({
+      match_id: match.id,
+      home_score: scores[match.id].home,
+      away_score: scores[match.id].away,
+      scorer_name: null,
+      ...(bonusAnswer !== undefined ? { bonus_answer: bonusAnswer } : {}),
+    }));
 }
