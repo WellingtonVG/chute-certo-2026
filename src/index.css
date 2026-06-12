@@ -118,16 +118,18 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  .score-input {
-    @apply h-12 w-[3.25rem] min-w-[3.25rem] shrink-0 text-center text-base;
-  }
-
   .tabs-list-scroll {
     @apply w-full max-w-full justify-start overflow-x-auto;
   }
 
   .tabs-list-scroll > button {
     @apply shrink-0 px-2.5 text-xs sm:px-3 sm:text-sm;
+  }
+}
+
+@layer utilities {
+  .score-input {
+    @apply h-12 w-[3.25rem] min-w-[3.25rem] shrink-0 text-center text-base;
   }
 }
 

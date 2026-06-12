@@ -22,6 +22,8 @@ import {
 } from "@/lib/match-stages";
 import type { RoundPrediction } from "@/lib/round-predictions";
 import squads from "@/data/squads.json";
+import MatchPredictionsPeek from "@/components/MatchPredictionsPeek";
+import type { BolaoMember } from "@/components/AdminPalpiteControl";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
@@ -29,6 +31,8 @@ type Prediction = Tables<"predictions">;
 type ScoreEntry = { home: string; away: string };
 
 interface RoundPredictionPanelProps {
+  bolaoId: string;
+  members: BolaoMember[];
   roundKey: string;
   matches: Match[];
   predictions: Record<string, Prediction>;
@@ -47,6 +51,8 @@ interface RoundPredictionPanelProps {
 }
 
 const RoundPredictionPanel = ({
+  bolaoId,
+  members,
   roundKey,
   matches,
   predictions,
@@ -205,11 +211,17 @@ const RoundPredictionPanel = ({
             <div
               key={match.id}
               className={cn(
-                "rounded-lg border bg-background p-3",
+                "relative rounded-lg border bg-background p-3",
                 today && matchTodayHighlightClass
               )}
             >
-              <div className="mb-2">
+              <MatchPredictionsPeek
+                bolaoId={bolaoId}
+                match={match}
+                members={members}
+                className="absolute right-1 top-1 z-10"
+              />
+              <div className="mb-2 pr-8">
                 <MatchTeamsDisplay
                   homeTeam={match.home_team}
                   awayTeam={match.away_team}

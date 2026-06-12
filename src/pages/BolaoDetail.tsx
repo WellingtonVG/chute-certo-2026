@@ -53,6 +53,7 @@ import { buildRanking, type RankingEntry } from "@/lib/ranking";
 import squads from "@/data/squads.json";
 import RoundPredictionPanel from "@/components/RoundPredictionPanel";
 import MemberPredictionsSelector from "@/components/MemberPredictionsSelector";
+import MatchPredictionsPeek from "@/components/MatchPredictionsPeek";
 import { PageHeader } from "@/components/PageHeader";
 import { ThemeCornerButton } from "@/components/ThemeToggle";
 import { APP_PUBLIC_URL, DEFAULT_BOLAO_ID, DEFAULT_BOLAO_PATH } from "@/lib/bolao-config";
@@ -661,6 +662,8 @@ const BolaoDetail = () => {
               </p>
             ) : (
               <RoundsAccordion
+                bolaoId={bolaoId}
+                members={bolaoMembers}
                 matches={matches}
                 predictions={activePredictions}
                 roundPredictions={activeRoundPredictions}
@@ -735,6 +738,8 @@ const BolaoDetail = () => {
 };
 
 const RoundsAccordion = ({
+  bolaoId,
+  members,
   matches,
   predictions,
   roundPredictions,
@@ -747,6 +752,8 @@ const RoundsAccordion = ({
   readOnly = false,
   isBrasileirao,
 }: {
+  bolaoId: string;
+  members: BolaoMember[];
   matches: Match[];
   predictions: Record<string, Prediction>;
   roundPredictions: Record<string, RoundPrediction>;
@@ -802,6 +809,8 @@ const RoundsAccordion = ({
   const renderCard = (match: Match) => (
     <MatchPredictionCard
       key={match.id}
+      bolaoId={bolaoId}
+      members={members}
       match={match}
       prediction={predictions[match.id]}
       locked={isMatchLocked(match)}
@@ -875,6 +884,8 @@ const RoundsAccordion = ({
                 </AccordionTrigger>
                 <AccordionContent>
                   <RoundPredictionPanel
+                    bolaoId={bolaoId}
+                    members={members}
                     roundKey={roundKey}
                     matches={roundMatches}
                     predictions={predictions}
@@ -898,6 +909,8 @@ const RoundsAccordion = ({
 
 // Sub-component for match prediction
 const MatchPredictionCard = ({
+  bolaoId,
+  members,
   match,
   prediction,
   locked,
@@ -907,6 +920,8 @@ const MatchPredictionCard = ({
   onSave,
   isBrasileirao = false,
 }: {
+  bolaoId: string;
+  members: BolaoMember[];
   match: Tables<"matches">;
   prediction?: Tables<"predictions">;
   locked: boolean;
@@ -959,12 +974,21 @@ const MatchPredictionCard = ({
   return (
     <Card
       className={cn(
+        "relative",
         !isEditable ? "opacity-70" : "",
         today && matchTodayHighlightClass
       )}
     >
+      <MatchPredictionsPeek
+        bolaoId={bolaoId}
+        match={match}
+        members={members}
+        isBrasileirao={isBrasileirao}
+        bonusQuestion={bonusQuestion}
+        className="absolute right-1 top-1 z-10"
+      />
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pr-8">
           <span className="text-xs font-medium text-muted-foreground">
             {isBrasileirao
               ? ((match as any).round_name || "")

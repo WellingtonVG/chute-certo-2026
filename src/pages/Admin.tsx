@@ -828,11 +828,12 @@ const MatchResultEditor = ({
           {new Date(match.match_date).toLocaleDateString("pt-BR")}
           {match.is_finished && " • ✅ Resultado salvo"}
         </p>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center gap-2">
           <Input
             type="number"
             min="0"
             placeholder="0"
+            inputMode="numeric"
             value={homeScore}
             onChange={(e) => setHomeScore(e.target.value)}
             className="score-input"
@@ -842,20 +843,26 @@ const MatchResultEditor = ({
             type="number"
             min="0"
             placeholder="0"
+            inputMode="numeric"
             value={awayScore}
             onChange={(e) => setAwayScore(e.target.value)}
             className="score-input"
           />
-          <Button
-            size="icon"
-            variant="outline"
-            className="h-12 w-12 shrink-0"
-            disabled={saving}
-            onClick={handleSave}
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          </Button>
         </div>
+        <Button
+          className="w-full"
+          disabled={saving || homeScore === "" || awayScore === ""}
+          onClick={handleSave}
+        >
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              Salvar resultado
+            </>
+          )}
+        </Button>
         {bonusQ && (
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">{bonusQ}</p>
