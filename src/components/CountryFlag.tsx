@@ -68,21 +68,36 @@ export const MatchTeamsDisplay = ({
   awayTeam,
   size = 48,
   style = "shiny",
+  dateTime,
+  dateTimeClassName,
 }: {
   homeTeam: string;
   awayTeam: string;
   size?: FlagSize;
   style?: FlagStyle;
+  dateTime?: string;
+  dateTimeClassName?: string;
 }) => (
-  <div className="flex items-center justify-center gap-3 py-1 sm:gap-6">
-    <div className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center">
+  <div className="grid grid-cols-3 items-start gap-2 py-1">
+    <div className="flex flex-col items-center gap-2 text-center">
       <CountryFlag teamName={homeTeam} size={size} style={style} className="h-auto w-14 sm:w-16" />
-      <span className="text-sm font-semibold leading-tight sm:text-base">{homeTeam}</span>
+      <span className="flex min-h-[2.5rem] items-start justify-center text-sm font-semibold leading-tight sm:text-base">
+        {homeTeam}
+      </span>
     </div>
-    <span className="shrink-0 text-xs font-medium text-muted-foreground sm:text-sm">vs</span>
-    <div className="flex min-w-0 flex-1 flex-col items-center gap-2 text-center">
+    <div className="flex flex-col items-center justify-center gap-1 self-center text-center">
+      <span className="text-xs font-medium text-muted-foreground sm:text-sm">vs</span>
+      {dateTime && (
+        <span className={cn("text-xs leading-tight", dateTimeClassName ?? "text-muted-foreground")}>
+          {dateTime}
+        </span>
+      )}
+    </div>
+    <div className="flex flex-col items-center gap-2 text-center">
       <CountryFlag teamName={awayTeam} size={size} style={style} className="h-auto w-14 sm:w-16" />
-      <span className="text-sm font-semibold leading-tight sm:text-base">{awayTeam}</span>
+      <span className="flex min-h-[2.5rem] items-start justify-center text-sm font-semibold leading-tight sm:text-base">
+        {awayTeam}
+      </span>
     </div>
   </div>
 );
