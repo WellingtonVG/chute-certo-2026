@@ -25,20 +25,23 @@ import SeasonPredictions from "@/components/SeasonPredictions";
 import ScoringRulesModal from "@/components/ScoringRulesModal";
 import BolaoFeed from "@/components/BolaoFeed";
 import {
-  STAGE_LABELS,
-  getClosestStage,
-  groupByStage,
-  orderedStages,
   getClosestRound,
   groupByRound,
   orderedRounds,
-  groupByDay,
-  orderedDays,
-  getClosestDay,
-  formatDayLabel,
-  getScorerMatchForRound,
+  groupByRoundKey,
+  orderedRoundKeys,
+  getClosestRoundKey,
   isRoundOpen,
 } from "@/lib/match-stages";
+import { getRoundLabelFromKey } from "@/lib/copa-rounds";
+import {
+  fetchRoundPredictions,
+  getUsedScorerNames,
+  isScorerAlreadyUsed,
+  upsertRoundPrediction,
+  type RoundPrediction,
+} from "@/lib/round-predictions";
+import { buildRanking, type RankingEntry } from "@/lib/ranking";
 import squads from "@/data/squads.json";
 import RoundPredictionPanel from "@/components/RoundPredictionPanel";
 
@@ -58,23 +61,38 @@ const BolaoDetail = () => {
   const [bolaoMembers, setBolaoMembers] = useState<BolaoMember[]>([]);
   const [adminTargetUserId, setAdminTargetUserId] = useState<string | null>(null);
   const [adminTargetUsername, setAdminTargetUsername] = useState<string | null>(null);
-  const [ranking, setRanking] = useState<{ username: string; total: number }[]>([]);
+  const [ranking, setRanking] = useState<RankingEntry[]>([]);
+  const [roundPredictions, setRoundPredictions] = useState<Record<string, RoundPrediction>>({});
+  const [adminRoundPredictions, setAdminRoundPredictions] = useState<Record<string, RoundPrediction>>({});
+  const [firstCopaMatchDate, setFirstCopaMatchDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingMatch, setSavingMatch] = useState<string | null>(null);
   const [savingRound, setSavingRound] = useState<string | null>(null);
 
   const isAdminPalpiteMode = !!adminTargetUserId;
   const activePredictions = isAdminPalpiteMode ? adminPredictions : predictions;
+  const activeRoundPredictions = isAdminPalpiteMode ? adminRoundPredictions : roundPredictions;
 
   const fetchRanking = async (bolaoId: string, competition: string) => {
-    const { data: allPreds } = await supabase
-      .from("predictions")
-      .select("user_id, points, scorer_points, bonus_points")
-      .eq("bolao_id", bolaoId);
+    const [{ data: allPreds }, { data: roundPreds }] = await Promise.all([
+      supabase
+        .from("predictions")
+        .select("user_id, points, bonus_points")
+        .eq("bolao_id", bolaoId),
+      competition !== "brasileirao_2026"
+        ? supabase
+            .from("round_predictions")
+            .select("user_id, scorer_points")
+            .eq("bolao_id", bolaoId)
+        : Promise.resolve({ data: [] as { user_id: string; scorer_points: number | null }[] }),
+    ]);
 
     const totals: Record<string, number> = {};
     (allPreds || []).forEach((p) => {
-      totals[p.user_id] = (totals[p.user_id] || 0) + (p.points || 0) + (p.scorer_points || 0) + (p.bonus_points || 0);
+      totals[p.user_id] = (totals[p.user_id] || 0) + (p.points || 0) + (p.bonus_points || 0);
+    });
+    (roundPreds || []).forEach((rp) => {
+      totals[rp.user_id] = (totals[rp.user_id] || 0) + (rp.scorer_points || 0);
     });
 
     // Season predictions only for Copa
@@ -102,9 +120,9 @@ const BolaoDetail = () => {
       });
 
       setRanking(
-        userIds
-          .map((uid) => ({ username: profileMap[uid] || "?", total: totals[uid] }))
-          .sort((a, b) => b.total - a.total)
+        buildRanking(
+          userIds.map((uid) => ({ username: profileMap[uid] || "?", total: totals[uid] }))
+        )
       );
     } else {
       setRanking([]);
@@ -114,19 +132,39 @@ const BolaoDetail = () => {
   useEffect(() => {
     if (!id || !user) return;
     const fetchData = async () => {
-      const [bolaoRes, matchesRes, predsRes] = await Promise.all([
-        supabase.from("boloes").select("*").eq("id", id).single(),
+      const isBrasileraoComp = (bolaoRes: { data: Tables<"boloes"> | null }) =>
+        (bolaoRes.data as { competition?: string } | null)?.competition === "brasileirao_2026";
+
+      const bolaoRes = await supabase.from("boloes").select("*").eq("id", id).single();
+
+      const copaBolao = !isBrasileraoComp(bolaoRes);
+
+      const [matchesRes, predsRes, roundPredsMap, firstMatchRes] = await Promise.all([
         supabase.from("matches").select("*").order("match_date", { ascending: true }),
         supabase.from("predictions").select("*").eq("bolao_id", id).eq("user_id", user.id),
+        copaBolao ? fetchRoundPredictions(id, user.id) : Promise.resolve({} as Record<string, RoundPrediction>),
+        copaBolao
+          ? supabase
+              .from("matches")
+              .select("match_date")
+              .in("stage", [
+                "group",
+                "round_of_32",
+                "round_of_16",
+                "quarter_final",
+                "semi_final",
+                "third_place",
+                "final",
+              ])
+              .order("match_date", { ascending: true })
+              .limit(1)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
       ]);
       setBolao(bolaoRes.data);
       
-      // Filter matches by competition type.
-      // Brasileirão: only matches that have a round_name NOT in Copa group rounds.
-      // Copa: show all matches.
-      const isBrasileraoComp = (bolaoRes.data as any)?.competition === "brasileirao_2026";
       const filteredMatches = (matchesRes.data || []).filter((m: any) =>
-        isBrasileraoComp
+        !copaBolao
           ? !!m.round_name && !['1ª Rodada','2ª Rodada','3ª Rodada'].includes(m.round_name!)
           : true
       );
@@ -138,7 +176,11 @@ const BolaoDetail = () => {
       });
       setPredictions(predsMap);
 
-      // Fetch ranking
+      if (copaBolao) {
+        setRoundPredictions(roundPredsMap);
+        setFirstCopaMatchDate(firstMatchRes.data?.match_date ?? null);
+      }
+
       await fetchRanking(id, (bolaoRes.data as any)?.competition || "copa_do_mundo_2026");
 
       setLoading(false);
@@ -192,33 +234,52 @@ const BolaoDetail = () => {
     setAdminTargetUserId(userId);
     setAdminTargetUsername(member?.username ?? null);
     setAdminPredictions(await loadPredictionsForUser(userId));
+    if (id && (bolao as any)?.competition !== "brasileirao_2026") {
+      setAdminRoundPredictions(await fetchRoundPredictions(id, userId));
+    }
   };
 
   const handleAdminClear = () => {
     setAdminTargetUserId(null);
     setAdminTargetUsername(null);
     setAdminPredictions({});
+    setAdminRoundPredictions({});
   };
 
   const refreshActivePredictions = async () => {
     if (!id || !user) return;
     const userId = isAdminPalpiteMode ? adminTargetUserId! : user.id;
     const predsMap = await loadPredictionsForUser(userId);
-    if (isAdminPalpiteMode) setAdminPredictions(predsMap);
-    else setPredictions(predsMap);
+    if (isAdminPalpiteMode) {
+      setAdminPredictions(predsMap);
+      if ((bolao as any)?.competition !== "brasileirao_2026") {
+        setAdminRoundPredictions(await fetchRoundPredictions(id, userId));
+      }
+    } else {
+      setPredictions(predsMap);
+      if ((bolao as any)?.competition !== "brasileirao_2026") {
+        setRoundPredictions(await fetchRoundPredictions(id, userId));
+      }
+    }
   };
 
   // Realtime subscription to refresh ranking when predictions change
   useEffect(() => {
     if (!id || !bolao) return;
+    const competition = (bolao as any)?.competition || "copa_do_mundo_2026";
+    const refresh = () => fetchRanking(id, competition);
+
     const channel = supabase
       .channel(`predictions-${id}`)
       .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'predictions', filter: `bolao_id=eq.${id}` },
-        () => {
-          fetchRanking(id, (bolao as any)?.competition || "copa_do_mundo_2026");
-        }
+        "postgres_changes",
+        { event: "*", schema: "public", table: "predictions", filter: `bolao_id=eq.${id}` },
+        refresh
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "round_predictions", filter: `bolao_id=eq.${id}` },
+        refresh
       )
       .subscribe();
 
@@ -295,6 +356,7 @@ const BolaoDetail = () => {
   };
 
   const saveRoundPrediction = async (
+    roundKey: string,
     roundMatches: Match[],
     scores: Record<string, { home: number; away: number }>,
     scorerName: string
@@ -309,53 +371,86 @@ const BolaoDetail = () => {
       return;
     }
 
-    const dayKey = roundMatches.map((m) => m.id).join(",");
-    setSavingRound(dayKey);
+    if (
+      !isAdminPalpiteMode &&
+      scorerName &&
+      isScorerAlreadyUsed(scorerName, activeRoundPredictions, roundKey)
+    ) {
+      toast({
+        title: "Jogador já usado",
+        description: "Cada jogador só pode ser artilheiro em uma rodada.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const savingKey = roundKey;
+    setSavingRound(savingKey);
+
+    const targetUserId = isAdminPalpiteMode ? adminTargetUserId! : user.id;
+    const rows = buildRoundPredictionRows(roundMatches, scores);
 
     if (isAdminPalpiteMode && adminTargetUserId) {
-      const rows = buildRoundPredictionRows(roundMatches, scores, scorerName);
       const { error } = await adminUpsertPredictions(id, adminTargetUserId, rows);
-      setSavingRound(null);
       if (error) {
+        setSavingRound(null);
         toast({ title: "Erro ao salvar", description: adminPredictionErrorMessage(error), variant: "destructive" });
         return;
       }
+      if (scorerName.trim()) {
+        const { error: rpError } = await upsertRoundPrediction(
+          id,
+          adminTargetUserId,
+          roundKey,
+          scorerName
+        );
+        if (rpError) {
+          setSavingRound(null);
+          toast({ title: "Erro ao salvar artilheiro", description: rpError.message, variant: "destructive" });
+          return;
+        }
+      }
+      setSavingRound(null);
       await refreshActivePredictions();
       if (bolao) await fetchRanking(id, (bolao as any).competition || "copa_do_mundo_2026");
       toast({ title: `Palpites de @${adminTargetUsername} salvos!` });
       return;
     }
 
-    const scorerMatchId = getScorerMatchForRound(roundMatches).id;
-    const rows = roundMatches.map((match) => {
+    const predRows = roundMatches.map((match) => {
       const existing = predictions[match.id];
       const { home, away } = scores[match.id];
       return {
         ...(existing ? { id: existing.id } : {}),
         bolao_id: id,
-        user_id: user.id,
+        user_id: targetUserId,
         match_id: match.id,
         home_score: home,
         away_score: away,
-        scorer_name: match.id === scorerMatchId ? scorerName : null,
+        scorer_name: null,
       };
     });
 
-    const { error } = await supabase.from("predictions").upsert(rows, {
+    const { error } = await supabase.from("predictions").upsert(predRows, {
       onConflict: "bolao_id,user_id,match_id",
     });
 
-    setSavingRound(null);
-
     if (error) {
-      toast({
-        title: "Erro ao salvar",
-        description: error.message,
-        variant: "destructive",
-      });
+      setSavingRound(null);
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;
     }
 
+    if (scorerName.trim()) {
+      const { error: rpError } = await upsertRoundPrediction(id, targetUserId, roundKey, scorerName);
+      if (rpError) {
+        setSavingRound(null);
+        toast({ title: "Erro ao salvar artilheiro", description: rpError.message, variant: "destructive" });
+        return;
+      }
+    }
+
+    setSavingRound(null);
     await refreshActivePredictions();
     toast({ title: "Palpites da rodada salvos!" });
   };
@@ -363,8 +458,9 @@ const BolaoDetail = () => {
   const shareRanking = () => {
     if (!bolao || ranking.length === 0) return;
     const lines = [`🏆 Ranking ${bolao.name}\n`];
-    ranking.forEach((r, i) => {
-      lines.push(`${i + 1}. ${r.username} - ${r.total}pts`);
+    ranking.forEach((r) => {
+      const tie = r.tied ? " (empate)" : "";
+      lines.push(`${r.rank}. ${r.username} - ${r.total}pts${tie}`);
     });
     lines.push(`\nParticipe também: https://chute-certo-2026.lovable.app`);
     const text = lines.join("\n");
@@ -416,7 +512,7 @@ const BolaoDetail = () => {
             <h1 className="text-xl font-bold">{bolao.name}</h1>
           </div>
           <div className="flex items-center gap-1">
-            <ScoringRulesModal />
+            <ScoringRulesModal firstMatchDate={firstCopaMatchDate} />
             <Button
               variant="ghost"
               size="icon"
@@ -451,7 +547,11 @@ const BolaoDetail = () => {
               />
             )}
             {(bolao as any).competition !== "brasileirao_2026" && !isAdminPalpiteMode && (
-              <SeasonPredictions bolaoId={id!} userId={user!.id} />
+              <SeasonPredictions
+                bolaoId={id!}
+                userId={user!.id}
+                firstMatchDate={firstCopaMatchDate}
+              />
             )}
             {matches.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">
@@ -461,6 +561,7 @@ const BolaoDetail = () => {
               <RoundsAccordion
                 matches={matches}
                 predictions={activePredictions}
+                roundPredictions={activeRoundPredictions}
                 savingMatch={savingMatch}
                 savingRound={savingRound}
                 onSave={savePrediction}
@@ -481,26 +582,31 @@ const BolaoDetail = () => {
             ) : (
               <div className="space-y-3">
                 <div className="space-y-2">
-                  {ranking.map((r, i) => (
+                  {ranking.map((r) => (
                     <div
-                      key={r.username}
+                      key={`${r.rank}-${r.username}`}
                       className="flex items-center justify-between rounded-lg border bg-card p-3"
                     >
                       <div className="flex items-center gap-3">
                         <span
                           className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
-                            i === 0
+                            r.rank === 1
                               ? "bg-accent text-accent-foreground"
-                              : i === 1
+                              : r.rank === 2
                               ? "bg-muted text-muted-foreground"
-                              : i === 2
+                              : r.rank === 3
                               ? "bg-primary/10 text-primary"
                               : "bg-muted text-muted-foreground"
                           }`}
                         >
-                          {i + 1}
+                          {r.rank}
                         </span>
-                        <span className="font-medium">{r.username}</span>
+                        <span className="font-medium">
+                          {r.username}
+                          {r.tied && (
+                            <span className="ml-1 text-xs text-muted-foreground">(empate)</span>
+                          )}
+                        </span>
                       </div>
                       <span className="text-lg font-bold text-accent">{r.total} pts</span>
                     </div>
@@ -527,6 +633,7 @@ const BolaoDetail = () => {
 const RoundsAccordion = ({
   matches,
   predictions,
+  roundPredictions,
   savingMatch,
   savingRound,
   onSave,
@@ -537,10 +644,12 @@ const RoundsAccordion = ({
 }: {
   matches: Match[];
   predictions: Record<string, Prediction>;
+  roundPredictions: Record<string, RoundPrediction>;
   savingMatch: string | null;
   savingRound: string | null;
   onSave: (matchId: string, home: number, away: number, scorer: string, bonusAnswer?: boolean | null, matchDate?: string) => void;
   onSaveRound: (
+    roundKey: string,
     roundMatches: Match[],
     scores: Record<string, { home: number; away: number }>,
     scorerName: string
@@ -549,23 +658,15 @@ const RoundsAccordion = ({
   forceEditable?: boolean;
   isBrasileirao: boolean;
 }) => {
-  // Brasileirão: group by round_name
   const byRound = useMemo(() => groupByRound(matches), [matches]);
   const rounds = useMemo(() => orderedRounds(byRound), [byRound]);
   const closestRound = useMemo(() => getClosestRound(matches), [matches]);
 
-  // Copa: group by stage (+ subdivision by group_name within "group")
-  const byStage = useMemo(() => groupByStage(matches), [matches]);
-  const stages = useMemo(() => orderedStages(byStage), [byStage]);
-  const closestStage = useMemo(() => getClosestStage(matches), [matches]);
-  const groupStageMatches = byStage["group"] || [];
-  const byDay = useMemo(() => groupByDay(groupStageMatches), [groupStageMatches]);
-  const days = useMemo(() => orderedDays(byDay), [byDay]);
-  const closestDay = useMemo(() => getClosestDay(groupStageMatches), [groupStageMatches]);
-
+  const byCopaRound = useMemo(() => groupByRoundKey(matches), [matches]);
+  const copaRoundKeys = useMemo(() => orderedRoundKeys(byCopaRound), [byCopaRound]);
+  const closestCopaRound = useMemo(() => getClosestRoundKey(matches), [matches]);
   const [openRounds, setOpenRounds] = useState<string[]>([]);
-  const [openStages, setOpenStages] = useState<string[]>([]);
-  const [openGroupDays, setOpenGroupDays] = useState<string[]>([]);
+  const [openCopaRounds, setOpenCopaRounds] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
@@ -574,28 +675,21 @@ const RoundsAccordion = ({
       if (rounds.length === 0) return;
       setOpenRounds(closestRound ? [closestRound] : []);
     } else {
-      if (stages.length === 0) return;
-      setOpenStages(closestStage ? [closestStage] : []);
-      setOpenGroupDays(closestDay ? [closestDay] : []);
+      if (copaRoundKeys.length === 0) return;
+      setOpenCopaRounds(closestCopaRound ? [closestCopaRound] : []);
     }
     setInitialized(true);
-  }, [isBrasileirao, rounds, stages, closestRound, closestStage, closestDay, initialized]);
+  }, [isBrasileirao, rounds, copaRoundKeys, closestRound, closestCopaRound, initialized]);
 
   const allExpanded = isBrasileirao
     ? rounds.length > 0 && openRounds.length === rounds.length
-    : stages.length > 0 &&
-      openStages.length === stages.length &&
-      (days.length === 0 || openGroupDays.length === days.length);
+    : copaRoundKeys.length > 0 && openCopaRounds.length === copaRoundKeys.length;
 
   const toggleAll = () => {
     if (isBrasileirao) {
       setOpenRounds(allExpanded ? [] : [...rounds]);
-    } else if (allExpanded) {
-      setOpenStages([]);
-      setOpenGroupDays([]);
     } else {
-      setOpenStages([...stages]);
-      setOpenGroupDays([...days]);
+      setOpenCopaRounds(allExpanded ? [] : [...copaRoundKeys]);
     }
   };
 
@@ -652,66 +746,37 @@ const RoundsAccordion = ({
       ) : (
         <Accordion
           type="multiple"
-          value={openStages}
-          onValueChange={setOpenStages}
+          value={openCopaRounds}
+          onValueChange={setOpenCopaRounds}
           className="space-y-2"
         >
-          {stages.map((stage) => {
-            const stageMatches = byStage[stage];
+          {copaRoundKeys.map((roundKey) => {
+            const roundMatches = byCopaRound[roundKey];
             return (
               <AccordionItem
-                key={stage}
-                value={stage}
+                key={roundKey}
+                value={roundKey}
                 className="rounded-lg border bg-card px-3"
               >
                 <AccordionTrigger className="hover:no-underline">
                   <span className="text-left font-semibold">
-                    {STAGE_LABELS[stage] || stage}
+                    {getRoundLabelFromKey(roundKey)}
                     <span className="ml-2 text-xs font-normal text-muted-foreground">
-                      {stageMatches.length} jogos
+                      {roundMatches.length} jogos
                     </span>
                   </span>
                 </AccordionTrigger>
                 <AccordionContent>
-                  {stage === "group" ? (
-                    <Accordion
-                      type="multiple"
-                      value={openGroupDays}
-                      onValueChange={setOpenGroupDays}
-                      className="space-y-2"
-                    >
-                      {days.map((day) => {
-                        const dayMatches = byDay[day];
-                        const roundSavingKey = dayMatches.map((m) => m.id).join(",");
-                        return (
-                          <AccordionItem
-                            key={day}
-                            value={day}
-                            className="rounded-md border bg-background px-3"
-                          >
-                            <AccordionTrigger className="hover:no-underline py-2 text-sm">
-                              {formatDayLabel(day, dayMatches)}
-                              <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                {dayMatches.length} jogos
-                              </span>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              <RoundPredictionPanel
-                                dayKey={day}
-                                matches={dayMatches}
-                                predictions={predictions}
-                                saving={savingRound === roundSavingKey}
-                                forceEditable={forceEditable}
-                                onSaveRound={onSaveRound}
-                              />
-                            </AccordionContent>
-                          </AccordionItem>
-                        );
-                      })}
-                    </Accordion>
-                  ) : (
-                    <div className="space-y-2">{stageMatches.map(renderCard)}</div>
-                  )}
+                  <RoundPredictionPanel
+                    roundKey={roundKey}
+                    matches={roundMatches}
+                    predictions={predictions}
+                    roundPredictions={roundPredictions}
+                    usedScorerNames={getUsedScorerNames(roundPredictions, roundKey)}
+                    saving={savingRound === roundKey}
+                    forceEditable={forceEditable}
+                    onSaveRound={onSaveRound}
+                  />
                 </AccordionContent>
               </AccordionItem>
             );

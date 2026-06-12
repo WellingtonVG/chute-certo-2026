@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,8 +15,17 @@ import { Constants } from "@/integrations/supabase/types";
 import { format, addDays, isPast } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { SEASON_PREDICTION_POINTS } from "@/lib/season-predictions";
-import { CountryLabel } from "@/components/CountryFlag";
+import { MatchTeamsDisplay } from "@/components/CountryFlag";
 import { TeamSelect } from "@/components/TeamSelect";
+import RoundScorersEditor from "@/components/admin/RoundScorersEditor";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { groupByRoundKey, orderedRoundKeys } from "@/lib/match-stages";
+import { getRoundLabelFromKey } from "@/lib/copa-rounds";
 
 type Match = Tables<"matches">;
 type Bolao = Tables<"boloes"> & { invite_created_at?: string };
@@ -772,7 +781,15 @@ const ResultsTab = ({
     competition === "brasileirao_2026" ? !!m.round_name : !m.round_name
   );
 
-  // Group by round for Brasileirão
+  const copaByRound = useMemo(
+    () => groupByRoundKey(filteredMatches),
+    [filteredMatches]
+  );
+  const copaRoundKeys = useMemo(
+    () => orderedRoundKeys(copaByRound),
+    [copaByRound]
+  );
+
   const byRound: Record<string, Match[]> = {};
   if (competition === "brasileirao_2026") {
     filteredMatches.forEach((m) => {
@@ -806,9 +823,33 @@ const ResultsTab = ({
           </div>
         ))
       ) : (
-        filteredMatches.map((match) => (
-          <MatchResultEditor key={match.id} match={match} onSave={onSave} />
-        ))
+        <Accordion type="multiple" className="space-y-2">
+          {copaRoundKeys.map((roundKey) => {
+            const roundMatches = copaByRound[roundKey];
+            return (
+              <AccordionItem
+                key={roundKey}
+                value={roundKey}
+                className="rounded-lg border bg-card px-3"
+              >
+                <AccordionTrigger className="hover:no-underline">
+                  <span className="text-left text-sm font-semibold">
+                    {getRoundLabelFromKey(roundKey)}
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      {roundMatches.length} jogos
+                    </span>
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-3 pb-4">
+                  <RoundScorersEditor roundKey={roundKey} matches={roundMatches} />
+                  {roundMatches.map((match) => (
+                    <MatchResultEditor key={match.id} match={match} onSave={onSave} />
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
       )}
     </div>
   );
@@ -851,11 +892,12 @@ const MatchResultEditor = ({
   return (
     <Card>
       <CardContent className="space-y-2 p-4">
-        <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
-          <CountryLabel teamName={match.home_team} size={20} />
-          <span className="text-muted-foreground">vs</span>
-          <CountryLabel teamName={match.away_team} size={20} />
-        </p>
+        <MatchTeamsDisplay
+          homeTeam={match.home_team}
+          awayTeam={match.away_team}
+          size={32}
+          style="shiny"
+        />
         <p className="text-xs text-muted-foreground">
           {new Date(match.match_date).toLocaleDateString("pt-BR")}
           {match.is_finished && " • ✅ Resultado salvo"}

@@ -59,17 +59,28 @@ const countryCodeMap: Record<string, string> = {
 export type FlagSize = 16 | 24 | 32 | 48 | 64;
 export type FlagStyle = "flat" | "shiny";
 
+const VALID_FLAG_SIZES: FlagSize[] = [16, 24, 32, 48, 64];
+
+/** FlagsAPI só expõe tamanhos fixos — normaliza valores inválidos (ex.: 20 → 24) */
+export const normalizeFlagSize = (size: number): FlagSize => {
+  if (VALID_FLAG_SIZES.includes(size as FlagSize)) return size as FlagSize;
+  return VALID_FLAG_SIZES.reduce((best, candidate) =>
+    Math.abs(candidate - size) < Math.abs(best - size) ? candidate : best
+  );
+};
+
 export const getCountryCode = (teamName: string): string | null =>
   countryCodeMap[teamName] ?? null;
 
 export const getFlagUrl = (
   teamName: string,
-  size: FlagSize = 24,
+  size: FlagSize | number = 24,
   style: FlagStyle = "flat"
 ): string | null => {
   const code = getCountryCode(teamName);
   if (!code) return null;
-  return `https://flagsapi.com/${code}/${style}/${size}.png`;
+  const normalized = normalizeFlagSize(size);
+  return `https://flagsapi.com/${code}/${style}/${normalized}.png`;
 };
 
 // All 48 teams — names aligned with sync-fixtures / database

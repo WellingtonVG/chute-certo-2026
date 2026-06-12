@@ -1,22 +1,29 @@
 import { cn } from "@/lib/utils";
-import { getCountryCode, getFlagUrl, type FlagSize, type FlagStyle } from "@/lib/country-flags";
+import {
+  getCountryCode,
+  getFlagUrl,
+  normalizeFlagSize,
+  type FlagSize,
+  type FlagStyle,
+} from "@/lib/country-flags";
 
 type CountryFlagProps = {
   teamName: string;
-  size?: FlagSize;
+  size?: FlagSize | number;
   style?: FlagStyle;
   className?: string;
 };
 
 export const CountryFlag = ({ teamName, size = 24, style = "flat", className }: CountryFlagProps) => {
-  const url = getFlagUrl(teamName, size, style);
-  const height = Math.round(size * 0.75);
+  const flagSize = normalizeFlagSize(Number(size));
+  const url = getFlagUrl(teamName, flagSize, style);
+  const height = Math.round(flagSize * 0.75);
 
   if (!url) {
     return (
       <span
         className={cn("inline-block shrink-0 rounded-sm bg-muted", className)}
-        style={{ width: size, height }}
+        style={{ width: flagSize, height }}
         aria-hidden
       />
     );
@@ -26,7 +33,7 @@ export const CountryFlag = ({ teamName, size = 24, style = "flat", className }: 
     <img
       src={url}
       alt=""
-      width={size}
+      width={flagSize}
       height={height}
       loading="lazy"
       className={cn("inline-block shrink-0 rounded-sm object-cover shadow-sm", className)}
@@ -37,7 +44,7 @@ export const CountryFlag = ({ teamName, size = 24, style = "flat", className }: 
 type CountryLabelProps = {
   teamName: string;
   flagPosition?: "start" | "end";
-  size?: FlagSize;
+  size?: FlagSize | number;
   style?: FlagStyle;
   className?: string;
 };

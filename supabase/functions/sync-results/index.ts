@@ -33,15 +33,51 @@ async function apiGet(path: string) {
   return await res.json();
 }
 
-async function fetchScorersMap(): Promise<Map<string, number>> {
-  const data = await apiGet(`/competitions/WC/scorers?season=2026&limit=100`);
-  const map = new Map<string, number>();
-  for (const s of data.scorers ?? []) {
-    const name = s.player?.name;
-    const goals = s.goals ?? s.numberOfGoals ?? 0;
-    if (name) map.set(norm(name), goals);
+function resolveMatchScore(apiM: any): { home: number; away: number } | null {
+  const extra = apiM.score?.extraTime;
+  const full = apiM.score?.fullTime;
+  const home = extra?.home ?? full?.home;
+  const away = extra?.away ?? full?.away;
+  if (home === null || home === undefined || away === null || away === undefined) return null;
+  return { home, away };
+}
+
+function mapGoalType(apiType: string): "regular" | "own_goal" | "penalty_shootout" {
+  const t = (apiType || "").toUpperCase();
+  if (t.includes("OWN")) return "own_goal";
+  if (t.includes("PENALTY")) return "penalty_shootout";
+  return "regular";
+}
+
+async function syncMatchGoals(supabase: any, matchId: string, apiM: any) {
+  let goals: any[] = apiM.goals ?? [];
+  if (goals.length === 0 && apiM.id) {
+    try {
+      const detail = await apiGet(`/matches/${apiM.id}`);
+      goals = detail.goals ?? [];
+    } catch (e) {
+      console.error("match goals fetch err", e);
+    }
   }
-  return map;
+
+  await supabase.from("match_goals").delete().eq("match_id", matchId);
+
+  for (const g of goals) {
+    const playerName = g.scorer?.name ?? g.player?.name;
+    if (!playerName) continue;
+
+    const goalType = mapGoalType(g.type);
+    if (goalType === "penalty_shootout") continue;
+
+    const { error } = await supabase.from("match_goals").insert({
+      match_id: matchId,
+      player_name: playerName,
+      team_name: g.team?.name ?? null,
+      minute: g.minute ?? null,
+      goal_type: goalType,
+    });
+    if (error) console.error("insert match_goal err", error);
+  }
 }
 
 Deno.serve(async (req) => {
@@ -101,121 +137,74 @@ Deno.serve(async (req) => {
     }
     console.log(`[sync-results] mapped=${mapped}`);
 
-    // ===== PASSO 2: Snapshot artilharia (antes) =====
-    console.log("[sync-results] Step 2: scorers snapshot (before)");
-    const scorersBefore = await fetchScorersMap();
-
-    // ===== PASSO 3: Sincronizar resultados =====
-    console.log("[sync-results] Step 3: syncing FINISHED matches");
+    // ===== PASSO 2: Sincronizar resultados =====
+    console.log("[sync-results] Step 2: syncing FINISHED matches");
     const finishedData = await apiGet(`/competitions/WC/matches?season=2026&status=FINISHED`);
     const finished: any[] = finishedData.matches ?? [];
 
     // re-read db state with score/override
     const { data: dbFull, error: dbFullErr } = await supabase
       .from("matches")
-      .select("id, api_football_id, home_score, away_score, is_manual_override, home_team, away_team");
+      .select("id, api_football_id, home_score, away_score, is_manual_override, home_team, away_team, round_key");
     if (dbFullErr) throw dbFullErr;
 
     const updatedMatchIds: string[] = [];
+    const updatedRoundKeys = new Set<string>();
     let updated = 0;
 
     for (const apiM of finished) {
-      const homeScore = apiM.score?.fullTime?.home;
-      const awayScore = apiM.score?.fullTime?.away;
-      if (homeScore === null || homeScore === undefined) continue;
+      const resolved = resolveMatchScore(apiM);
+      if (!resolved) continue;
+      const { home: homeScore, away: awayScore } = resolved;
 
       const dbM = dbFull?.find((m) => m.api_football_id === apiM.id);
       if (!dbM) continue;
       if (dbM.is_manual_override) continue;
       if (dbM.home_score === homeScore && dbM.away_score === awayScore) continue;
 
+      const hasExtraTime = apiM.score?.extraTime?.home != null;
+
       const { error: upErr } = await supabase
         .from("matches")
-        .update({ home_score: homeScore, away_score: awayScore, is_finished: true })
+        .update({
+          home_score: homeScore,
+          away_score: awayScore,
+          is_finished: true,
+          score_includes_extra_time: true,
+        })
         .eq("id", dbM.id);
       if (upErr) {
         console.error("update score err", upErr);
         continue;
       }
 
+      await syncMatchGoals(supabase, dbM.id, apiM);
+
       const { error: rpcErr } = await supabase.rpc("calculate_match_points", { match_id_input: dbM.id });
       if (rpcErr) console.error("calculate_match_points err", rpcErr);
 
       updatedMatchIds.push(dbM.id);
+      if (dbM.round_key) updatedRoundKeys.add(dbM.round_key);
       updated++;
     }
     console.log(`[sync-results] updated=${updated}`);
 
-    // ===== PASSO 4: Goleadores =====
-    console.log("[sync-results] Step 4: scorer points");
-    const scorersAfter = await fetchScorersMap();
+    // ===== PASSO 3: Artilheiro da rodada =====
+    console.log("[sync-results] Step 3: round scorer points");
     let scorers_resolved = 0;
-
-    for (const matchId of updatedMatchIds) {
-      const { data: preds, error: predErr } = await supabase
-        .from("predictions")
-        .select("id, user_id, bolao_id, scorer_name")
-        .eq("match_id", matchId)
-        .not("scorer_name", "is", null);
-      if (predErr) {
-        console.error("preds query err", predErr);
-        continue;
-      }
-      if (!preds || preds.length === 0) continue;
-
-      // Group hits per player to build feed events
-      const hitsByPlayer = new Map<string, { bolaoIds: Set<string>; teamName: string | null; count: number }>();
-
-      for (const p of preds) {
-        if (!p.scorer_name) continue;
-        const key = norm(p.scorer_name);
-        const before = scorersBefore.get(key) ?? 0;
-        const after = scorersAfter.get(key) ?? 0;
-        const scored = after > before;
-        const points = scored ? 2 : -1;
-
-        const { error: updPredErr } = await supabase
-          .from("predictions")
-          .update({ scorer_points: points })
-          .eq("id", p.id);
-        if (updPredErr) {
-          console.error("update pred err", updPredErr);
-          continue;
-        }
+    for (const roundKey of updatedRoundKeys) {
+      const { error: roundErr } = await supabase.rpc("calculate_round_scorer_points", {
+        round_key_input: roundKey,
+      });
+      if (roundErr) {
+        console.error("calculate_round_scorer_points err", roundErr);
+      } else {
         scorers_resolved++;
-
-        if (scored) {
-          const entry = hitsByPlayer.get(p.scorer_name) ?? { bolaoIds: new Set(), teamName: null, count: 0 };
-          entry.bolaoIds.add(p.bolao_id);
-          entry.count++;
-          hitsByPlayer.set(p.scorer_name, entry);
-        }
-      }
-
-      // Feed events for each player that had hits
-      for (const [playerName, info] of hitsByPlayer.entries()) {
-        // find team name from scorers API
-        let teamName = "";
-        for (const s of (await apiGet(`/competitions/WC/scorers?season=2026&limit=100`)).scorers ?? []) {
-          if (norm(s.player?.name ?? "") === norm(playerName)) {
-            teamName = s.team?.name ?? "";
-            break;
-          }
-        }
-        for (const bolaoId of info.bolaoIds) {
-          const { error: feedErr } = await supabase.from("feed_events").insert({
-            bolao_id: bolaoId,
-            match_id: matchId,
-            event_type: "scorer_hit",
-            message: `⚽ ${playerName} marcou para ${teamName}! ${info.count} palpiteiro(s) acertaram o goleador.`,
-          });
-          if (feedErr) console.error("feed insert err", feedErr);
-        }
       }
     }
 
-    // ===== PASSO 5: Generate feed events =====
-    console.log("[sync-results] Step 5: invoking generate-feed-events");
+    // ===== PASSO 4: Generate feed events =====
+    console.log("[sync-results] Step 4: invoking generate-feed-events");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     for (const matchId of updatedMatchIds) {

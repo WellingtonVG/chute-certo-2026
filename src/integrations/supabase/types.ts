@@ -76,6 +76,36 @@ export type Database = {
         }
         Relationships: []
       }
+      competition_rounds: {
+        Row: {
+          base_scorer_points: number
+          competition: string
+          label: string
+          points_multiplier: number
+          round_key: string
+          sort_order: number
+          stage: Database["public"]["Enums"]["match_stage"] | null
+        }
+        Insert: {
+          base_scorer_points?: number
+          competition?: string
+          label: string
+          points_multiplier?: number
+          round_key: string
+          sort_order: number
+          stage?: Database["public"]["Enums"]["match_stage"] | null
+        }
+        Update: {
+          base_scorer_points?: number
+          competition?: string
+          label?: string
+          points_multiplier?: number
+          round_key?: string
+          sort_order?: number
+          stage?: Database["public"]["Enums"]["match_stage"] | null
+        }
+        Relationships: []
+      }
       competition_season_results: {
         Row: {
           best_player: string | null
@@ -148,6 +178,44 @@ export type Database = {
           },
         ]
       }
+      match_goals: {
+        Row: {
+          created_at: string
+          goal_type: Database["public"]["Enums"]["goal_type"]
+          id: string
+          match_id: string
+          minute: number | null
+          player_name: string
+          team_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          goal_type?: Database["public"]["Enums"]["goal_type"]
+          id?: string
+          match_id: string
+          minute?: number | null
+          player_name: string
+          team_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          goal_type?: Database["public"]["Enums"]["goal_type"]
+          id?: string
+          match_id?: string
+          minute?: number | null
+          player_name?: string
+          team_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_goals_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       matches: {
         Row: {
           api_football_id: number | null
@@ -164,7 +232,9 @@ export type Database = {
           is_finished: boolean
           is_manual_override: boolean
           match_date: string
+          round_key: string | null
           round_name: string | null
+          score_includes_extra_time: boolean
           stadium: string | null
           stage: Database["public"]["Enums"]["match_stage"]
           updated_at: string
@@ -184,7 +254,9 @@ export type Database = {
           is_finished?: boolean
           is_manual_override?: boolean
           match_date: string
+          round_key?: string | null
           round_name?: string | null
+          score_includes_extra_time?: boolean
           stadium?: string | null
           stage?: Database["public"]["Enums"]["match_stage"]
           updated_at?: string
@@ -204,12 +276,22 @@ export type Database = {
           is_finished?: boolean
           is_manual_override?: boolean
           match_date?: string
+          round_key?: string | null
           round_name?: string | null
+          score_includes_extra_time?: boolean
           stadium?: string | null
           stage?: Database["public"]["Enums"]["match_stage"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "matches_round_key_fkey"
+            columns: ["round_key"]
+            isOneToOne: false
+            referencedRelation: "competition_rounds"
+            referencedColumns: ["round_key"]
+          },
+        ]
       }
       predictions: {
         Row: {
@@ -271,6 +353,57 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "matches"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      round_predictions: {
+        Row: {
+          bolao_id: string
+          created_at: string
+          id: string
+          round_key: string
+          scorer_name: string
+          scorer_points: number | null
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bolao_id: string
+          created_at?: string
+          id?: string
+          round_key: string
+          scorer_name: string
+          scorer_points?: number | null
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bolao_id?: string
+          created_at?: string
+          id?: string
+          round_key?: string
+          scorer_name?: string
+          scorer_points?: number | null
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "round_predictions_bolao_id_fkey"
+            columns: ["bolao_id"]
+            isOneToOne: false
+            referencedRelation: "boloes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "round_predictions_round_key_fkey"
+            columns: ["round_key"]
+            isOneToOne: false
+            referencedRelation: "competition_rounds"
+            referencedColumns: ["round_key"]
           },
         ]
       }
@@ -536,6 +669,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      goal_type: "regular" | "own_goal" | "penalty_shootout"
       match_stage:
         | "group"
         | "round_of_32"
@@ -672,6 +806,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      goal_type: ["regular", "own_goal", "penalty_shootout"],
       match_stage: [
         "group",
         "round_of_32",

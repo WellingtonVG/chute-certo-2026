@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { getScorerMatchForRound } from "@/lib/match-stages";
 import type { Tables } from "@/integrations/supabase/types";
 import { ADMIN_PREDICTIONS_SETUP_SQL } from "@/lib/admin-setup-sql";
 
@@ -116,15 +115,13 @@ export async function copyAdminSetupSql() {
 export function buildRoundPredictionRows(
   roundMatches: Match[],
   scores: Record<string, { home: number; away: number }>,
-  scorerName: string,
   bonusAnswer?: boolean | null
 ): AdminPredictionRow[] {
-  const scorerMatchId = getScorerMatchForRound(roundMatches).id;
   return roundMatches.map((match) => ({
     match_id: match.id,
     home_score: scores[match.id].home,
     away_score: scores[match.id].away,
-    scorer_name: match.id === scorerMatchId ? scorerName || null : null,
+    scorer_name: null,
     ...(bonusAnswer !== undefined ? { bonus_answer: bonusAnswer } : {}),
   }));
 }

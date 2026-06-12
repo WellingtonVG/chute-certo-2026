@@ -17,6 +17,7 @@ import squads from "@/data/squads.json";
 interface SeasonPredictionsProps {
   bolaoId: string;
   userId: string;
+  firstMatchDate?: string | null;
 }
 
 const PlayerInput = ({
@@ -82,7 +83,7 @@ const PlayerInput = ({
   );
 };
 
-const SeasonPredictions = ({ bolaoId, userId }: SeasonPredictionsProps) => {
+const SeasonPredictions = ({ bolaoId, userId, firstMatchDate }: SeasonPredictionsProps) => {
   const { toast } = useToast();
   const [champion, setChampion] = useState("");
   const [bestPlayer, setBestPlayer] = useState("");
@@ -92,8 +93,8 @@ const SeasonPredictions = ({ bolaoId, userId }: SeasonPredictionsProps) => {
   const [loading, setLoading] = useState(true);
   const [existingId, setExistingId] = useState<string | null>(null);
 
-  const locked = !isSeasonPredictionOpen();
-  const deadlineLabel = getSeasonPredictionsDeadlineLabel();
+  const locked = !isSeasonPredictionOpen(new Date(), firstMatchDate);
+  const deadlineLabel = getSeasonPredictionsDeadlineLabel(firstMatchDate);
 
   const allPlayers = useMemo(
     () => Object.values(squads as Record<string, string[]>).flat().sort((a, b) => a.localeCompare(b)),

@@ -6,12 +6,14 @@ import { Loader2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { MatchTeamsDisplay } from "@/components/CountryFlag";
 import { formatDeadline } from "@/lib/prediction-deadlines";
+import { getScorerPointsForRound } from "@/lib/copa-rounds";
 import {
-  formatDayLabel,
+  getRoundLabel,
   getRoundScorerName,
   getScorerMatchForRound,
   isRoundOpen,
 } from "@/lib/match-stages";
+import type { RoundPrediction } from "@/lib/round-predictions";
 import squads from "@/data/squads.json";
 
 type Match = Tables<"matches">;
@@ -20,12 +22,15 @@ type Prediction = Tables<"predictions">;
 type ScoreEntry = { home: string; away: string };
 
 interface RoundPredictionPanelProps {
-  dayKey: string;
+  roundKey: string;
   matches: Match[];
   predictions: Record<string, Prediction>;
+  roundPredictions: Record<string, RoundPrediction>;
+  usedScorerNames: Set<string>;
   saving: boolean;
   forceEditable?: boolean;
   onSaveRound: (
+    roundKey: string,
     roundMatches: Match[],
     scores: Record<string, { home: number; away: number }>,
     scorerName: string
@@ -33,17 +38,20 @@ interface RoundPredictionPanelProps {
 }
 
 const RoundPredictionPanel = ({
-  dayKey,
+  roundKey,
   matches,
   predictions,
+  roundPredictions,
+  usedScorerNames,
   saving,
   forceEditable = false,
   onSaveRound,
 }: RoundPredictionPanelProps) => {
   const roundOpen = forceEditable || isRoundOpen(matches);
-  const roundLabel = formatDayLabel(dayKey, matches);
+  const roundLabel = getRoundLabel(roundKey, matches);
   const deadlineMatch = getScorerMatchForRound(matches);
   const deadlineDate = new Date(deadlineMatch.match_date);
+  const scorerPoints = getScorerPointsForRound(roundKey);
 
   const [scores, setScores] = useState<Record<string, ScoreEntry>>(() =>
     Object.fromEntries(
@@ -56,7 +64,8 @@ const RoundPredictionPanel = ({
       ])
     )
   );
-  const [scorer, setScorer] = useState(() => getRoundScorerName(matches, predictions));
+  const [scorer, setScorer] = useState(() => getRoundScorerName(roundKey, roundPredictions));
+  const [scorerError, setScorerError] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const scorerRef = useRef<HTMLInputElement>(null);
 
@@ -72,8 +81,9 @@ const RoundPredictionPanel = ({
         ])
       )
     );
-    setScorer(getRoundScorerName(matches, predictions));
-  }, [matches, predictions]);
+    setScorer(getRoundScorerName(roundKey, roundPredictions));
+    setScorerError("");
+  }, [matches, predictions, roundKey, roundPredictions]);
 
   const squadPlayers = useMemo(() => {
     const s = squads as Record<string, string[]>;
@@ -94,10 +104,13 @@ const RoundPredictionPanel = ({
 
   const allScoresFilled = filledCount === matches.length;
   const scorerRequired = !forceEditable;
+  const scorerDuplicate =
+    scorer.trim().length > 0 && usedScorerNames.has(scorer.trim().toLowerCase());
   const canSubmit =
     roundOpen &&
     allScoresFilled &&
-    (!scorerRequired || scorer.trim().length > 0);
+    (!scorerRequired || scorer.trim().length > 0) &&
+    !scorerDuplicate;
 
   const handleSave = async () => {
     if (!canSubmit) return;
@@ -108,7 +121,7 @@ const RoundPredictionPanel = ({
       const a = parseInt(s.away, 10);
       parsed[m.id] = { home: h, away: a };
     }
-    await onSaveRound(matches, parsed, scorer.trim());
+    await onSaveRound(roundKey, matches, parsed, scorer.trim());
   };
 
   const updateScore = (matchId: string, side: "home" | "away", value: string) => {
@@ -118,7 +131,8 @@ const RoundPredictionPanel = ({
     }));
   };
 
-  const roundScorer = getRoundScorerName(matches, predictions);
+  const roundScorer = getRoundScorerName(roundKey, roundPredictions);
+  const roundScorerPoints = roundPredictions[roundKey]?.scorer_points;
   const hasAnyPrediction = matches.some((m) => predictions[m.id]);
 
   return (
@@ -126,7 +140,7 @@ const RoundPredictionPanel = ({
       <CardHeader className="pb-2">
         <CardTitle className="text-base">{roundLabel}</CardTitle>
         <p className="text-xs text-muted-foreground">
-          {matches.length} jogos · Palpite da rodada inteira
+          {matches.length} jogos · Palpite da rodada inteira · Artilheiro +{scorerPoints} pts
         </p>
         {forceEditable ? (
           <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
@@ -217,59 +231,85 @@ const RoundPredictionPanel = ({
 
         {!roundOpen && roundScorer && (
           <p className="text-sm">
-            Goleador da rodada: <span className="font-medium">{roundScorer}</span>
-            {(() => {
-              const scorerMatch = getScorerMatchForRound(matches);
-              const sp = predictions[scorerMatch.id]?.scorer_points;
-              return sp !== null && sp !== undefined ? (
-                <span className="ml-2 font-bold text-accent">
-                  ({sp > 0 ? "+" : ""}
-                  {sp} pts goleador)
-                </span>
-              ) : null;
-            })()}
+            Jogador da rodada: <span className="font-medium">{roundScorer}</span>
+            {roundScorerPoints !== null && roundScorerPoints !== undefined && (
+              <span className="ml-2 font-bold text-accent">
+                ({roundScorerPoints > 0 ? "+" : ""}
+                {roundScorerPoints} pts)
+              </span>
+            )}
           </p>
         )}
 
         {roundOpen && (
           <>
             <div className="relative border-t pt-3">
-              <p className="mb-2 text-sm font-medium">Goleador da rodada</p>
+              <p className="mb-2 text-sm font-medium">
+                Jogador da rodada (+{scorerPoints} pts)
+              </p>
+              <p className="mb-2 text-xs text-muted-foreground">
+                Escolha 1 jogador por rodada. Se ele marcar pelo menos um gol naquela rodada, você
+                pontua. Não vale gol contra nem gol em disputa de pênaltis.
+              </p>
               <Input
                 ref={scorerRef}
                 placeholder={
                   forceEditable
-                    ? "Goleador da rodada (opcional)"
-                    : "Escolha 1 jogador que marca nesta rodada"
+                    ? "Jogador da rodada (opcional)"
+                    : "Jogador que marca nesta rodada"
                 }
                 value={scorer}
                 onFocus={() => setSuggestions(squadPlayers)}
                 onChange={(e) => {
-                  setScorer(e.target.value);
-                  const q = e.target.value.toLowerCase();
+                  const value = e.target.value;
+                  setScorer(value);
+                  setScorerError("");
+                  const q = value.toLowerCase();
                   setSuggestions(
                     q.length === 0
                       ? squadPlayers
                       : squadPlayers.filter((p) => p.toLowerCase().includes(q)).slice(0, 8)
                   );
+                  if (value.trim() && usedScorerNames.has(value.trim().toLowerCase())) {
+                    setScorerError("Este jogador já foi usado em outra rodada.");
+                  }
                 }}
                 onBlur={() => setTimeout(() => setSuggestions([]), 150)}
               />
+              {scorerError && (
+                <p className="mt-1 text-xs text-destructive">{scorerError}</p>
+              )}
+              {usedScorerNames.size > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Cada jogador só pode ser escolhido uma vez no bolão.
+                </p>
+              )}
               {suggestions.length > 0 && (
                 <ul className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md">
-                  {suggestions.map((p) => (
-                    <li
-                      key={p}
-                      className="cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        setScorer(p);
-                        setSuggestions([]);
-                      }}
-                    >
-                      {p}
-                    </li>
-                  ))}
+                  {suggestions.map((p) => {
+                    const used = usedScorerNames.has(p.toLowerCase());
+                    return (
+                      <li
+                        key={p}
+                        className={`cursor-pointer px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground ${
+                          used ? "opacity-50 line-through" : ""
+                        }`}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          if (used) {
+                            setScorerError("Este jogador já foi usado em outra rodada.");
+                            return;
+                          }
+                          setScorer(p);
+                          setScorerError("");
+                          setSuggestions([]);
+                        }}
+                      >
+                        {p}
+                        {used && <span className="ml-2 text-xs">(já usado)</span>}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
@@ -279,7 +319,7 @@ const RoundPredictionPanel = ({
               {scorerRequired &&
                 !scorer.trim() &&
                 filledCount === matches.length &&
-                " · Informe o goleador"}
+                " · Informe o artilheiro"}
             </p>
 
             <Button className="w-full" onClick={handleSave} disabled={!canSubmit || saving}>
