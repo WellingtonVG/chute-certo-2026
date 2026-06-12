@@ -5,7 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { MatchTeamsDisplay } from "@/components/CountryFlag";
-import { formatDeadline } from "@/lib/prediction-deadlines";
+import {
+  formatDeadline,
+  formatMatchDateTime,
+  isMatchToday,
+  matchTodayHighlightClass,
+} from "@/lib/prediction-deadlines";
+import { cn } from "@/lib/utils";
 import { getScorerPointsForRound } from "@/lib/copa-rounds";
 import {
   getRoundLabel,
@@ -164,25 +170,28 @@ const RoundPredictionPanel = ({
       <CardContent className="space-y-3">
         {matches.map((match) => {
           const pred = predictions[match.id];
-          const matchDate = new Date(match.match_date);
           const entry = scores[match.id];
+          const today = isMatchToday(match.match_date);
 
           return (
-            <div key={match.id} className="rounded-lg border bg-background p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
+            <div
+              key={match.id}
+              className={cn(
+                "rounded-lg border bg-background p-3",
+                today && matchTodayHighlightClass
+              )}
+            >
+              <div className="mb-2">
                 <MatchTeamsDisplay
                   homeTeam={match.home_team}
                   awayTeam={match.away_team}
                   size={48}
                   style="shiny"
+                  dateTime={formatMatchDateTime(match.match_date)}
+                  dateTimeClassName={
+                    today ? "font-medium text-green-700 dark:text-green-400" : undefined
+                  }
                 />
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {matchDate.toLocaleTimeString("pt-BR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "America/Sao_Paulo",
-                  })}
-                </span>
               </div>
 
               {match.is_finished && (

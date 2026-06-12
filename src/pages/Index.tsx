@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import BolaoFeed from "@/components/BolaoFeed";
 import BottomNav from "@/components/BottomNav";
 import { UserAvatar } from "@/components/UserAvatar";
+import { PageHeader } from "@/components/PageHeader";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -41,8 +42,8 @@ const Index = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
-      <header className="border-b bg-primary px-4 py-5 text-primary-foreground">
-        <div className="mx-auto flex max-w-lg items-center justify-between">
+      <PageHeader
+        leading={
           <div className="flex items-center gap-3">
             <UserAvatar
               username={profile?.username || "?"}
@@ -57,7 +58,9 @@ const Index = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+        }
+        actions={
+          <>
             <Button
               variant="ghost"
               size="icon"
@@ -87,9 +90,10 @@ const Index = () => {
             >
               <LogOut className="h-5 w-5" />
             </Button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+        className="py-5"
+      />
 
       <main className="mx-auto w-full max-w-lg flex-1 p-4">
         {loading ? (

@@ -1,13 +1,12 @@
 import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import QuizMenu from "@/components/quiz/QuizMenu";
 import QuizGame from "@/components/quiz/QuizGame";
 import QuizResult from "@/components/quiz/QuizResult";
 import QuizMultiplayerLobby from "@/components/quiz/QuizMultiplayerLobby";
 import QuizMultiplayerGame from "@/components/quiz/QuizMultiplayerGame";
 import BottomNav from "@/components/BottomNav";
+import { PageHeader } from "@/components/PageHeader";
 import type { QuizQuestion, QuizLevel } from "@/lib/quiz-data";
 
 export type QuizMode = "solo" | "timed" | "multiplayer";
@@ -65,19 +64,10 @@ const Quiz = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
-      <header className="border-b bg-primary px-4 py-4 text-primary-foreground">
-        <div className="mx-auto flex max-w-lg items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => (screen === "menu" ? navigate("/") : handleBackToMenu())}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Quiz Copa do Mundo</h1>
-        </div>
-      </header>
+      <PageHeader
+        title="Quiz Copa do Mundo"
+        onBack={() => (screen === "menu" ? navigate("/") : handleBackToMenu())}
+      />
 
       <main className="mx-auto w-full max-w-lg flex-1 p-4">
         {screen === "menu" && <QuizMenu onStart={handleStart} />}

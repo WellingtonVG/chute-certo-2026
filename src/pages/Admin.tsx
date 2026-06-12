@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Loader2, Copy, Save, RefreshCw, AlertTriangle, Trash2, Users } from "lucide-react";
+import { Plus, Loader2, Copy, Save, RefreshCw, AlertTriangle, Trash2, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/accordion";
 import { groupByRoundKey, orderedRoundKeys } from "@/lib/match-stages";
 import { getRoundLabelFromKey } from "@/lib/copa-rounds";
+import { PageHeader } from "@/components/PageHeader";
 
 type Match = Tables<"matches">;
 type Bolao = Tables<"boloes"> & { invite_created_at?: string };
@@ -352,19 +353,7 @@ const Admin = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="border-b bg-primary px-4 py-4 text-primary-foreground">
-        <div className="mx-auto flex max-w-lg items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Painel Admin</h1>
-        </div>
-      </header>
+      <PageHeader title="Painel Admin" onBack={() => navigate("/")} />
 
       <main className="mx-auto w-full max-w-lg flex-1 p-4">
         <Tabs defaultValue="boloes">

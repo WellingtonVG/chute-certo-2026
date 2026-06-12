@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Trophy, Check, X, Loader2 } from "lucide-react";
 import { useEffect } from "react";
+import { ThemeCornerButton } from "@/components/ThemeToggle";
 
 const SetUsername = () => {
   const { user, profile, refreshProfile } = useAuth();
@@ -66,6 +67,7 @@ const SetUsername = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <ThemeCornerButton />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary">

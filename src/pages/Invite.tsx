@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Loader2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ThemeCornerButton } from "@/components/ThemeToggle";
 
 interface BolaoLookup {
   id: string;
@@ -80,6 +81,7 @@ const Invite = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
+        <ThemeCornerButton />
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -88,6 +90,7 @@ const Invite = () => {
   if (notFound) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <ThemeCornerButton />
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <CardTitle>Convite inválido</CardTitle>
@@ -104,6 +107,7 @@ const Invite = () => {
   if (expired) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <ThemeCornerButton />
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-destructive/10">
@@ -127,6 +131,7 @@ const Invite = () => {
   if (user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <ThemeCornerButton />
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary">
@@ -161,6 +166,7 @@ const Invite = () => {
   // Not logged in — show invite info and login button
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <ThemeCornerButton />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary">

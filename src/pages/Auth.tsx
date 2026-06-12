@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Trophy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeCornerButton } from "@/components/ThemeToggle";
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
@@ -123,6 +124,7 @@ const Auth = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <ThemeCornerButton />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary">

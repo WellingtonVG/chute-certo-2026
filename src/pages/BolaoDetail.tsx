@@ -16,12 +16,19 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ArrowLeft, Loader2, Trophy, Share2 } from "lucide-react";
+import { Loader2, Trophy, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
 import { getSeasonPointsTotal } from "@/lib/season-predictions";
 import { MatchTeamsDisplay } from "@/components/CountryFlag";
-import { formatDeadline, isMatchPredictionOpen } from "@/lib/prediction-deadlines";
+import {
+  formatDeadline,
+  formatMatchDateTime,
+  isMatchPredictionOpen,
+  isMatchToday,
+  matchTodayHighlightClass,
+} from "@/lib/prediction-deadlines";
+import { cn } from "@/lib/utils";
 import SeasonPredictions from "@/components/SeasonPredictions";
 import ScoringRulesModal from "@/components/ScoringRulesModal";
 import BolaoFeed from "@/components/BolaoFeed";
@@ -46,6 +53,8 @@ import { buildRanking, type RankingEntry } from "@/lib/ranking";
 import squads from "@/data/squads.json";
 import RoundPredictionPanel from "@/components/RoundPredictionPanel";
 import MemberPredictionsSelector from "@/components/MemberPredictionsSelector";
+import { PageHeader } from "@/components/PageHeader";
+import { ThemeCornerButton } from "@/components/ThemeToggle";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
@@ -492,6 +501,7 @@ const BolaoDetail = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
+        <ThemeCornerButton />
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -500,6 +510,7 @@ const BolaoDetail = () => {
   if (!bolao) {
     return (
       <div className="flex min-h-screen items-center justify-center">
+        <ThemeCornerButton />
         <p>Bolão não encontrado</p>
       </div>
     );
@@ -510,32 +521,24 @@ const BolaoDetail = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="border-b bg-primary px-4 py-4 text-primary-foreground">
-        <div className="mx-auto flex max-w-lg items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/")}
-              className="text-primary-foreground hover:bg-primary-foreground/10"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="text-xl font-bold">{bolao.name}</h1>
-          </div>
-          <div className="flex items-center gap-1">
+      <PageHeader
+        title={bolao.name}
+        onBack={() => navigate("/")}
+        actions={
+          <>
             <ScoringRulesModal />
             <Button
               variant="ghost"
               size="icon"
               onClick={shareInvite}
               className="text-primary-foreground hover:bg-primary-foreground/10"
+              aria-label="Compartilhar convite"
             >
               <Share2 className="h-5 w-5" />
             </Button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <main className="mx-auto w-full max-w-lg flex-1 p-4">
         <Tabs defaultValue={searchParams.get("tab") || "palpites"}>
@@ -870,9 +873,15 @@ const MatchPredictionCard = ({
   };
 
   const matchDate = new Date(match.match_date);
+  const today = isMatchToday(match.match_date);
 
   return (
-    <Card className={!isEditable ? "opacity-70" : ""}>
+    <Card
+      className={cn(
+        !isEditable ? "opacity-70" : "",
+        today && matchTodayHighlightClass
+      )}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground">
@@ -880,14 +889,18 @@ const MatchPredictionCard = ({
               ? ((match as any).round_name || "")
               : `${stageLabels[match.stage] || match.stage}${match.group_name ? ` • ${match.group_name}` : ""}`}
           </span>
-          <span className="text-xs text-muted-foreground">
-            {matchDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
-            {" "}
-            {matchDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
-          </span>
         </div>
         <CardTitle className="text-base">
-          <MatchTeamsDisplay homeTeam={match.home_team} awayTeam={match.away_team} size={64} style="shiny" />
+          <MatchTeamsDisplay
+            homeTeam={match.home_team}
+            awayTeam={match.away_team}
+            size={64}
+            style="shiny"
+            dateTime={formatMatchDateTime(match.match_date)}
+            dateTimeClassName={
+              today ? "font-medium text-green-700 dark:text-green-400" : undefined
+            }
+          />
         </CardTitle>
         {match.is_finished && (
           <p className="text-sm font-bold text-accent">

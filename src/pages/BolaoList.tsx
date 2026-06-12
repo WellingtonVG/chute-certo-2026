@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Users, Trophy, Loader2 } from "lucide-react";
+import { Users, Trophy, Loader2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import { PageHeader } from "@/components/PageHeader";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Bolao = Tables<"boloes">;
@@ -36,19 +37,7 @@ const BolaoList = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
-      <header className="border-b bg-primary px-4 py-4 text-primary-foreground">
-        <div className="mx-auto flex max-w-lg items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Meus Bolões</h1>
-        </div>
-      </header>
+      <PageHeader title="Meus Bolões" onBack={() => navigate("/")} />
 
       <main className="mx-auto w-full max-w-lg flex-1 p-4">
         {loading ? (

@@ -9,8 +9,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ArrowLeft, Copy, Loader2, MapPin } from "lucide-react";
+import { Copy, Loader2, MapPin } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { CountryLabel } from "@/components/CountryFlag";
@@ -175,29 +176,22 @@ const Calendario = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-20">
-      <header className="border-b bg-primary px-4 py-4 text-primary-foreground">
-        <div className="mx-auto flex max-w-lg items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold flex-1">Calendário</h1>
+      <PageHeader
+        title="Calendário"
+        onBack={() => navigate("/")}
+        actions={
           <Button
             variant="ghost"
             size="sm"
             onClick={handleCopyText}
             disabled={loading || matches.length === 0}
-            className="text-primary-foreground hover:bg-primary-foreground/10 gap-1.5"
+            className="gap-1.5 text-primary-foreground hover:bg-primary-foreground/10"
           >
             <Copy className="h-4 w-4" />
             Compartilhar
           </Button>
-        </div>
-      </header>
+        }
+      />
 
       <main className="mx-auto w-full max-w-lg flex-1 p-4">
         {loading ? (

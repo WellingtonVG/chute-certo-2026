@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { UserAvatar } from "@/components/UserAvatar";
+import { PageHeader } from "@/components/PageHeader";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -127,19 +129,7 @@ const Settings = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <header className="border-b bg-primary px-4 py-4 text-primary-foreground">
-        <div className="mx-auto flex max-w-lg items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-            className="text-primary-foreground hover:bg-primary-foreground/10"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-xl font-bold">Configurações</h1>
-        </div>
-      </header>
+      <PageHeader title="Configurações" onBack={() => navigate("/")} />
 
       <main className="mx-auto w-full max-w-lg flex-1 space-y-6 p-4">
         <section className="flex items-center gap-4 rounded-xl border bg-card p-4">
@@ -154,6 +144,14 @@ const Settings = () => {
               A foto é definida pelo administrador do bolão.
             </p>
           </div>
+        </section>
+
+        <section className="space-y-3 rounded-xl border bg-card p-4">
+          <h2 className="font-semibold text-card-foreground">Aparência</h2>
+          <p className="text-sm text-muted-foreground">
+            Escolha entre tema claro, escuro ou o do sistema.
+          </p>
+          <ThemeToggle />
         </section>
 
         {/* Username */}

@@ -1,3 +1,5 @@
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeCornerButton } from "@/components/ThemeToggle";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
@@ -38,6 +40,7 @@ const ProtectedRoute = ({ children, allowDefaultUsername = false }: { children: 
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
+        <ThemeCornerButton />
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -54,7 +57,8 @@ const ProtectedRoute = ({ children, allowDefaultUsername = false }: { children: 
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -132,7 +136,8 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;
