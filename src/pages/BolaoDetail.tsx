@@ -64,7 +64,6 @@ const BolaoDetail = () => {
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [roundPredictions, setRoundPredictions] = useState<Record<string, RoundPrediction>>({});
   const [adminRoundPredictions, setAdminRoundPredictions] = useState<Record<string, RoundPrediction>>({});
-  const [firstCopaMatchDate, setFirstCopaMatchDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingMatch, setSavingMatch] = useState<string | null>(null);
   const [savingRound, setSavingRound] = useState<string | null>(null);
@@ -139,27 +138,10 @@ const BolaoDetail = () => {
 
       const copaBolao = !isBrasileraoComp(bolaoRes);
 
-      const [matchesRes, predsRes, roundPredsMap, firstMatchRes] = await Promise.all([
+      const [matchesRes, predsRes, roundPredsMap] = await Promise.all([
         supabase.from("matches").select("*").order("match_date", { ascending: true }),
         supabase.from("predictions").select("*").eq("bolao_id", id).eq("user_id", user.id),
         copaBolao ? fetchRoundPredictions(id, user.id) : Promise.resolve({} as Record<string, RoundPrediction>),
-        copaBolao
-          ? supabase
-              .from("matches")
-              .select("match_date")
-              .in("stage", [
-                "group",
-                "round_of_32",
-                "round_of_16",
-                "quarter_final",
-                "semi_final",
-                "third_place",
-                "final",
-              ])
-              .order("match_date", { ascending: true })
-              .limit(1)
-              .maybeSingle()
-          : Promise.resolve({ data: null }),
       ]);
       setBolao(bolaoRes.data);
       
@@ -178,7 +160,6 @@ const BolaoDetail = () => {
 
       if (copaBolao) {
         setRoundPredictions(roundPredsMap);
-        setFirstCopaMatchDate(firstMatchRes.data?.match_date ?? null);
       }
 
       await fetchRanking(id, (bolaoRes.data as any)?.competition || "copa_do_mundo_2026");
@@ -524,7 +505,7 @@ const BolaoDetail = () => {
             <h1 className="text-xl font-bold">{bolao.name}</h1>
           </div>
           <div className="flex items-center gap-1">
-            <ScoringRulesModal firstMatchDate={firstCopaMatchDate} />
+            <ScoringRulesModal />
             <Button
               variant="ghost"
               size="icon"
@@ -559,11 +540,7 @@ const BolaoDetail = () => {
               />
             )}
             {(bolao as any).competition !== "brasileirao_2026" && !isAdminPalpiteMode && (
-              <SeasonPredictions
-                bolaoId={id!}
-                userId={user!.id}
-                firstMatchDate={firstCopaMatchDate}
-              />
+              <SeasonPredictions bolaoId={id!} userId={user!.id} />
             )}
             {matches.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">
