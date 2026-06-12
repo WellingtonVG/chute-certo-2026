@@ -29,6 +29,7 @@ interface RoundPredictionPanelProps {
   usedScorerNames: Set<string>;
   saving: boolean;
   forceEditable?: boolean;
+  readOnly?: boolean;
   onSaveRound: (
     roundKey: string,
     roundMatches: Match[],
@@ -45,9 +46,10 @@ const RoundPredictionPanel = ({
   usedScorerNames,
   saving,
   forceEditable = false,
+  readOnly = false,
   onSaveRound,
 }: RoundPredictionPanelProps) => {
-  const roundOpen = forceEditable || isRoundOpen(matches);
+  const roundOpen = forceEditable || (!readOnly && isRoundOpen(matches));
   const roundLabel = getRoundLabel(roundKey, matches);
   const deadlineMatch = getScorerMatchForRound(matches);
   const deadlineDate = new Date(deadlineMatch.match_date);
@@ -145,7 +147,9 @@ const RoundPredictionPanel = ({
         <p className="text-xs text-muted-foreground">
           {matches.length} jogos · Palpite da rodada inteira · Artilheiro +{scorerPoints} pts
         </p>
-        {forceEditable ? (
+        {readOnly && !forceEditable ? (
+          <p className="text-xs font-medium text-muted-foreground">Palpites de outro participante</p>
+        ) : forceEditable ? (
           <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
             Modo admin — prazo ignorado
           </p>

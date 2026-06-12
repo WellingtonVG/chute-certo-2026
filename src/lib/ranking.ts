@@ -1,5 +1,6 @@
 export type RankingEntry = {
   username: string;
+  avatarUrl?: string | null;
   total: number;
   rank: number;
   tied: boolean;
@@ -7,7 +8,7 @@ export type RankingEntry = {
 
 /** Empate na pontuação: mesma posição, sem desempate */
 export function buildRanking(
-  entries: { username: string; total: number }[]
+  entries: { username: string; avatarUrl?: string | null; total: number }[]
 ): RankingEntry[] {
   const sorted = [...entries].sort((a, b) => b.total - a.total);
   let rank = 1;

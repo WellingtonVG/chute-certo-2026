@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { UserAvatar } from "@/components/UserAvatar";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -141,6 +142,20 @@ const Settings = () => {
       </header>
 
       <main className="mx-auto w-full max-w-lg flex-1 space-y-6 p-4">
+        <section className="flex items-center gap-4 rounded-xl border bg-card p-4">
+          <UserAvatar
+            username={profile?.username || "?"}
+            avatarUrl={profile?.avatar_url}
+            size="lg"
+          />
+          <div>
+            <h2 className="font-semibold text-card-foreground">Foto de perfil</h2>
+            <p className="text-sm text-muted-foreground">
+              A foto é definida pelo administrador do bolão.
+            </p>
+          </div>
+        </section>
+
         {/* Username */}
         <section className="space-y-3 rounded-xl border bg-card p-4">
           <h2 className="font-semibold text-card-foreground">Username</h2>

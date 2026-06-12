@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import AdminPalpiteControl, { type BolaoMember } from "@/components/AdminPalpiteControl";
+import { UserAvatar } from "@/components/UserAvatar";
 import AdminSetupBanner from "@/components/AdminSetupBanner";
 import { adminUpsertPredictions, adminPredictionErrorMessage, buildRoundPredictionRows } from "@/lib/admin-predictions";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ import {
 import { buildRanking, type RankingEntry } from "@/lib/ranking";
 import squads from "@/data/squads.json";
 import RoundPredictionPanel from "@/components/RoundPredictionPanel";
+import MemberPredictionsSelector from "@/components/MemberPredictionsSelector";
 
 type Match = Tables<"matches">;
 type Prediction = Tables<"predictions">;
@@ -67,10 +69,14 @@ const BolaoDetail = () => {
   const [loading, setLoading] = useState(true);
   const [savingMatch, setSavingMatch] = useState<string | null>(null);
   const [savingRound, setSavingRound] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   const isAdminPalpiteMode = !!adminTargetUserId;
+  const isViewingSelf = !!user && selectedUserId === user.id;
+  const readOnlyView = !isAdminPalpiteMode && !isViewingSelf;
   const activePredictions = isAdminPalpiteMode ? adminPredictions : predictions;
   const activeRoundPredictions = isAdminPalpiteMode ? adminRoundPredictions : roundPredictions;
+  const displayUserId = isAdminPalpiteMode ? adminTargetUserId! : selectedUserId ?? user!.id;
 
   const fetchRanking = async (bolaoId: string, competition: string) => {
     const [{ data: allPreds }, { data: roundPreds }] = await Promise.all([
@@ -110,17 +116,21 @@ const BolaoDetail = () => {
     if (userIds.length > 0) {
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, username")
+        .select("user_id, username, avatar_url")
         .in("user_id", userIds);
 
-      const profileMap: Record<string, string> = {};
+      const profileMap: Record<string, { username: string; avatar_url: string | null }> = {};
       (profiles || []).forEach((p) => {
-        profileMap[p.user_id] = p.username;
+        profileMap[p.user_id] = { username: p.username, avatar_url: p.avatar_url };
       });
 
       setRanking(
         buildRanking(
-          userIds.map((uid) => ({ username: profileMap[uid] || "?", total: totals[uid] }))
+          userIds.map((uid) => ({
+            username: profileMap[uid]?.username || "?",
+            avatarUrl: profileMap[uid]?.avatar_url,
+            total: totals[uid],
+          }))
         )
       );
     } else {
@@ -138,11 +148,7 @@ const BolaoDetail = () => {
 
       const copaBolao = !isBrasileraoComp(bolaoRes);
 
-      const [matchesRes, predsRes, roundPredsMap] = await Promise.all([
-        supabase.from("matches").select("*").order("match_date", { ascending: true }),
-        supabase.from("predictions").select("*").eq("bolao_id", id).eq("user_id", user.id),
-        copaBolao ? fetchRoundPredictions(id, user.id) : Promise.resolve({} as Record<string, RoundPrediction>),
-      ]);
+      const matchesRes = await supabase.from("matches").select("*").order("match_date", { ascending: true });
       setBolao(bolaoRes.data);
       
       const filteredMatches = (matchesRes.data || []).filter((m: any) =>
@@ -152,15 +158,7 @@ const BolaoDetail = () => {
       );
       setMatches(filteredMatches);
 
-      const predsMap: Record<string, Prediction> = {};
-      (predsRes.data || []).forEach((p) => {
-        predsMap[p.match_id] = p;
-      });
-      setPredictions(predsMap);
-
-      if (copaBolao) {
-        setRoundPredictions(roundPredsMap);
-      }
+      setSelectedUserId((prev) => prev ?? user.id);
 
       await fetchRanking(id, (bolaoRes.data as any)?.competition || "copa_do_mundo_2026");
 
@@ -170,7 +168,7 @@ const BolaoDetail = () => {
   }, [id, user]);
 
   useEffect(() => {
-    if (!id || !isAdmin) return;
+    if (!id || !user) return;
     const fetchMembers = async () => {
       const { data: memberRows } = await supabase
         .from("bolao_members")
@@ -183,18 +181,35 @@ const BolaoDetail = () => {
       }
       const { data: profileRows } = await supabase
         .from("profiles")
-        .select("user_id, username")
+        .select("user_id, username, avatar_url")
         .in("user_id", userIds);
-      const usernameById = Object.fromEntries(
-        (profileRows || []).map((p) => [p.user_id, p.username])
+      const profileById = Object.fromEntries(
+        (profileRows || []).map((p) => [p.user_id, p])
       );
       const members: BolaoMember[] = userIds
-        .map((uid) => ({ user_id: uid, username: usernameById[uid] || "?" }))
+        .map((uid) => ({
+          user_id: uid,
+          username: profileById[uid]?.username || "?",
+          avatar_url: profileById[uid]?.avatar_url ?? null,
+        }))
         .sort((a, b) => a.username.localeCompare(b.username));
       setBolaoMembers(members);
     };
     fetchMembers();
-  }, [id, isAdmin]);
+  }, [id, user]);
+
+  useEffect(() => {
+    if (!id || !selectedUserId || isAdminPalpiteMode) return;
+
+    const loadViewedPredictions = async () => {
+      setPredictions(await loadPredictionsForUser(selectedUserId));
+      if ((bolao as any)?.competition !== "brasileirao_2026") {
+        setRoundPredictions(await fetchRoundPredictions(id, selectedUserId));
+      }
+    };
+
+    loadViewedPredictions();
+  }, [id, selectedUserId, isAdminPalpiteMode, bolao]);
 
   const loadPredictionsForUser = async (userId: string): Promise<Record<string, Prediction>> => {
     if (!id) return {};
@@ -212,6 +227,7 @@ const BolaoDetail = () => {
 
   const handleAdminSelectUser = async (userId: string) => {
     const member = bolaoMembers.find((m) => m.user_id === userId);
+    setSelectedUserId(userId);
     setAdminTargetUserId(userId);
     setAdminTargetUsername(member?.username ?? null);
     setAdminPredictions(await loadPredictionsForUser(userId));
@@ -225,11 +241,12 @@ const BolaoDetail = () => {
     setAdminTargetUsername(null);
     setAdminPredictions({});
     setAdminRoundPredictions({});
+    if (user?.id) setSelectedUserId(user.id);
   };
 
   const refreshActivePredictions = async () => {
     if (!id || !user) return;
-    const userId = isAdminPalpiteMode ? adminTargetUserId! : user.id;
+    const userId = isAdminPalpiteMode ? adminTargetUserId! : selectedUserId ?? user.id;
     const predsMap = await loadPredictionsForUser(userId);
     if (isAdminPalpiteMode) {
       setAdminPredictions(predsMap);
@@ -278,6 +295,7 @@ const BolaoDetail = () => {
     matchDate?: string
   ) => {
     if (!user || !id) return;
+    if (readOnlyView) return;
     if (!isAdminPalpiteMode && matchDate && !isMatchPredictionOpen(matchDate)) {
       toast({
         title: "Prazo encerrado",
@@ -343,6 +361,7 @@ const BolaoDetail = () => {
     scorerName: string
   ) => {
     if (!user || !id) return;
+    if (readOnlyView) return;
     if (!isAdminPalpiteMode && !isRoundOpen(roundMatches)) {
       toast({
         title: "Prazo encerrado",
@@ -529,6 +548,13 @@ const BolaoDetail = () => {
           </TabsList>
 
           <TabsContent value="palpites" className="relative space-y-3 pt-4">
+            <MemberPredictionsSelector
+              members={bolaoMembers}
+              selectedUserId={isAdminPalpiteMode ? adminTargetUserId : selectedUserId}
+              currentUserId={user!.id}
+              onSelect={setSelectedUserId}
+              disabled={isAdminPalpiteMode}
+            />
             {isAdmin && <AdminSetupBanner />}
             {isAdmin && (
               <AdminPalpiteControl
@@ -539,8 +565,12 @@ const BolaoDetail = () => {
                 onClear={handleAdminClear}
               />
             )}
-            {(bolao as any).competition !== "brasileirao_2026" && !isAdminPalpiteMode && (
-              <SeasonPredictions bolaoId={id!} userId={user!.id} />
+            {(bolao as any).competition !== "brasileirao_2026" && (
+              <SeasonPredictions
+                bolaoId={id!}
+                userId={displayUserId}
+                readOnly={readOnlyView}
+              />
             )}
             {matches.length === 0 ? (
               <p className="py-8 text-center text-muted-foreground">
@@ -557,6 +587,7 @@ const BolaoDetail = () => {
                 onSaveRound={saveRoundPrediction}
                 isMatchLocked={isMatchLocked}
                 forceEditable={isAdminPalpiteMode}
+                readOnly={readOnlyView}
                 isBrasileirao={(bolao as any).competition === "brasileirao_2026"}
               />
             )}
@@ -574,11 +605,12 @@ const BolaoDetail = () => {
                   {ranking.map((r) => (
                     <div
                       key={`${r.rank}-${r.username}`}
-                      className="flex items-center justify-between rounded-lg border bg-card p-3"
+                      className="flex items-center justify-between rounded-lg border bg-card p-4"
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-4">
+                        <UserAvatar username={r.username} avatarUrl={r.avatarUrl} size="xl" />
                         <span
-                          className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
                             r.rank === 1
                               ? "bg-accent text-accent-foreground"
                               : r.rank === 2
@@ -629,6 +661,7 @@ const RoundsAccordion = ({
   onSaveRound,
   isMatchLocked,
   forceEditable = false,
+  readOnly = false,
   isBrasileirao,
 }: {
   matches: Match[];
@@ -645,6 +678,7 @@ const RoundsAccordion = ({
   ) => Promise<void>;
   isMatchLocked: (m: Match) => boolean;
   forceEditable?: boolean;
+  readOnly?: boolean;
   isBrasileirao: boolean;
 }) => {
   const byRound = useMemo(() => groupByRound(matches), [matches]);
@@ -689,6 +723,7 @@ const RoundsAccordion = ({
       prediction={predictions[match.id]}
       locked={isMatchLocked(match)}
       forceEditable={forceEditable}
+      readOnly={readOnly}
       saving={savingMatch === match.id}
       onSave={onSave}
       isBrasileirao={isBrasileirao}
@@ -764,6 +799,7 @@ const RoundsAccordion = ({
                     usedScorerNames={getUsedScorerNames(roundPredictions, roundKey)}
                     saving={savingRound === roundKey}
                     forceEditable={forceEditable}
+                    readOnly={readOnly}
                     onSaveRound={onSaveRound}
                   />
                 </AccordionContent>
@@ -782,6 +818,7 @@ const MatchPredictionCard = ({
   prediction,
   locked,
   forceEditable = false,
+  readOnly = false,
   saving,
   onSave,
   isBrasileirao = false,
@@ -790,11 +827,12 @@ const MatchPredictionCard = ({
   prediction?: Tables<"predictions">;
   locked: boolean;
   forceEditable?: boolean;
+  readOnly?: boolean;
   saving: boolean;
   onSave: (matchId: string, home: number, away: number, scorer: string, bonusAnswer?: boolean | null, matchDate?: string) => void;
   isBrasileirao?: boolean;
 }) => {
-  const isEditable = forceEditable || !locked;
+  const isEditable = forceEditable || (!readOnly && !locked);
   const [homeScore, setHomeScore] = useState(prediction?.home_score?.toString() || "");
   const [awayScore, setAwayScore] = useState(prediction?.away_score?.toString() || "");
   const [scorer, setScorer] = useState(prediction?.scorer_name || "");
@@ -856,7 +894,11 @@ const MatchPredictionCard = ({
             Resultado: {match.home_score} × {match.away_score}
           </p>
         )}
-        {forceEditable ? (
+        {readOnly && !forceEditable ? (
+          <p className="text-center text-xs font-medium text-muted-foreground">
+            Palpite de outro participante
+          </p>
+        ) : forceEditable ? (
           <p className="text-center text-xs font-medium text-amber-700 dark:text-amber-300">
             Modo admin — prazo ignorado
           </p>
@@ -871,7 +913,8 @@ const MatchPredictionCard = ({
           prediction ? (
             <div className="space-y-1 text-sm">
               <p>
-                Seu palpite: <span className="font-bold">{prediction.home_score} × {prediction.away_score}</span>
+                {readOnly ? "Palpite" : "Seu palpite"}:{" "}
+                <span className="font-bold">{prediction.home_score} × {prediction.away_score}</span>
               </p>
               {!isBrasileirao && prediction.scorer_name && (
                 <p>Goleador: <span className="font-medium">{prediction.scorer_name}</span></p>
@@ -884,7 +927,9 @@ const MatchPredictionCard = ({
               )}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Sem palpite (jogo travado)</p>
+            <p className="text-sm text-muted-foreground">
+              {readOnly ? "Sem palpite" : "Sem palpite (jogo travado)"}
+            </p>
           )
         ) : (
           <div className="space-y-3">

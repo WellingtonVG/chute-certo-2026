@@ -18,6 +18,8 @@ import { SEASON_PREDICTION_POINTS } from "@/lib/season-predictions";
 import { MatchTeamsDisplay } from "@/components/CountryFlag";
 import { TeamSelect } from "@/components/TeamSelect";
 import RoundScorersEditor from "@/components/admin/RoundScorersEditor";
+import UserAvatarEditor from "@/components/admin/UserAvatarEditor";
+import { UserAvatar } from "@/components/UserAvatar";
 import {
   Accordion,
   AccordionContent,
@@ -53,7 +55,18 @@ const Admin = () => {
   const [boloes, setBoloes] = useState<Bolao[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
-  const [members, setMembers] = useState<{ bolao_id: string; bolao_name: string; user_id: string; username: string; joined_at: string; member_id: string }[]>([]);
+  const [members, setMembers] = useState<{
+    bolao_id: string;
+    bolao_name: string;
+    user_id: string;
+    username: string;
+    avatar_url: string | null;
+    joined_at: string;
+    member_id: string;
+  }[]>([]);
+  const [allProfiles, setAllProfiles] = useState<
+    { user_id: string; username: string; avatar_url: string | null }[]
+  >([]);
   const [removingMember, setRemovingMember] = useState<string | null>(null);
 
   // New bolao form
@@ -152,10 +165,11 @@ const Admin = () => {
       return;
     }
     const fetchData = async () => {
-      const [boloesRes, matchesRes, membersRes] = await Promise.all([
+      const [boloesRes, matchesRes, membersRes, profilesRes] = await Promise.all([
         supabase.from("boloes").select("*").order("created_at", { ascending: false }),
         supabase.from("matches").select("*").order("match_date", { ascending: true }),
         supabase.from("bolao_members").select("*"),
+        supabase.from("profiles").select("user_id, username, avatar_url").order("username"),
       ]);
       const boloesData = (boloesRes.data || []) as Bolao[];
       setBoloes(boloesData);
@@ -163,12 +177,13 @@ const Admin = () => {
 
       // Load profiles for members
       const memberData = membersRes.data || [];
-      const userIds = [...new Set(memberData.map((m) => m.user_id))];
-      let profileMap: Record<string, { username: string }> = {};
-      if (userIds.length > 0) {
-        const { data: profiles } = await supabase.from("profiles").select("user_id, username").in("user_id", userIds);
-        (profiles || []).forEach((p) => { profileMap[p.user_id] = { username: p.username }; });
-      }
+      const profilesData = profilesRes.data || [];
+      setAllProfiles(profilesData);
+
+      let profileMap: Record<string, { username: string; avatar_url: string | null }> = {};
+      profilesData.forEach((p) => {
+        profileMap[p.user_id] = { username: p.username, avatar_url: p.avatar_url };
+      });
       const bolaoNameMap: Record<string, string> = {};
       boloesData.forEach((b) => { bolaoNameMap[b.id] = b.name; });
 
@@ -177,7 +192,7 @@ const Admin = () => {
         bolao_name: bolaoNameMap[m.bolao_id] || "?",
         user_id: m.user_id,
         username: profileMap[m.user_id]?.username || "?",
-        
+        avatar_url: profileMap[m.user_id]?.avatar_url ?? null,
         joined_at: m.joined_at,
         member_id: m.id,
       })));
@@ -450,6 +465,54 @@ const Admin = () => {
 
           {/* Usuários Tab */}
           <TabsContent value="usuarios" className="space-y-4 pt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Users className="h-4 w-4" /> Fotos de perfil
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Apenas administradores podem enviar ou alterar as fotos dos participantes.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {allProfiles.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum usuário cadastrado.</p>
+                ) : (
+                  allProfiles.map((profile) => (
+                    <div
+                      key={profile.user_id}
+                      className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">@{profile.username}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {profile.avatar_url ? "Foto definida" : "Sem foto"}
+                        </p>
+                      </div>
+                      <UserAvatarEditor
+                        userId={profile.user_id}
+                        username={profile.username}
+                        avatarUrl={profile.avatar_url}
+                        onUpdated={(avatarUrl) => {
+                          setAllProfiles((prev) =>
+                            prev.map((p) =>
+                              p.user_id === profile.user_id ? { ...p, avatar_url: avatarUrl } : p
+                            )
+                          );
+                          setMembers((prev) =>
+                            prev.map((m) =>
+                              m.user_id === profile.user_id ? { ...m, avatar_url: avatarUrl } : m
+                            )
+                          );
+                        }}
+                        compact
+                      />
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
             {boloes.map((bolao) => {
               const bolaoMembers = members.filter((m) => m.bolao_id === bolao.id);
               if (bolaoMembers.length === 0) return null;
@@ -464,11 +527,14 @@ const Admin = () => {
                   <CardContent className="space-y-2">
                     {bolaoMembers.map((m) => (
                       <div key={m.member_id} className="flex items-center justify-between rounded-lg border p-3">
-                        <div>
+                        <div className="flex items-center gap-3">
+                          <UserAvatar username={m.username} avatarUrl={m.avatar_url} size="sm" />
+                          <div>
                           <p className="text-sm font-medium">{m.username}</p>
                           <p className="text-xs text-muted-foreground">
                             Entrou em {format(new Date(m.joined_at), "dd/MM/yyyy", { locale: ptBR })}
                           </p>
+                          </div>
                         </div>
                         <Button
                           variant="ghost"

@@ -17,6 +17,7 @@ import squads from "@/data/squads.json";
 interface SeasonPredictionsProps {
   bolaoId: string;
   userId: string;
+  readOnly?: boolean;
 }
 
 const PlayerInput = ({
@@ -82,7 +83,7 @@ const PlayerInput = ({
   );
 };
 
-const SeasonPredictions = ({ bolaoId, userId }: SeasonPredictionsProps) => {
+const SeasonPredictions = ({ bolaoId, userId, readOnly = false }: SeasonPredictionsProps) => {
   const { toast } = useToast();
   const [champion, setChampion] = useState("");
   const [bestPlayer, setBestPlayer] = useState("");
@@ -92,7 +93,8 @@ const SeasonPredictions = ({ bolaoId, userId }: SeasonPredictionsProps) => {
   const [loading, setLoading] = useState(true);
   const [existingId, setExistingId] = useState<string | null>(null);
 
-  const locked = !isSeasonPredictionOpen();
+  const deadlineClosed = !isSeasonPredictionOpen();
+  const showForm = !readOnly && !deadlineClosed;
   const deadlineLabel = getSeasonPredictionsDeadlineLabel();
 
   const allPlayers = useMemo(
@@ -102,6 +104,7 @@ const SeasonPredictions = ({ bolaoId, userId }: SeasonPredictionsProps) => {
 
   useEffect(() => {
     const fetch = async () => {
+      setLoading(true);
       const { data } = await supabase
         .from("season_predictions")
         .select("*")
@@ -115,6 +118,12 @@ const SeasonPredictions = ({ bolaoId, userId }: SeasonPredictionsProps) => {
         setBestPlayer(data.best_player || "");
         setRevelationPlayer(data.revelation_player || "");
         setExistingId(data.id);
+      } else {
+        setChampion("");
+        setTopScorer("");
+        setBestPlayer("");
+        setRevelationPlayer("");
+        setExistingId(null);
       }
       setLoading(false);
     };
@@ -123,10 +132,12 @@ const SeasonPredictions = ({ bolaoId, userId }: SeasonPredictionsProps) => {
 
   const handleSave = async () => {
     if (!champion && !bestPlayer && !topScorer && !revelationPlayer) return;
-    if (locked) {
+    if (!showForm) {
       toast({
-        title: "Prazo encerrado",
-        description: `Palpites especiais travaram em ${deadlineLabel}.`,
+        title: readOnly ? "Somente leitura" : "Prazo encerrado",
+        description: readOnly
+          ? "Você está visualizando os palpites de outro participante."
+          : `Palpites especiais travaram em ${deadlineLabel}.`,
         variant: "destructive",
       });
       return;
@@ -180,21 +191,23 @@ const SeasonPredictions = ({ bolaoId, userId }: SeasonPredictionsProps) => {
   }
 
   return (
-    <Card className={locked ? "opacity-70" : ""}>
+    <Card className={!showForm ? "opacity-90" : ""}>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Star className="h-4 w-4 text-accent" />
           Palpites Especiais
-          {locked && <Lock className="h-3.5 w-3.5 text-muted-foreground ml-auto" />}
+          {!showForm && <Lock className="ml-auto h-3.5 w-3.5 text-muted-foreground" />}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          {locked
+          {readOnly
+            ? "Palpites de outro participante"
+            : deadlineClosed
             ? `Prazo encerrado em ${deadlineLabel}`
             : `Prazo: até ${deadlineLabel}`}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {locked ? (
+        {!showForm ? (
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
               <Trophy className="h-4 w-4 text-accent" />

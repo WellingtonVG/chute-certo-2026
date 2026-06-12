@@ -6,6 +6,7 @@ import { Cog, LogOut, Settings, Trophy, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BolaoFeed from "@/components/BolaoFeed";
 import BottomNav from "@/components/BottomNav";
+import { UserAvatar } from "@/components/UserAvatar";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -42,11 +43,19 @@ const Index = () => {
     <div className="flex min-h-screen flex-col bg-background pb-20">
       <header className="border-b bg-primary px-4 py-5 text-primary-foreground">
         <div className="mx-auto flex max-w-lg items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Copa 2026</h1>
-            <p className="text-xs opacity-80">
-              Olá, <span className="font-semibold">{profile?.username}</span>
-            </p>
+          <div className="flex items-center gap-3">
+            <UserAvatar
+              username={profile?.username || "?"}
+              avatarUrl={profile?.avatar_url}
+              size="sm"
+              className="border border-primary-foreground/20"
+            />
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">Copa 2026</h1>
+              <p className="text-xs opacity-80">
+                Olá, <span className="font-semibold">{profile?.username}</span>
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <Button
