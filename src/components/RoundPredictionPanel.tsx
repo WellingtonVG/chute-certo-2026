@@ -8,6 +8,7 @@ import { MatchTeamsDisplay } from "@/components/CountryFlag";
 import {
   formatDeadline,
   formatMatchDateTime,
+  isMatchPredictionOpen,
   isMatchToday,
   matchTodayHighlightClass,
 } from "@/lib/prediction-deadlines";
@@ -55,11 +56,18 @@ const RoundPredictionPanel = ({
   readOnly = false,
   onSaveRound,
 }: RoundPredictionPanelProps) => {
-  const roundOpen = forceEditable || (!readOnly && isRoundOpen(matches));
+  const roundScorerOpen = isRoundOpen(matches);
   const roundLabel = getRoundLabel(roundKey, matches);
   const deadlineMatch = getScorerMatchForRound(matches);
   const deadlineDate = new Date(deadlineMatch.match_date);
   const scorerPoints = getScorerPointsForRound(roundKey);
+  const openMatches = useMemo(
+    () => matches.filter((m) => forceEditable || isMatchPredictionOpen(m.match_date)),
+    [matches, forceEditable]
+  );
+  const hasOpenMatches = openMatches.length > 0;
+  const canEdit =
+    forceEditable || (!readOnly && (hasOpenMatches || roundScorerOpen));
 
   const [scores, setScores] = useState<Record<string, ScoreEntry>>(() =>
     Object.fromEntries(
@@ -102,25 +110,32 @@ const RoundPredictionPanel = ({
       .sort((a, b) => a.localeCompare(b));
   }, [matches]);
 
-  const filledCount = matches.filter((m) => {
-    const s = scores[m.id];
+  const isScoreFilled = (matchId: string) => {
+    const s = scores[matchId];
     if (!s) return false;
     const h = parseInt(s.home, 10);
     const a = parseInt(s.away, 10);
     return !isNaN(h) && !isNaN(a) && h >= 0 && a >= 0;
-  }).length;
+  };
 
-  const allScoresFilled = filledCount === matches.length;
+  const filledCount = matches.filter((m) => isScoreFilled(m.id)).length;
+  const filledOpenCount = openMatches.filter((m) => isScoreFilled(m.id)).length;
+  const allOpenMatchesFilled =
+    openMatches.length > 0 && filledOpenCount === openMatches.length;
+
   const scorerRequired = !forceEditable;
   const scorerDuplicate =
     scorer.trim().length > 0 && usedScorerNames.has(scorer.trim().toLowerCase());
   const hasPartialContent = filledCount > 0 || (forceEditable && scorer.trim().length > 0);
+  const scorerDeadlineOk =
+    forceEditable || !roundScorerOpen || !scorerRequired || scorer.trim().length > 0;
+
   const canSubmit = forceEditable
     ? hasPartialContent && !scorerDuplicate
-    : roundOpen &&
-      allScoresFilled &&
-      (!scorerRequired || scorer.trim().length > 0) &&
-      !scorerDuplicate;
+    : !scorerDuplicate &&
+      scorerDeadlineOk &&
+      (allOpenMatchesFilled || (roundScorerOpen && scorer.trim().length > 0)) &&
+      (hasOpenMatches || roundScorerOpen);
 
   const handleSave = async () => {
     if (!canSubmit) return;
@@ -147,7 +162,7 @@ const RoundPredictionPanel = ({
   const hasAnyPrediction = matches.some((m) => predictions[m.id]);
 
   return (
-    <Card className={!roundOpen ? "opacity-80" : ""}>
+    <Card className={!canEdit ? "opacity-80" : ""}>
       <CardHeader className="pb-2">
         <CardTitle className="text-base">{roundLabel}</CardTitle>
         <p className="text-xs text-muted-foreground">
@@ -159,12 +174,21 @@ const RoundPredictionPanel = ({
           <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
             Modo admin — prazo ignorado
           </p>
-        ) : roundOpen ? (
-          <p className="text-xs text-muted-foreground">
-            Prazo: até {formatDeadline(deadlineDate)} (início do 1º jogo)
-          </p>
         ) : (
-          <p className="text-xs font-medium text-muted-foreground">Rodada encerrada</p>
+          <>
+            <p className="text-xs text-muted-foreground">
+              Resultados: cada jogo fecha no horário do seu início
+            </p>
+            {roundScorerOpen ? (
+              <p className="text-xs text-muted-foreground">
+                Artilheiro da rodada: até {formatDeadline(deadlineDate)} (início do 1º jogo)
+              </p>
+            ) : (
+              <p className="text-xs font-medium text-muted-foreground">
+                Prazo do artilheiro encerrado
+              </p>
+            )}
+          </>
         )}
       </CardHeader>
       <CardContent className="space-y-3">
@@ -172,6 +196,7 @@ const RoundPredictionPanel = ({
           const pred = predictions[match.id];
           const entry = scores[match.id];
           const today = isMatchToday(match.match_date);
+          const matchOpen = forceEditable || isMatchPredictionOpen(match.match_date);
 
           return (
             <div
@@ -200,7 +225,7 @@ const RoundPredictionPanel = ({
                 </p>
               )}
 
-              {!roundOpen ? (
+              {!matchOpen ? (
                 pred ? (
                   <div className="space-y-1 text-sm">
                     <p>
@@ -245,7 +270,7 @@ const RoundPredictionPanel = ({
           );
         })}
 
-        {!roundOpen && roundScorer && (
+        {!roundScorerOpen && roundScorer && (
           <p className="text-sm">
             Jogador da rodada: <span className="font-medium">{roundScorer}</span>
             {roundScorerPoints !== null && roundScorerPoints !== undefined && (
@@ -257,8 +282,9 @@ const RoundPredictionPanel = ({
           </p>
         )}
 
-        {roundOpen && (
+        {canEdit && (
           <>
+            {roundScorerOpen && (
             <div className="relative border-t pt-3">
               <p className="mb-2 text-sm font-medium">
                 Jogador da rodada (+{scorerPoints} pts)
@@ -329,17 +355,24 @@ const RoundPredictionPanel = ({
                 </ul>
               )}
             </div>
+            )}
 
             <p className="text-center text-xs text-muted-foreground">
-              {filledCount}/{matches.length} jogos preenchidos
               {forceEditable
-                ? filledCount === 0 && !scorer.trim()
-                  ? " · Preencha ao menos um jogo ou o artilheiro"
-                  : " · Salva só o que estiver preenchido"
-                : scorerRequired &&
-                  !scorer.trim() &&
-                  filledCount === matches.length &&
-                  " · Informe o artilheiro"}
+                ? `${filledCount}/${matches.length} jogos preenchidos${
+                    filledCount === 0 && !scorer.trim()
+                      ? " · Preencha ao menos um jogo ou o artilheiro"
+                      : " · Salva só o que estiver preenchido"
+                  }`
+                : hasOpenMatches
+                ? `${filledOpenCount}/${openMatches.length} jogos em aberto preenchidos${
+                    roundScorerOpen && scorerRequired && !scorer.trim() && allOpenMatchesFilled
+                      ? " · Informe o artilheiro"
+                      : ""
+                  }`
+                : roundScorerOpen
+                ? "Informe o artilheiro da rodada"
+                : "Nenhum palpite em aberto nesta rodada"}
             </p>
 
             <Button className="w-full" onClick={handleSave} disabled={!canSubmit || saving}>

@@ -371,13 +371,27 @@ const BolaoDetail = () => {
   ) => {
     if (!user || !id) return;
     if (readOnlyView) return;
-    if (!isAdminPalpiteMode && !isRoundOpen(roundMatches)) {
-      toast({
-        title: "Prazo encerrado",
-        description: "A rodada fecha no início do primeiro jogo.",
-        variant: "destructive",
-      });
-      return;
+    if (!isAdminPalpiteMode) {
+      for (const match of roundMatches) {
+        const score = scores[match.id];
+        if (!score) continue;
+        if (!isMatchPredictionOpen(match.match_date)) {
+          toast({
+            title: "Prazo encerrado",
+            description: `O palpite de ${match.home_team} × ${match.away_team} só pode ser feito até o início do jogo.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      if (scorerName.trim() && !isRoundOpen(roundMatches)) {
+        toast({
+          title: "Prazo encerrado",
+          description: "O artilheiro da rodada fecha no início do primeiro jogo.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     if (
@@ -438,28 +452,45 @@ const BolaoDetail = () => {
       return;
     }
 
-    const predRows = roundMatches.map((match) => {
-      const existing = predictions[match.id];
-      const { home, away } = scores[match.id];
-      return {
-        ...(existing ? { id: existing.id } : {}),
-        bolao_id: id,
-        user_id: targetUserId,
-        match_id: match.id,
-        home_score: home,
-        away_score: away,
-        scorer_name: null,
-      };
+    const scoreRows = buildRoundPredictionRows(roundMatches, scores).filter((row) => {
+      if (isAdminPalpiteMode) return true;
+      const match = roundMatches.find((m) => m.id === row.match_id);
+      return match && isMatchPredictionOpen(match.match_date);
     });
 
-    const { error } = await supabase.from("predictions").upsert(predRows, {
-      onConflict: "bolao_id,user_id,match_id",
-    });
-
-    if (error) {
+    if (scoreRows.length === 0 && !scorerName.trim()) {
       setSavingRound(null);
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      toast({
+        title: "Nada para salvar",
+        description: "Não há jogos em aberto para palpitar.",
+        variant: "destructive",
+      });
       return;
+    }
+
+    if (scoreRows.length > 0) {
+      const predRows = scoreRows.map((row) => {
+        const existing = predictions[row.match_id];
+        return {
+          ...(existing ? { id: existing.id } : {}),
+          bolao_id: id,
+          user_id: targetUserId,
+          match_id: row.match_id,
+          home_score: row.home_score,
+          away_score: row.away_score,
+          scorer_name: null,
+        };
+      });
+
+      const { error } = await supabase.from("predictions").upsert(predRows, {
+        onConflict: "bolao_id,user_id,match_id",
+      });
+
+      if (error) {
+        setSavingRound(null);
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+        return;
+      }
     }
 
     if (scorerName.trim()) {

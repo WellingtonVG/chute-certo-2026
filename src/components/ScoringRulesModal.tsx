@@ -70,7 +70,7 @@ const ScoringRulesModal = () => {
             <p className="mb-2 text-xs text-muted-foreground">
               Escolha 1 jogador por rodada. Se ele marcar pelo menos um gol naquela rodada, você
               pontua. Não vale gol contra nem gol em disputa de pênaltis. O jogador não pode ser
-              repetido entre rodadas.
+              repetido entre rodadas. Prazo: até o início do 1º jogo da rodada.
             </p>
             <p className="mb-2 text-xs text-muted-foreground">
               São <span className="font-medium text-foreground">9 rodadas</span>: 3 na fase de

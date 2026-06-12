@@ -167,7 +167,7 @@ export function groupByRoundKey(matches: Match[]): Record<string, Match[]> {
   return grouped;
 }
 
-/** 1º jogo da rodada (prazo do palpite em lote) */
+/** 1º jogo da rodada (prazo do artilheiro da rodada) */
 export function getScorerMatchForRound(roundMatches: Match[]): Match {
   return [...roundMatches].sort(
     (a, b) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime()
@@ -206,7 +206,7 @@ export function getClosestRoundKey(matches: Match[]): string | null {
   return best;
 }
 
-/** Rodada aberta até o início do primeiro jogo */
+/** Artilheiro da rodada: aberto até o início do 1º jogo (resultados usam prazo por jogo) */
 export function isRoundOpen(roundMatches: Match[]): boolean {
   if (roundMatches.length === 0) return false;
   const earliest = Math.min(
